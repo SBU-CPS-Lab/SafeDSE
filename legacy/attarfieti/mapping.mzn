@@ -26,74 +26,36 @@ constraint forall(proc in procs) (
   sum(i in actors)(P[i]) > 0 -> sum(i in actors)(P[i]==proc /\ N[i]==-1) == 1
 );
 
-
 % the transitive closure on the actors running on a single processor is kept by posting a nocycle constraint
-
-
+% constraint ???;
 
 %% The second model
- array[actors,actors] of var 0..1: ARC;
+array[actors,actors] of var 0..1: ARC;
 
+% Existing arcs in the input HSDFG result in some pre-filling of the ARC matrix
+constraint forall (i,j in actors) (graph[i,j]==1 -> ARC[i,j]==1);
+
+% Two arcs added, if two independent nodes are mapped to the same processor
+constraint forall (i,j in actors where i<j /\ precedes[i,j]+precedes[j,i]==0) (P[i]==P[j] -> ARC[i,j]+ARC[j,i]==2);
+
+% close the scheduling loop
+constraint forall (i,j in actors) (
+  P[i]==P[j] /\
+  sum (k in actors where k!=i /\ precedes[k,i]==1) (P[k]==P[i]) == 0 /\
+  sum (k in actors where j!=k /\ precedes[j,k]==1) (P[k]==P[j]) == 0
+    -> ARC[j,i]==1
+);
+
+%% The throughput constraint
+
+
+%%
 int: num_edges;
 array[0..num_edges-1,1..2] of actors: edges;
-%prefiling ARC with input HSDF
-constraint forall(i,j in actors where graph[i,j]=1)(ARC[i,j]=1);
-%to force two arc added to graph (i two independant actor are mapped on the same processor)
-constraint forall(i,j in actors where P[i]=P[j] /\  (graph[i,j] !=1 \/ graph[j,i]!=1) ) (ARC[i,j]+ARC[j,i]=2);
 
-% if there is a path from i to j 
- constraint forall(i,j,k in actors where P[i]=P[j] /\ (precedes[k,i]=1 -> P[k]=P[i] ) /\  (precedes[j,k]=1 -> P[k]=P[j] ) ) (ARC[j,i]=1);
- 
- % to keep zeros stay 0 
- var int : pp = sum(ARC); 
- solve minimize pp;
- 
- % stores weight of each path
 
-  
-  
-   
-  constraint P[0]+P[1]+P[2]=0;
-  constraint P[3]+P[4]+P[5]+P[6]+P[7]=5;
-%solve satisfy;
+  constraint P[0]+P[1]+P[3]=0;
+  constraint P[2]+P[4]+P[5]+P[6]+P[7]=5;
+solve satisfy;
 
 % output [show([true|i in 1..num_edges])];
-n=8;
-p=2;
-graph =
-[|   0: 1: 2: 3: 4: 5: 6: 7:
- |0: 0, 1, 1, 0, 0, 0, 0, 0
- |1: 0, 0, 0, 1, 0, 0, 0, 0
- |2: 0, 0, 0, 0, 1, 0, 0, 0
- |3: 0, 0, 0, 0, 0, 1, 1, 0
- |4: 0, 0, 0, 0, 0, 0, 1, 1
- |5: 0, 0, 0, 1, 1, 0, 0, 0
- |6: 0, 0, 0, 1, 0, 0, 0, 0
- |7: 0, 0, 0, 0, 1, 0, 0, 0
- |];
-precedes =
-[|   0: 1: 2: 3: 4: 5: 6: 7:
- |0: 1, 1, 1, 1, 1, 1, 1, 1
- |1: 0, 1, 0, 1, 1, 1, 1, 1
- |2: 0, 0, 1, 0, 1, 0, 1, 1
- |3: 0, 0, 0, 1, 1, 1, 1, 1
- |4: 0, 0, 0, 0, 1, 0, 1, 1
- |5: 0, 0, 0, 0, 1, 1, 1, 1
- |6: 0, 0, 0, 0, 0, 0, 1, 0
- |7: 0, 0, 0, 0, 0, 0, 0, 1
- |];
-num_edges = 12;
-edges = array2d(0..11,1..2,
-[0, 1,
- 0, 2,
- 1, 3,
- 2, 4,
- 3, 5,
- 3, 6,
- 4, 6,
- 4, 7,
- 5, 3,
- 5, 4,
- 6, 3,
- 7, 4
-]);
