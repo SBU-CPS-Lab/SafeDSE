@@ -4,7 +4,7 @@ include "globals.mzn";
 int: n;      % number of actors
 int: p;      % number of processors in the platform
 set of int: actors = 0..n-1;
-set of int: r_actors = 0..5*n;
+set of int: r_actors = 0..3*n+n;
 
 set of int: procs = 0..p-1;
 
@@ -65,7 +65,7 @@ var int : total_cost;
 array[actors] of  int : actor_cost;
 array[actors] of  int : checker_cost;
 
-array [r_actors , r_actors] of var -1..1 : graph_p;
+array [r_actors , r_actors] of var 0..1 : graph_p;
 %array [actors] of var 0..4: redundancy_graph;
 %prefiling
 constraint forall(i,j in actors )(graph_p[i,j]=graph[i,j]);
@@ -85,16 +85,43 @@ constraint
 
 constraint 
               forall(i in actors where pattern_using[i]=1)(if i=0 then 
-              graph_p[i,n]=1 /\ graph_p[n,i]=1  /\ graph_p[i,n+1]=1 /\  graph_p[n,n+1]=1 /\ graph_p[n+1,i]=1     
-              /\ graph_p[n,n+1]=1 /\ graph_p[n+1,n]=1 
+              graph_p[i,n]=1  /\ 
+              graph_p[n,i]=1  /\ 
+              graph_p[i,n+1]=1 /\
+              graph_p[n,n+1]=1 /\ 
+              graph_p[n+1,n]=1 /\ 
+              graph_p[n,n]=1 /\ 
+              graph_p[n+1,n+1]=1
               else
-               true      endif);
+               graph_p[i,pattern_redundant[i-1]+n]=1 /\
+                graph_p[i,pattern_redundant[i-1]+n+1]=1  /\ 
+               graph_p[pattern_redundant[i-1]+n+1,pattern_redundant[i-1]+n ]  =1 /\
+               graph_p[pattern_redundant[i-1]+n,pattern_redundant[i-1]+n+1 ]  =1 /\
+               graph_p[pattern_redundant[i-1]+n,i]=1 /\
+               graph_p[pattern_redundant[i-1]+n,pattern_redundant[i-1]+n]=1 /\
+               graph_p[pattern_redundant[i-1]+n+1,pattern_redundant[i-1]+n+1]=1 
+               endif);
                  
  
+
+%%%%
+constraint 
+              forall(i,j in actors where graph[i,j]=1 /\ pattern_using[j]=1)(
+              if j=0 then graph_p[i,n+1]=1 /\ graph_p[i, n]=1 
+              else 
+               graph_p[i,pattern_redundant[j-1]+n]=1 /\ graph_p[i, pattern_redundant[j]+n-1]=1 
+              endif);
+
+
+%%%
 
 
 %%%%
    constraint forall(i in actors where actor_sil[i]=1 \/ actor_sil[i]=2) (pattern_redundant[i]=0);
+   
+   
+   
+   
 total_cost=sum(pattern_cost);   
   constraint P[0]+P[1]+P[2]=0;
   constraint P[3]+P[4]+P[5]+P[6]+P[7]=5;
