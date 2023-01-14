@@ -57,6 +57,8 @@ constraint forall(i,j in actors where P[i]=P[j] /\  (graph[i,j] !=1 \/ graph[j,i
  
    
 % third model
+
+
 array [actors] of 1..4: actor_sil; 
 array [actors] of  var int: pattern_redundant;
 array [actors] of  var 1..6: pattern_using;
@@ -69,18 +71,33 @@ array [r_actors , r_actors] of var 0..1 : graph_p;
 %array [actors] of var 0..4: redundancy_graph;
 %prefiling
 constraint forall(i,j in actors )(graph_p[i,j]=graph[i,j]);
-% constraint for SIL 3 and 4 // 1--> MIXED_SIL FAIL SILENT ,  2 --> HIGH SIL DOER 
+
+
+%  pattern_using[i]=1 --> mixed sil-fail sailent // pattern_using[i]=0 --> no pattern // pattern_using[i]=2 --> high sil-fail operational
 constraint 
-                   forall (i in actors where actor_sil[i]=3 /\ i !=0 )  (pattern_using[i]=0 /\ pattern_redundant[i]=pattern_redundant[i-1] /\ pattern_cost[i]=0 )
+                   forall (i in actors where actor_sil[i]=3 /\ i !=0 )  (pattern_using[i]=0 /\ pattern_redundant[i]=pattern_redundant[i-1] 
+                   /\ pattern_cost[i]=0 )
+                   
                    \/ 
-                   forall (i in actors where actor_sil[i]=3 /\ i!=0) ( pattern_using[i]=1 /\     pattern_cost[i]=100 /\ pattern_redundant[i]=pattern_redundant[i-1] + 2
-                   )
+                   
+                   forall (i in actors where actor_sil[i]=3 /\ i!=0) ( pattern_using[i]=1 /\     pattern_cost[i]=100
+                    /\ pattern_redundant[i]=pattern_redundant[i-1] + 2)
+                    
+                  \/
+                   forall (i in actors where actor_sil[i]=3 /\ i!=0) ( pattern_using[i]=2 /\     pattern_cost[i]=200
+                    /\ pattern_redundant[i]=pattern_redundant[i-1] + 4)
               ;
-%%%% 
+%%%% pattern_using[i]=1 --> mixed sil-fail sailent // pattern_using[i]=0 --> no pattern // pattern_using[i]=2 --> High Sil-Fail silent
 constraint
-                                                    forall (i in actors where actor_sil[i]=3 /\ i=0) ( pattern_using[i]=1 /\     pattern_cost[i]=100 /\ pattern_redundant[i]=2)
+                                                    forall (i in actors where actor_sil[i]=3 /\ i=0) ( pattern_using[i]=1 /\     pattern_cost[i]=100
+                                                     /\ pattern_redundant[i]=2)
                    \/
-                                      forall (i in actors where actor_sil[i]=3 /\ i=0) ( pattern_using[i]=0 /\     pattern_cost[i]=100 /\ pattern_redundant[i]=0);
+                                                    forall (i in actors where actor_sil[i]=3 /\ i=0) ( pattern_using[i]=0 /\     pattern_cost[i]=0 
+                                                    /\ pattern_redundant[i]=0)
+                   \/
+                                                    forall (i in actors where actor_sil[i]=3 /\ i=0) ( pattern_using[i]=2 /\     pattern_cost[i]=50 
+                                                    /\ pattern_redundant[i]=1)                   
+                                                    ;
 %%%%
 
 constraint 
@@ -103,7 +120,23 @@ constraint
                endif);
                  
  
+%%
 
+            constraint 
+              forall(i in actors where pattern_using[i]=2)(if i=0 then 
+              graph_p[n,n]=1  /\ 
+              graph_p[i,n]=1  /\
+              graph_p[n,i]=1  
+   else
+              
+              graph_p [pattern_redundant[i-1] + n, i]=1     /\
+              graph_p [i, pattern_redundant[i-1] + n]=1     /\
+              %self loop for redundant actor
+              graph_p [pattern_redundant[i-1] + n, pattern_redundant[i-1] + n]=1      
+              
+
+               endif);     
+ 
 %%%%
 constraint 
               forall(i,j in actors where graph[i,j]=1 /\ pattern_using[j]=1)(
@@ -112,6 +145,13 @@ constraint
                graph_p[i,pattern_redundant[j-1]+n]=1 /\ graph_p[i, pattern_redundant[j]+n-1]=1 
               endif);
 
+%%%
+constraint 
+              forall(i,j in actors where graph[i,j]=1 /\ pattern_using[j]=2)(
+              if j=0 then graph_p[i,n]=1 
+              else 
+              graph_p[i, pattern_redundant[j-1]+n]=1 
+              endif);
 
 %%%
 
