@@ -72,9 +72,8 @@ array [r_actors , r_actors] of var 0..1 : graph_p;
 %prefiling
 %constraint forall(i,j in actors )(graph_p[i,j]=graph[i,j]);
 constraint
-               forall(i in actors where pattern_using[i]=2  )(graph_p[i,i]=1)
-               /\
-               forall(j in actors where pattern_using[j]=1)(graph_p[j,j]=1);
+               forall(i in actors where pattern_using[i]=2 \/ pattern_using[i]=1  )(graph_p[i,i]=1);
+
 
 constraint 
                forall(i,j in actors where pattern_using[i]=1 /\ i !=j)(graph_p[i,j]=graph[i,j])
