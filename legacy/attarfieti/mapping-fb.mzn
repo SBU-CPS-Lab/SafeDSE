@@ -70,8 +70,18 @@ array[actors] of  int : checker_cost;
 array [r_actors , r_actors] of var 0..1 : graph_p;
 %array [actors] of var 0..4: redundancy_graph;
 %prefiling
-constraint forall(i,j in actors )(graph_p[i,j]=graph[i,j]);
+%constraint forall(i,j in actors )(graph_p[i,j]=graph[i,j]);
+constraint
+               forall(i in actors where pattern_using[i]=2  )(graph_p[i,i]=1)
+               /\
+               forall(j in actors where pattern_using[j]=1)(graph_p[j,j]=1);
 
+constraint 
+               forall(i,j in actors where pattern_using[i]=1 /\ i !=j)(graph_p[i,j]=graph[i,j])
+               /\
+               forall(i,j in actors where pattern_using[i]=2 /\ i!=j)(graph_p[i,j]=graph[i,j])
+               /\
+               forall(i,j in actors where pattern_using[i]=0)(graph_p[i,j]=graph[i,j]);
 
 %  pattern_using[i]=1 --> mixed sil-fail sailent // pattern_using[i]=0 --> no pattern // pattern_using[i]=2 --> high sil-fail operational
 constraint 
@@ -84,8 +94,8 @@ constraint
                     /\ pattern_redundant[i]=pattern_redundant[i-1] + 2)
                     
                   \/
-                   forall (i in actors where actor_sil[i]=3 /\ i!=0) ( pattern_using[i]=2 /\     pattern_cost[i]=200
-                    /\ pattern_redundant[i]=pattern_redundant[i-1] + 4)
+                   forall (i in actors where actor_sil[i]=3 /\ i!=0) ( pattern_using[i]=2 /\     pattern_cost[i]=50
+                    /\ pattern_redundant[i]=pattern_redundant[i-1] + 1)
               ;
 %%%% pattern_using[i]=1 --> mixed sil-fail sailent // pattern_using[i]=0 --> no pattern // pattern_using[i]=2 --> High Sil-Fail silent
 constraint
@@ -159,9 +169,7 @@ constraint
 %%%%
    constraint forall(i in actors where actor_sil[i]=1 \/ actor_sil[i]=2) (pattern_redundant[i]=0);
    
-   
-   
-   
+      
 total_cost=sum(pattern_cost);   
   constraint P[0]+P[1]+P[2]=0;
   constraint P[3]+P[4]+P[5]+P[6]+P[7]=5;
