@@ -14,10 +14,10 @@ var int: max_cycle_mean;
 array[0..n, 1..n] of var int: D;
 
 % Define the predecessor matrix
-array[0..n, 1..n] of var opt int: P;
+% array[0..n, 1..n] of var opt int: P;
 
 % Popualte the distance and predecessor matrices
-constraint D[0, 1] = 0 /\ absent(P[0, 1]);
+constraint D[0, 1] = 0;% /\ absent(P[0, 1]);
 constraint
     forall(i in 2..n) (
         D[0, i] = -1000
