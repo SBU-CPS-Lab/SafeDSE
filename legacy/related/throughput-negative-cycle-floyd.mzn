@@ -19,46 +19,50 @@ var 0..sum(T)*precision: iteration_bound;
 % Define Precision which is the fractional resolution for time-related vriables
 0..: precision;
 
-% Define the distance matrix where dist[_ ,_ ,i, j] represents the distance from node i to node j
-% First index is for two conseceutive investigation of iteration bound
-% Second index is the algorithm iteration
-array[0..1, 0..n, 1..n, 1..n] of var int: dists;
+% A minizinc predicate which relates the iteration bound to an input graph according to the negative cycle detection method
+predicate negative_cycle_detection(var int: iteration_bound, array[1..n, 1..n] of opt 0..: Arc, array[1..n] of 0..: T) =
+  let {
+    % Define the distance matrix where dist[_ ,_ ,i, j] represents the distance from node i to node j
+    % First index is for two conseceutive investigation of iteration bound
+    % Second index is the algorithm iteration
+    array[0..1, 0..n, 1..n, 1..n] of var int: dists;
+  } in
+  (
+    % Initialize the distance matrix with the graph's edge weights
+    % For nodes i and j where i = j, set the distance to 0 (distance from a node to itself is 0)
+    % For nodes i and j where there is no direct edge (i ≠ j), set the distance to a large value (infinity)
+    forall (t in 0..1, i, j in 1..n) (
+      dists[t,0,i,j] = if i=j then 0 else
+                         if occurs(Arc[i,j]) then 
+                           (Arc[i,j]) * (iteration_bound-(1-t)) - T[i]
+                         else
+                           1000 
+                         endif
+                       endif
+    )
+    /\
+    % Floyd-Warshall algorithm to compute all-pairs shortest paths
+    % Update the distance matrices iteratively to find the shortest paths
+    forall (t in 0..1, k, i, j in 1..n) (
+      dists[t, k, i, j] = min(dists[t, k-1, i, j], dists[t, k-1, i, k] + dists[t, k-1, k, j])
+    )
+    /\
+    % For Tc-1 there should be at least one negative cycle (negative number on diagonal of the result matrix)
+    exists (i in 1..n) (dists[0,n,i,i] < 0)
+    /\
+    % For Tc there should not be any negative cycle
+    forall (i in 1..n) (dists[1,n,i,i] >= 0)
+  );
 
-% Initialize the distance matrix with the graph's edge weights
-% For nodes i and j where i = j, set the distance to 0 (distance from a node to itself is 0)
-% For nodes i and j where there is no direct edge (i ≠ j), set the distance to a large value (infinity)
-constraint forall (t in 0..1, i, j in 1..n) (
-  dists[t,0,i,j] = if i=j then 0 else
-                     if occurs(Arc[i,j]) then 
-                       (Arc[i,j]) * (iteration_bound-(1-t)) - (T[i]*precision)
-                     else
-                       1000 
-                     endif
-                   endif
-);
+% Post the negative cycle detection predicate
+constraint negative_cycle_detection(iteration_bound, Arc, [T[i]*precision | i in 1..n]);
 
-% Floyd-Warshall algorithm to compute all-pairs shortest paths
-% Update the distance matrices iteratively to find the shortest paths
-constraint
-  forall (t in 0..1, k, i, j in 1..n) (
-    dists[t, k, i, j] = min(dists[t, k-1, i, j], dists[t, k-1, i, k] + dists[t, k-1, k, j])
-);
-
-% For Tc-1 there should be at least one negative cycle (negative number on diagonal of the result matrix)
-constraint exists (i in 1..n) (dists[0,n,i,i] < 0);
-% For Tc there should not be any negative cycle
-constraint forall (i in 1..n) (dists[1,n,i,i] >= 0);
+% Solve the problem
+solve satisfy;
 
 % Output the maximum cycle mean
 output ["Iteration bound: " ++ show(iteration_bound/precision) ++ "\n"];
 
-% output [ if i == 1 /\ j==1 then "dists[\(k)] = \n" else "" endif ++
-%          show_int(4, dists[0,k,i,j]) ++ 
-%          if j == n then "\n" else " " endif |
-%          k in 0..n, i in 1..n, j in 1..n
-% ];
-
-solve satisfy;
 
 % Example Fig.1 in the paper
 n=6;
@@ -81,3 +85,13 @@ precision = 10;
 %       | <>, <>,  1, <>|];
 % T = [1, 2, 2, 1];
 % precision = 1;
+
+% Example 2.2 from Govindarajant and Gao '93
+% n=4;
+% %       a0, a1, c0, b0
+% Arc= [| <>,  0, <>, <>,
+%       |  1, <>, <>,  0,
+%       |  2,  2,  1, <>,
+%       | <>, <>,  0,  1|];
+% T = [1, 1, 2, 1];
+% precision = 2;
