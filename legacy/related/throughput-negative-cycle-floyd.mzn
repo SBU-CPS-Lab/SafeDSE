@@ -1,7 +1,8 @@
-% Calculate all the iteration bound of an HSDF graph using the negative cycle detection mthod and the Floyd-Warshall algorithm
-% Based on the Ito and Parhi'95
-% We calculate two ses of distance matrixes for Tc and Tc-1 (Tc: iteration bound) in such a way that Tc-1 gives negative cycles but Tc won't
-% Since iteration bound might be fractional the precision can be adjusted for fractional part
+% Calculate the iteration bound of an HSDF graph using the negative cycle detection mthod and the Floyd-Warshall algorithm
+% Based on Ito and Parhi'95
+% We calculate two ses of distance matrixes for Tc and Tc-1 (Tc: iteration bound)
+% in such a way that Tc-1 gives negative cycles but Tc won't
+% Since iteration bound might be fractional the precision can be adjusted for fractional part of the time domain
 
 % Define the number of actors in the graph
 int: n;
@@ -15,11 +16,13 @@ array[1..n] of 0..: T;
 % Define the maximum cycle mean
 var 0..sum(T)*precision: iteration_bound;
 
-% Define Precision which is the fractional resolution for iteration bound
+% Define Precision which is the fractional resolution for time-related vriables
 0..: precision;
 
 % Define the distance matrix where dist[_ ,_ ,i, j] represents the distance from node i to node j
-array[0..1, 0..n, 1..n, 1..n] of var int: dists;  % First index is for two conseceutive investigation of iteration bound and second index is the algorithm iteration
+% First index is for two conseceutive investigation of iteration bound
+% Second index is the algorithm iteration
+array[0..1, 0..n, 1..n, 1..n] of var int: dists;
 
 % Initialize the distance matrix with the graph's edge weights
 % For nodes i and j where i = j, set the distance to 0 (distance from a node to itself is 0)
@@ -41,21 +44,23 @@ constraint
     dists[t, k, i, j] = min(dists[t, k-1, i, j], dists[t, k-1, i, k] + dists[t, k-1, k, j])
 );
 
+% For Tc-1 there should be at least one negative cycle (negative number on diagonal of the result matrix)
 constraint exists (i in 1..n) (dists[0,n,i,i] < 0);
+% For Tc there should not be any negative cycle
 constraint forall (i in 1..n) (dists[1,n,i,i] >= 0);
 
 % Output the maximum cycle mean
 output ["Iteration bound: " ++ show(iteration_bound/precision) ++ "\n"];
 
-output [ if i == 1 /\ j==1 then "dists[\(k)] = \n" else "" endif ++
-         show_int(4, dists[0,k,i,j]) ++ 
-         if j == n then "\n" else " " endif |
-         k in 0..n, i in 1..n, j in 1..n
-];
+% output [ if i == 1 /\ j==1 then "dists[\(k)] = \n" else "" endif ++
+%          show_int(4, dists[0,k,i,j]) ++ 
+%          if j == n then "\n" else " " endif |
+%          k in 0..n, i in 1..n, j in 1..n
+% ];
 
 solve satisfy;
-% constraint iteration_bound = 35;
-% Example Fig.1
+
+% Example Fig.1 in the paper
 n=6;
 %        h,  i,  j,  k,  l,  m
 Arc= [| <>,  0,  1, <>, <>, <>,
@@ -67,7 +72,7 @@ Arc= [| <>,  0,  1, <>, <>, <>,
 T = [1, 4, 2, 2, 1, 1];
 precision = 10;
 
-% Example Fig.2
+% Example Fig.2 in the paper
 % n=4;
 % %        i,  j,  k,  l
 % Arc= [| <>, <>, <>,  1,
