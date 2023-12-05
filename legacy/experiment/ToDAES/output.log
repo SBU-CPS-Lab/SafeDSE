@@ -1,0 +1,653 @@
+2023-12-05 15:42:04 [DEBUG] - Loaded initial configuration from 'exp_5_1_rajp/config.cfg'
+2023-12-05 15:42:04 [INFO] - Started logging into 'exp_5_1_rajp/output.log'
+2023-12-05 15:42:04 [DEBUG] - Configuration parsed successfully.
+2023-12-05 15:42:04 [DEBUG] - * inputs_paths : [{/ g e c o d e - r e l e a s e - 4 . 4 . 0 / d e s y d e / D e S y D e / e x a m p l e s / T O D A E S / e x p _ 5 _ 1 _ r a j p / s d f s / c _ r a s t a . h s d f . x m l } {/ g e c o d e - r e l e a s e - 4 . 4 . 0 / d e s y d e / D e S y D e / e x a m p l e s / T O D A E S / e x p _ 5 _ 1 _ r a j p / s d f s / d _ j p e g E n c 1 . h s d f . x m l } {/ g e c o d e - r e l e a s e - 4 . 4 . 0 / d e s y d e / D e S y D e / e x a m p l e s / T O D A E S / e x p _ 5 _ 1 _ r a j p / x m l s / W C E T s . x m l } {/ g e c o d e - r e l e a s e - 4 . 4 . 0 / d e s y d e / D e S y D e / e x a m p l e s / T O D A E S / e x p _ 5 _ 1 _ r a j p / x m l s / d e s C o n s t . x m l } {/ g e c o d e - r e l e a s e - 4 . 4 . 0 / d e s y d e / D e S y D e / e x a m p l e s / T O D A E S / e x p _ 5 _ 1 _ r a j p / x m l s / p l a t f o r m . x m l } ]
+                              * output_path : exp_5_1_rajp/
+                              * logger : exp_5_1_rajp/output.log
+                              * log level : INFO | DEBUG
+                              * model : 2
+                              * search : 3
+                              * criteria : [2 1 ]
+                              * timeout : 21600000 | 1800000
+                              * no of threads : 0
+                              * no good depth : 100
+                              * luby_scale : 20
+                              * throughput propagator : 1
+2023-12-05 15:42:04 [INFO] - Storing WCET XML file...
+2023-12-05 15:42:04 [INFO] - Storing desConst XML file...
+2023-12-05 15:42:04 [INFO] - Parsing platform XML file...
+2023-12-05 15:42:04 [DEBUG] - running xpathString  ///@name on platform xml ...
+2023-12-05 15:42:04 [DEBUG] - Platform class is parsing the following platform: demo_platform...
+2023-12-05 15:42:04 [DEBUG] - Platform class is parsing the following platform: eco...
+2023-12-05 15:42:04 [DEBUG] - Platform class is parsing the following platform: standard...
+2023-12-05 15:42:04 [DEBUG] - Platform class is parsing the following platform: performance...
+2023-12-05 15:42:04 [DEBUG] - Platform class is parsing the following platform: TDMA-bus...
+2023-12-05 15:42:04 [DEBUG] - Platform class is parsing the following platform: default...
+2023-12-05 15:42:04 [DEBUG] - running xpathString  ///platform/processor platform xml ...
+2023-12-05 15:42:04 [DEBUG] - Reading processor model: default...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: eco...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: standard...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: performance...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: eco...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: standard...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: performance...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: eco...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: standard...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: performance...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: eco...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: standard...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: performance...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: eco...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: standard...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: performance...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: eco...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: standard...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: performance...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: eco...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: standard...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: performance...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: eco...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: standard...
+2023-12-05 15:42:04 [DEBUG] - Reading processor mode: performance...
+2023-12-05 15:42:04 [DEBUG] - running xpathString  ///platform/interconnect platform xml ...
+2023-12-05 15:42:04 [DEBUG] - 1 interconnect(s) found.
+2023-12-05 15:42:04 [DEBUG] - Found a TDMA-bus with 8 nodes, 32 bit flit size, 8 TDMA-slots, 8 TDMA-slots per proc, and 1 mode(s).
+2023-12-05 15:42:04 [INFO] - PE[0]: PE:default_0[model=default], no_types=3, speeds(1.2, 1, 0.8)
+                             PE[1]: PE:default_1[model=default], no_types=3, speeds(1.2, 1, 0.8)
+                             PE[2]: PE:default_2[model=default], no_types=3, speeds(1.2, 1, 0.8)
+                             PE[3]: PE:default_3[model=default], no_types=3, speeds(1.2, 1, 0.8)
+                             PE[4]: PE:default_4[model=default], no_types=3, speeds(1.2, 1, 0.8)
+                             PE[5]: PE:default_5[model=default], no_types=3, speeds(1.2, 1, 0.8)
+                             PE[6]: PE:default_6[model=default], no_types=3, speeds(1.2, 1, 0.8)
+                             PE[7]: PE:default_7[model=default], no_types=3, speeds(1.2, 1, 0.8)
+2023-12-05 15:42:04 [INFO] - Parsing SDF3 graphs...
+2023-12-05 15:42:04 [DEBUG] - Parsing /gecode-release-4.4.0/desyde/DeSyDe/examples/TODAES/exp_5_1_rajp/sdfs/c_rasta.hsdf.xml...
+2023-12-05 15:42:04 [DEBUG] - Found XSD schema at http://www.es.ele.tue.nl/sdf3/xsd/sdf3-sdf.xsd
+2023-12-05 15:42:04 [DEBUG] - Document valid
+2023-12-05 15:42:04 [DEBUG] - Parsed /gecode-release-4.4.0/desyde/DeSyDe/examples/TODAES/exp_5_1_rajp/sdfs/c_rasta.hsdf.xml
+2023-12-05 15:42:04 [INFO] - ...application c_rasta
+2023-12-05 15:42:04 [DEBUG] - Calculating repetition vector for c_rasta
+2023-12-05 15:42:04 [DEBUG] - Found repetition vector: [1 1 1 1 1 1 1 ]
+2023-12-05 15:42:04 [DEBUG] - Transforming graph c_rasta from HSDF...
+2023-12-05 15:42:04 [DEBUG] - All 7 actors of graph c_rasta:
+2023-12-05 15:42:04 [DEBUG] - actor 0: frontEnd, parent(id): frontEnd(0); code size: 2; data size: 2
+2023-12-05 15:42:04 [DEBUG] - actor 1: rasta, parent(id): rasta(1); code size: 4; data size: 4
+2023-12-05 15:42:04 [DEBUG] - actor 2: powspec, parent(id): powspec(2); code size: 6; data size: 6
+2023-12-05 15:42:04 [DEBUG] - actor 3: audspec, parent(id): audspec(3); code size: 5; data size: 5
+2023-12-05 15:42:04 [DEBUG] - actor 4: compJah, parent(id): compJah(4); code size: 4; data size: 4
+2023-12-05 15:42:04 [DEBUG] - actor 5: rastaFilter, parent(id): rastaFilter(5); code size: 7; data size: 7
+2023-12-05 15:42:04 [DEBUG] - actor 6: backEnd, parent(id): backEnd(6); code size: 5; data size: 5
+2023-12-05 15:42:04 [DEBUG] - All 9 channels of graph c_rasta:
+2023-12-05 15:42:04 [DEBUG] - channel 0: chRa0_1 from frontEnd(0) [prod: 2] to rasta(1) [cons: 2]; initial tokens: 0; token size: 128; message size: 256
+2023-12-05 15:42:04 [DEBUG] - channel 1: chRa0_13 from frontEnd(0) [prod: 1] to compJah(4) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 2: chRa0_14 from frontEnd(0) [prod: 1] to backEnd(6) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 3: chRa0_3 from rasta(1) [prod: 2] to powspec(2) [cons: 2]; initial tokens: 0; token size: 128; message size: 256
+2023-12-05 15:42:04 [DEBUG] - channel 4: chRa0_5 from powspec(2) [prod: 2] to audspec(3) [cons: 2]; initial tokens: 0; token size: 128; message size: 256
+2023-12-05 15:42:04 [DEBUG] - channel 5: chRa0_6 from audspec(3) [prod: 1] to rastaFilter(5) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 6: chRa0_8 from audspec(3) [prod: 2] to compJah(4) [cons: 2]; initial tokens: 0; token size: 128; message size: 256
+2023-12-05 15:42:04 [DEBUG] - channel 7: chRa0_11 from compJah(4) [prod: 3] to rastaFilter(5) [cons: 3]; initial tokens: 0; token size: 128; message size: 384
+2023-12-05 15:42:04 [DEBUG] - channel 8: chRa0_12 from rastaFilter(5) [prod: 1] to backEnd(6) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - SDFGraph intermediate representation built successfully
+2023-12-05 15:42:04 [DEBUG] - Parsing /gecode-release-4.4.0/desyde/DeSyDe/examples/TODAES/exp_5_1_rajp/sdfs/d_jpegEnc1.hsdf.xml...
+2023-12-05 15:42:04 [DEBUG] - Found XSD schema at http://www.es.ele.tue.nl/sdf3/xsd/sdf3-sdf.xsd
+2023-12-05 15:42:04 [DEBUG] - Document valid
+2023-12-05 15:42:04 [DEBUG] - Parsed /gecode-release-4.4.0/desyde/DeSyDe/examples/TODAES/exp_5_1_rajp/sdfs/d_jpegEnc1.hsdf.xml
+2023-12-05 15:42:04 [INFO] - ...application d_jpegEnc1
+2023-12-05 15:42:04 [DEBUG] - Calculating repetition vector for d_jpegEnc1
+2023-12-05 15:42:04 [DEBUG] - Found repetition vector: [1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 ]
+2023-12-05 15:42:04 [DEBUG] - Transforming graph d_jpegEnc1 from HSDF...
+2023-12-05 15:42:04 [DEBUG] - All 16 actors of graph d_jpegEnc1:
+2023-12-05 15:42:04 [DEBUG] - actor 0: getImage_0, parent(id): getImage(0); code size: 8; data size: 8
+2023-12-05 15:42:04 [DEBUG] - actor 1: CC_0, parent(id): CC(1); code size: 4; data size: 4
+2023-12-05 15:42:04 [DEBUG] - actor 2: DCT_0, parent(id): DCT(2); code size: 6; data size: 6
+2023-12-05 15:42:04 [DEBUG] - actor 3: Huffman_0, parent(id): Huffman(3); code size: 5; data size: 5
+2023-12-05 15:42:04 [DEBUG] - actor 4: DCT_1, parent(id): DCT(2); code size: 6; data size: 6
+2023-12-05 15:42:04 [DEBUG] - actor 5: Huffman_1, parent(id): Huffman(3); code size: 5; data size: 5
+2023-12-05 15:42:04 [DEBUG] - actor 6: DCT_2, parent(id): DCT(2); code size: 6; data size: 6
+2023-12-05 15:42:04 [DEBUG] - actor 7: Huffman_2, parent(id): Huffman(3); code size: 5; data size: 5
+2023-12-05 15:42:04 [DEBUG] - actor 8: DCT_3, parent(id): DCT(2); code size: 6; data size: 6
+2023-12-05 15:42:04 [DEBUG] - actor 9: Huffman_3, parent(id): Huffman(3); code size: 5; data size: 5
+2023-12-05 15:42:04 [DEBUG] - actor 10: DCT_4, parent(id): DCT(2); code size: 6; data size: 6
+2023-12-05 15:42:04 [DEBUG] - actor 11: Huffman_4, parent(id): Huffman(3); code size: 5; data size: 5
+2023-12-05 15:42:04 [DEBUG] - actor 12: DCT_5, parent(id): DCT(2); code size: 6; data size: 6
+2023-12-05 15:42:04 [DEBUG] - actor 13: Huffman_5, parent(id): Huffman(3); code size: 5; data size: 5
+2023-12-05 15:42:04 [DEBUG] - actor 14: CS_0, parent(id): CS(4); code size: 4; data size: 4
+2023-12-05 15:42:04 [DEBUG] - actor 15: writeImage_0, parent(id): writeImage(5); code size: 5; data size: 5
+2023-12-05 15:42:04 [DEBUG] - All 20 channels of graph d_jpegEnc1:
+2023-12-05 15:42:04 [DEBUG] - channel 0: chJ0_0_0 from getImage_0(0) [prod: 1] to CC_0(1) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 1: chJ0_1_0 from CC_0(1) [prod: 1] to DCT_0(2) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 2: chJ0_1_1 from CC_0(1) [prod: 1] to DCT_1(4) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 3: chJ0_1_2 from CC_0(1) [prod: 1] to DCT_2(6) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 4: chJ0_1_3 from CC_0(1) [prod: 1] to DCT_3(8) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 5: chJ0_1_4 from CC_0(1) [prod: 1] to DCT_4(10) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 6: chJ0_1_5 from CC_0(1) [prod: 1] to DCT_5(12) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 7: chJ0_2_0 from DCT_0(2) [prod: 1] to Huffman_0(3) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 8: chJ0_3_0 from Huffman_0(3) [prod: 1] to CS_0(14) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 9: chJ0_2_1 from DCT_1(4) [prod: 1] to Huffman_1(5) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 10: chJ0_3_1 from Huffman_1(5) [prod: 1] to CS_0(14) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 11: chJ0_2_2 from DCT_2(6) [prod: 1] to Huffman_2(7) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 12: chJ0_3_2 from Huffman_2(7) [prod: 1] to CS_0(14) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 13: chJ0_2_3 from DCT_3(8) [prod: 1] to Huffman_3(9) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 14: chJ0_3_3 from Huffman_3(9) [prod: 1] to CS_0(14) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 15: chJ0_2_4 from DCT_4(10) [prod: 1] to Huffman_4(11) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 16: chJ0_3_4 from Huffman_4(11) [prod: 1] to CS_0(14) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 17: chJ0_2_5 from DCT_5(12) [prod: 1] to Huffman_5(13) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 18: chJ0_3_5 from Huffman_5(13) [prod: 1] to CS_0(14) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - channel 19: chJ0_4_0 from CS_0(14) [prod: 1] to writeImage_0(15) [cons: 1]; initial tokens: 0; token size: 128; message size: 128
+2023-12-05 15:42:04 [DEBUG] - SDFGraph intermediate representation built successfully
+2023-12-05 15:42:04 [INFO] - Creating an application object ...
+2023-12-05 15:42:04 [DEBUG] - running xpathString  ///designConstraints/constraint on desConst file ...
+2023-12-05 15:42:04 [DEBUG] - xml_constraints size=4
+2023-12-05 15:42:04 [DEBUG] - Reading constraints for app: a_sobel:
+2023-12-05 15:42:04 [DEBUG] - Period <= 400
+2023-12-05 15:42:04 [DEBUG] - Latency <= 0
+2023-12-05 15:42:04 [DEBUG] - Reading constraints for app: b_susan:
+2023-12-05 15:42:04 [DEBUG] - Period <= 2050
+2023-12-05 15:42:04 [DEBUG] - Latency <= 0
+2023-12-05 15:42:04 [DEBUG] - Reading constraints for app: c_rasta:
+2023-12-05 15:42:04 [DEBUG] - Period <= 550
+2023-12-05 15:42:04 [DEBUG] - Latency <= 0
+2023-12-05 15:42:04 [DEBUG] - Reading constraints for app: d_jpegEnc1:
+2023-12-05 15:42:04 [DEBUG] - Period <= -1
+2023-12-05 15:42:04 [DEBUG] - Latency <= 0
+2023-12-05 15:42:04 [INFO] - 13 sdf parents, 23 actors, 29 channels, and 0 pr tasks
+2023-12-05 15:42:04 [INFO] - Creating a mapping object ...
+2023-12-05 15:42:04 [DEBUG] - running xpathString  ///WCET_table/mapping on WCET file ...
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: get_pixel...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 384
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 320
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 256
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: gx...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 93
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 77
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 62
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: gy...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 93
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 77
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 62
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: abs...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 148
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 123
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 99
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: getImage...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 18
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 15
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 12
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: usan...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 1413
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 1177
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 942
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: direction...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 1000
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 833
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 667
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: thin...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 39
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 32
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 26
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: putImage...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 18
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 15
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 12
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: frontEnd...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 170
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 141
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 113
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: rasta...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 38
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 31
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 25
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: powspec...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 282
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 235
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 188
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: audspec...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 130
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 108
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 87
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: compJah...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 130
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 108
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 87
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: rastaFilter...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 233
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 194
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 156
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: backEnd...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 160
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 133
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 107
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: getImage_0...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 496
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 413
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 331
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: CC_0...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 1322
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 1101
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 881
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: DCT_0...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 303
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 252
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 202
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: Huffman_0...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 408
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 340
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 272
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: DCT_1...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 303
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 252
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 202
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: Huffman_1...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 408
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 340
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 272
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: DCT_2...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 303
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 252
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 202
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: Huffman_2...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 408
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 340
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 272
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: DCT_3...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 303
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 252
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 202
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: Huffman_3...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 408
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 340
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 272
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: DCT_4...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 303
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 252
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 202
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: Huffman_4...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 408
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 340
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 272
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: DCT_5...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 303
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 252
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 202
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: Huffman_5...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 408
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 340
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 272
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: CS_0...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 3029
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 2524
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 2020
+2023-12-05 15:42:04 [DEBUG] - Proc: CS_HWacc, proc_mode: default, WCET: 1388
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: writeImage_0...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 159
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 132
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 106
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: a0...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 36
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 30
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 24
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: a1...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 12
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 10
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 8
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: a2...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 24
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 20
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 16
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: a3...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 10
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 8
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 7
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: a4...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 384
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 320
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 256
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: a5...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 93
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 77
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 62
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: a6...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 93
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 77
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 62
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: a7...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 148
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 123
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 99
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: a8...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 170
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 141
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 113
+2023-12-05 15:42:04 [DEBUG] - Reading mapping for task type: a9...
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: eco, WCET: 38
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: standard, WCET: 31
+2023-12-05 15:42:04 [DEBUG] - Proc: default, proc_mode: performance, WCET: 25
+2023-12-05 15:42:04 [INFO] - Creating PRESOLVING and MULTI-STEP execution object ...
+2023-12-05 15:42:04 [INFO] - Running PRESOLVING and MULTI-STEP object ...
+2023-12-05 15:42:04 [DEBUG] - MULTISTEP SOLVING
+2023-12-05 15:42:04 [DEBUG] - using TODAES heuristic
+2023-12-05 15:42:04 [INFO] - First mapping in multi-step solving for app 0: 0 - 1
+2023-12-05 15:42:04 [INFO] - First mapping in multi-step solving for app 1: 2 - 7
+2023-12-05 15:42:04 [DEBUG] - Gecode version: 4.4.0
+2023-12-05 15:42:04 [DEBUG] - Int::Limits::max = 2147483646
+2023-12-05 15:42:04 [DEBUG] - Creating Model...
+2023-12-05 15:42:04 [DEBUG] - Platform with 8 nodes is not homogeneous.
+                                Homogeneous nodes: 
+                                Mode-homogeneous nodes: {0, 1} {0, 2} {0, 3} {0, 4} {0, 5} {0, 6} {0, 7} {1, 2} {1, 3} {1, 4} {1, 5} {1, 6} {1, 7} {2, 3} {2, 4} {2, 5} {2, 6} {2, 7} {3, 4} {3, 5} {3, 6} {3, 7} {4, 5} {4, 6} {4, 7} {5, 6} {5, 7} {6, 7}
+2023-12-05 15:42:04 [DEBUG] - Found 23 program entities (23 actors of 2 SDFGs and 0 ipt tasks).
+2023-12-05 15:42:04 [DEBUG] - --Actors and Tasks------------------
+2023-12-05 15:42:04 [DEBUG] - 0: frontEnd
+2023-12-05 15:42:04 [DEBUG] - 1: rasta
+2023-12-05 15:42:04 [DEBUG] - 2: powspec
+2023-12-05 15:42:04 [DEBUG] - 3: audspec
+2023-12-05 15:42:04 [DEBUG] - 4: compJah
+2023-12-05 15:42:04 [DEBUG] - 5: rastaFilter
+2023-12-05 15:42:04 [DEBUG] - 6: backEnd
+2023-12-05 15:42:04 [DEBUG] - 7: getImage_0
+2023-12-05 15:42:04 [DEBUG] - 8: CC_0
+2023-12-05 15:42:04 [DEBUG] - 9: DCT_0
+2023-12-05 15:42:04 [DEBUG] - 10: Huffman_0
+2023-12-05 15:42:04 [DEBUG] - 11: DCT_1
+2023-12-05 15:42:04 [DEBUG] - 12: Huffman_1
+2023-12-05 15:42:04 [DEBUG] - 13: DCT_2
+2023-12-05 15:42:04 [DEBUG] - 14: Huffman_2
+2023-12-05 15:42:04 [DEBUG] - 15: DCT_3
+2023-12-05 15:42:04 [DEBUG] - 16: Huffman_3
+2023-12-05 15:42:04 [DEBUG] - 17: DCT_4
+2023-12-05 15:42:04 [DEBUG] - 18: Huffman_4
+2023-12-05 15:42:04 [DEBUG] - 19: DCT_5
+2023-12-05 15:42:04 [DEBUG] - 20: Huffman_5
+2023-12-05 15:42:04 [DEBUG] - 21: CS_0
+2023-12-05 15:42:04 [DEBUG] - 22: writeImage_0
+2023-12-05 15:42:04 [DEBUG] - --Channels------------------
+2023-12-05 15:42:04 [DEBUG] - Ch 0: frontEnd -> rasta   (0 -> 1)
+2023-12-05 15:42:04 [DEBUG] - Ch 1: frontEnd -> compJah   (0 -> 4)
+2023-12-05 15:42:04 [DEBUG] - Ch 2: frontEnd -> backEnd   (0 -> 6)
+2023-12-05 15:42:04 [DEBUG] - Ch 3: rasta -> powspec   (1 -> 2)
+2023-12-05 15:42:04 [DEBUG] - Ch 4: powspec -> audspec   (2 -> 3)
+2023-12-05 15:42:04 [DEBUG] - Ch 5: audspec -> rastaFilter   (3 -> 5)
+2023-12-05 15:42:04 [DEBUG] - Ch 6: audspec -> compJah   (3 -> 4)
+2023-12-05 15:42:04 [DEBUG] - Ch 7: compJah -> rastaFilter   (4 -> 5)
+2023-12-05 15:42:04 [DEBUG] - Ch 8: rastaFilter -> backEnd   (5 -> 6)
+2023-12-05 15:42:04 [DEBUG] - Ch 9: getImage_0 -> CC_0   (7 -> 8)
+2023-12-05 15:42:04 [DEBUG] - Ch 10: CC_0 -> DCT_0   (8 -> 9)
+2023-12-05 15:42:04 [DEBUG] - Ch 11: CC_0 -> DCT_1   (8 -> 11)
+2023-12-05 15:42:04 [DEBUG] - Ch 12: CC_0 -> DCT_2   (8 -> 13)
+2023-12-05 15:42:04 [DEBUG] - Ch 13: CC_0 -> DCT_3   (8 -> 15)
+2023-12-05 15:42:04 [DEBUG] - Ch 14: CC_0 -> DCT_4   (8 -> 17)
+2023-12-05 15:42:04 [DEBUG] - Ch 15: CC_0 -> DCT_5   (8 -> 19)
+2023-12-05 15:42:04 [DEBUG] - Ch 16: DCT_0 -> Huffman_0   (9 -> 10)
+2023-12-05 15:42:04 [DEBUG] - Ch 17: Huffman_0 -> CS_0   (10 -> 21)
+2023-12-05 15:42:04 [DEBUG] - Ch 18: DCT_1 -> Huffman_1   (11 -> 12)
+2023-12-05 15:42:04 [DEBUG] - Ch 19: Huffman_1 -> CS_0   (12 -> 21)
+2023-12-05 15:42:04 [DEBUG] - Ch 20: DCT_2 -> Huffman_2   (13 -> 14)
+2023-12-05 15:42:04 [DEBUG] - Ch 21: Huffman_2 -> CS_0   (14 -> 21)
+2023-12-05 15:42:04 [DEBUG] - Ch 22: DCT_3 -> Huffman_3   (15 -> 16)
+2023-12-05 15:42:04 [DEBUG] - Ch 23: Huffman_3 -> CS_0   (16 -> 21)
+2023-12-05 15:42:04 [DEBUG] - Ch 24: DCT_4 -> Huffman_4   (17 -> 18)
+2023-12-05 15:42:04 [DEBUG] - Ch 25: Huffman_4 -> CS_0   (18 -> 21)
+2023-12-05 15:42:04 [DEBUG] - Ch 26: DCT_5 -> Huffman_5   (19 -> 20)
+2023-12-05 15:42:04 [DEBUG] - Ch 27: Huffman_5 -> CS_0   (20 -> 21)
+2023-12-05 15:42:04 [DEBUG] - Ch 28: CS_0 -> writeImage_0   (21 -> 22)
+2023-12-05 15:42:04 [DEBUG] - Design Constraints:
+2023-12-05 15:42:04 [DEBUG] - SDF c_rasta:
+                               	 period const: 550
+                               	 latency const: 0
+2023-12-05 15:42:04 [DEBUG] - SDF d_jpegEnc1:
+                               	 period const: none
+                               	 latency const: 0
+2023-12-05 15:42:04 [INFO] - Inserting mapping constraints
+2023-12-05 15:42:04 [DEBUG] - Mapping rules:
+2023-12-05 15:42:04 [INFO] - Inserting IPT scheduling constraints
+2023-12-05 15:42:04 [INFO] - Inserting scheduling constraints
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_0 & DCT_1 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_0 & DCT_2 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_0 & DCT_3 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_0 & DCT_4 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_0 & DCT_5 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_0 & Huffman_1 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_0 & Huffman_2 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_0 & Huffman_3 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_0 & Huffman_4 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_0 & Huffman_5 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_1 & DCT_2 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_1 & DCT_3 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_1 & DCT_4 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_1 & DCT_5 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_1 & Huffman_2 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_1 & Huffman_3 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_1 & Huffman_4 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_1 & Huffman_5 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_2 & DCT_3 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_2 & DCT_4 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_2 & DCT_5 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_2 & Huffman_3 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_2 & Huffman_4 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_2 & Huffman_5 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_3 & DCT_4 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_3 & DCT_5 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_3 & Huffman_4 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_3 & Huffman_5 (3: Huffman)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: DCT_4 & DCT_5 (2: DCT)
+2023-12-05 15:42:04 [DEBUG] - same parent actor: Huffman_4 & Huffman_5 (3: Huffman)
+2023-12-05 15:42:04 [INFO] - Inserting communication constraints
+2023-12-05 15:42:04 [INFO] - Inserting power constraints
+2023-12-05 15:42:04 [INFO] - Inserting cost metric constraints
+2023-12-05 15:42:04 [INFO] - Inserting memory constraints
+2023-12-05 15:42:04 [INFO] - Inserting throughput constraints
+2023-12-05 15:42:04 [INFO] - using MCR propagator
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[0] >= 0 & <= 1
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[1] >= 0 & <= 1
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[2] >= 0 & <= 1
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[3] >= 0 & <= 1
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[4] >= 0 & <= 1
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[5] >= 0 & <= 1
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[6] >= 0 & <= 1
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[7] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[8] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[9] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[10] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[11] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[12] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[13] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[14] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[15] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[16] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[17] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[18] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[19] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[20] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[21] >= 2 & <= 7
+2023-12-05 15:42:04 [DEBUG] - Inserting constraints for fixed mapping (multi-step solving):
+2023-12-05 15:42:04 [DEBUG] - proc[22] >= 2 & <= 7
+2023-12-05 15:42:04 [INFO] - Branching:
+                                 not heaviestFirst
+                                 optimize throughput.
+                                 do not optimize power.
+2023-12-05 15:42:04 [INFO] - procBranchOrderSAT: 
+                                 procBranchOrderOPT: 
+                                   c_rasta [0 1 2 3 4 5 6 ]
+                                   d_jpegEnc1 [7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 ]
+                                 procBranchOrderOther:
+2023-12-05 15:42:04 [DEBUG] - BAB engine, optimizing ...
+2023-12-05 15:42:04 [INFO] - MULTI-STEP solving (STEP 1)
+2023-12-05 15:42:04 [INFO] - 1 solution found in a search tree with 29 nodes so far (PRESOLVER)
+2023-12-05 15:42:05 [INFO] - 2 solution found in a search tree with 535 nodes so far (PRESOLVER)
+2023-12-05 15:42:05 [INFO] - 3 solution found in a search tree with 533 nodes so far (PRESOLVER)
+2023-12-05 15:42:05 [INFO] - 4 solution found in a search tree with 654 nodes so far (PRESOLVER)
+2023-12-05 15:42:05 [INFO] - 5 solution found in a search tree with 1079 nodes so far (PRESOLVER)
+2023-12-05 15:42:06 [INFO] - 6 solution found in a search tree with 968 nodes so far (PRESOLVER)
+2023-12-05 15:42:06 [INFO] - 7 solution found in a search tree with 968 nodes so far (PRESOLVER)
+2023-12-05 15:42:06 [INFO] - 8 solution found in a search tree with 1078 nodes so far (PRESOLVER)
+2023-12-05 15:42:06 [INFO] - 9 solution found in a search tree with 1150 nodes so far (PRESOLVER)
+2023-12-05 15:42:06 [INFO] - 10 solution found in a search tree with 1145 nodes so far (PRESOLVER)
+2023-12-05 15:42:06 [INFO] - 11 solution found in a search tree with 1283 nodes so far (PRESOLVER)
+2023-12-05 15:42:06 [INFO] - 12 solution found in a search tree with 1283 nodes so far (PRESOLVER)
+2023-12-05 15:42:07 [INFO] - 13 solution found in a search tree with 2849 nodes so far (PRESOLVER)
+2023-12-05 15:42:07 [INFO] - 14 solution found in a search tree with 2849 nodes so far (PRESOLVER)
+2023-12-05 15:42:08 [INFO] - 15 solution found in a search tree with 3672 nodes so far (PRESOLVER)
+2023-12-05 15:42:08 [INFO] - 16 solution found in a search tree with 3025 nodes so far (PRESOLVER)
+2023-12-05 15:42:08 [INFO] - 17 solution found in a search tree with 3024 nodes so far (PRESOLVER)
+2023-12-05 15:42:08 [INFO] - 18 solution found in a search tree with 3009 nodes so far (PRESOLVER)
+2023-12-05 15:42:08 [INFO] - 19 solution found in a search tree with 2625 nodes so far (PRESOLVER)
+2023-12-05 15:42:10 [INFO] - 20 solution found in a search tree with 3195 nodes so far (PRESOLVER)
+2023-12-05 15:42:12 [INFO] - 21 solution found in a search tree with 4943 nodes so far (PRESOLVER)
+2023-12-05 15:42:12 [INFO] - 22 solution found in a search tree with 5914 nodes so far (PRESOLVER)
+2023-12-05 15:42:12 [DEBUG] - final step optimizing for 1
+2023-12-05 15:42:12 [INFO] - Creating full CP model from multi-step solver, step 1
+2023-12-05 15:42:12 [DEBUG] - Gecode version: 4.4.0
+2023-12-05 15:42:12 [DEBUG] - Int::Limits::max = 2147483646
+2023-12-05 15:42:12 [DEBUG] - Creating Model...
+2023-12-05 15:42:12 [DEBUG] - Platform with 8 nodes is not homogeneous.
+                                Homogeneous nodes: 
+                                Mode-homogeneous nodes: {0, 1} {0, 2} {0, 3} {0, 4} {0, 5} {0, 6} {0, 7} {1, 2} {1, 3} {1, 4} {1, 5} {1, 6} {1, 7} {2, 3} {2, 4} {2, 5} {2, 6} {2, 7} {3, 4} {3, 5} {3, 6} {3, 7} {4, 5} {4, 6} {4, 7} {5, 6} {5, 7} {6, 7}
+2023-12-05 15:42:12 [DEBUG] - Found 23 program entities (23 actors of 2 SDFGs and 0 ipt tasks).
+2023-12-05 15:42:12 [DEBUG] - --Actors and Tasks------------------
+2023-12-05 15:42:12 [DEBUG] - 0: frontEnd
+2023-12-05 15:42:12 [DEBUG] - 1: rasta
+2023-12-05 15:42:12 [DEBUG] - 2: powspec
+2023-12-05 15:42:12 [DEBUG] - 3: audspec
+2023-12-05 15:42:12 [DEBUG] - 4: compJah
+2023-12-05 15:42:12 [DEBUG] - 5: rastaFilter
+2023-12-05 15:42:12 [DEBUG] - 6: backEnd
+2023-12-05 15:42:12 [DEBUG] - 7: getImage_0
+2023-12-05 15:42:12 [DEBUG] - 8: CC_0
+2023-12-05 15:42:12 [DEBUG] - 9: DCT_0
+2023-12-05 15:42:12 [DEBUG] - 10: Huffman_0
+2023-12-05 15:42:12 [DEBUG] - 11: DCT_1
+2023-12-05 15:42:12 [DEBUG] - 12: Huffman_1
+2023-12-05 15:42:12 [DEBUG] - 13: DCT_2
+2023-12-05 15:42:12 [DEBUG] - 14: Huffman_2
+2023-12-05 15:42:12 [DEBUG] - 15: DCT_3
+2023-12-05 15:42:12 [DEBUG] - 16: Huffman_3
+2023-12-05 15:42:12 [DEBUG] - 17: DCT_4
+2023-12-05 15:42:12 [DEBUG] - 18: Huffman_4
+2023-12-05 15:42:12 [DEBUG] - 19: DCT_5
+2023-12-05 15:42:12 [DEBUG] - 20: Huffman_5
+2023-12-05 15:42:12 [DEBUG] - 21: CS_0
+2023-12-05 15:42:12 [DEBUG] - 22: writeImage_0
+2023-12-05 15:42:12 [DEBUG] - --Channels------------------
+2023-12-05 15:42:12 [DEBUG] - Ch 0: frontEnd -> rasta   (0 -> 1)
+2023-12-05 15:42:12 [DEBUG] - Ch 1: frontEnd -> compJah   (0 -> 4)
+2023-12-05 15:42:12 [DEBUG] - Ch 2: frontEnd -> backEnd   (0 -> 6)
+2023-12-05 15:42:12 [DEBUG] - Ch 3: rasta -> powspec   (1 -> 2)
+2023-12-05 15:42:12 [DEBUG] - Ch 4: powspec -> audspec   (2 -> 3)
+2023-12-05 15:42:12 [DEBUG] - Ch 5: audspec -> rastaFilter   (3 -> 5)
+2023-12-05 15:42:12 [DEBUG] - Ch 6: audspec -> compJah   (3 -> 4)
+2023-12-05 15:42:12 [DEBUG] - Ch 7: compJah -> rastaFilter   (4 -> 5)
+2023-12-05 15:42:12 [DEBUG] - Ch 8: rastaFilter -> backEnd   (5 -> 6)
+2023-12-05 15:42:12 [DEBUG] - Ch 9: getImage_0 -> CC_0   (7 -> 8)
+2023-12-05 15:42:12 [DEBUG] - Ch 10: CC_0 -> DCT_0   (8 -> 9)
+2023-12-05 15:42:12 [DEBUG] - Ch 11: CC_0 -> DCT_1   (8 -> 11)
+2023-12-05 15:42:12 [DEBUG] - Ch 12: CC_0 -> DCT_2   (8 -> 13)
+2023-12-05 15:42:12 [DEBUG] - Ch 13: CC_0 -> DCT_3   (8 -> 15)
+2023-12-05 15:42:12 [DEBUG] - Ch 14: CC_0 -> DCT_4   (8 -> 17)
+2023-12-05 15:42:12 [DEBUG] - Ch 15: CC_0 -> DCT_5   (8 -> 19)
+2023-12-05 15:42:12 [DEBUG] - Ch 16: DCT_0 -> Huffman_0   (9 -> 10)
+2023-12-05 15:42:12 [DEBUG] - Ch 17: Huffman_0 -> CS_0   (10 -> 21)
+2023-12-05 15:42:12 [DEBUG] - Ch 18: DCT_1 -> Huffman_1   (11 -> 12)
+2023-12-05 15:42:12 [DEBUG] - Ch 19: Huffman_1 -> CS_0   (12 -> 21)
+2023-12-05 15:42:12 [DEBUG] - Ch 20: DCT_2 -> Huffman_2   (13 -> 14)
+2023-12-05 15:42:12 [DEBUG] - Ch 21: Huffman_2 -> CS_0   (14 -> 21)
+2023-12-05 15:42:12 [DEBUG] - Ch 22: DCT_3 -> Huffman_3   (15 -> 16)
+2023-12-05 15:42:12 [DEBUG] - Ch 23: Huffman_3 -> CS_0   (16 -> 21)
+2023-12-05 15:42:12 [DEBUG] - Ch 24: DCT_4 -> Huffman_4   (17 -> 18)
+2023-12-05 15:42:12 [DEBUG] - Ch 25: Huffman_4 -> CS_0   (18 -> 21)
+2023-12-05 15:42:12 [DEBUG] - Ch 26: DCT_5 -> Huffman_5   (19 -> 20)
+2023-12-05 15:42:12 [DEBUG] - Ch 27: Huffman_5 -> CS_0   (20 -> 21)
+2023-12-05 15:42:12 [DEBUG] - Ch 28: CS_0 -> writeImage_0   (21 -> 22)
+2023-12-05 15:42:12 [DEBUG] - Design Constraints:
+2023-12-05 15:42:12 [DEBUG] - SDF c_rasta:
+                               	 period const: 550
+                               	 latency const: 0
+2023-12-05 15:42:12 [DEBUG] - SDF d_jpegEnc1:
+                               	 period const: none
+                               	 latency const: 0
+2023-12-05 15:42:12 [INFO] - Inserting mapping constraints
+2023-12-05 15:42:12 [DEBUG] - Mapping rules:
+2023-12-05 15:42:12 [INFO] - Inserting IPT scheduling constraints
+2023-12-05 15:42:12 [INFO] - Inserting scheduling constraints
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_0 & DCT_1 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_0 & DCT_2 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_0 & DCT_3 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_0 & DCT_4 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_0 & DCT_5 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_0 & Huffman_1 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_0 & Huffman_2 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_0 & Huffman_3 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_0 & Huffman_4 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_0 & Huffman_5 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_1 & DCT_2 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_1 & DCT_3 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_1 & DCT_4 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_1 & DCT_5 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_1 & Huffman_2 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_1 & Huffman_3 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_1 & Huffman_4 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_1 & Huffman_5 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_2 & DCT_3 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_2 & DCT_4 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_2 & DCT_5 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_2 & Huffman_3 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_2 & Huffman_4 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_2 & Huffman_5 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_3 & DCT_4 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_3 & DCT_5 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_3 & Huffman_4 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_3 & Huffman_5 (3: Huffman)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: DCT_4 & DCT_5 (2: DCT)
+2023-12-05 15:42:12 [DEBUG] - same parent actor: Huffman_4 & Huffman_5 (3: Huffman)
+2023-12-05 15:42:12 [INFO] - Inserting communication constraints
+2023-12-05 15:42:13 [INFO] - Inserting power constraints
+2023-12-05 15:42:13 [INFO] - Inserting cost metric constraints
+2023-12-05 15:42:13 [INFO] - Inserting memory constraints
+2023-12-05 15:42:13 [INFO] - Inserting throughput constraints
+2023-12-05 15:42:13 [INFO] - using MCR propagator
+2023-12-05 15:42:13 [INFO] - Setting solutions found in previous steps (<=1)
+2023-12-05 15:42:13 [INFO] - Branching:
+                                 not heaviestFirst
+                                 keep or optimize throughput.
+                                 optimize power.
+2023-12-05 15:42:13 [INFO] - procBranchOrderSAT: 
+                                 procBranchOrderOPT: 
+                                   c_rasta [0 1 2 3 4 5 6 ]
+                                   d_jpegEnc1 [7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 ]
+                                 procBranchOrderOther:
+2023-12-05 15:42:13 [INFO] - Creating an execution object ...
+2023-12-05 15:42:13 [INFO] - Running the model object ...
+2023-12-05 15:42:13 [INFO] - BAB engine, optimizing ...
+2023-12-05 15:42:13 [INFO] - Opened file for printing results: exp_5_1_rajp/out/out.txt
+2023-12-05 15:42:13 [INFO] - started searching for OPTIMIZE solutions
+2023-12-05 15:42:13 [INFO] - Printing frequency: ALL_SOL
+2023-12-05 15:42:13 [INFO] - 1 solution found so far.
+2023-12-05 15:42:17 [INFO] - 2 solution found so far.
+2023-12-05 15:42:19 [INFO] - 3 solution found so far.
+2023-12-05 15:42:22 [INFO] - 4 solution found so far.
+2023-12-05 15:42:33 [INFO] - 5 solution found so far.
+2023-12-05 15:42:39 [INFO] - 6 solution found so far.
+2023-12-05 15:42:43 [INFO] - 7 solution found so far.
+2023-12-05 15:42:51 [INFO] - 8 solution found so far.
+2023-12-05 15:45:04 [INFO] - 9 solution found so far.
+2023-12-05 15:45:06 [INFO] - 10 solution found so far.
