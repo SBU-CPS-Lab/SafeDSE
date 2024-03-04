@@ -39,8 +39,9 @@ Welcome to an overview of my project's codebase, a key element of my thesis that
 # Code Organization:
  **The project is organized as follows:**
 #### [attarfieti/todaes17+f.mzn](https://github.com/farnoushBahrami/mapping/blob/main/attarfieti/todaes17%2Bf.mzn):
-**Lines 139-260:** This section showcases the implementation of various safety patterns.
-**Lines 263-370:** Focuses on the implementation of cost calculations.
+** Lines 139-260:** This section showcases the implementation of various safety patterns.
+** Lines 263-370:** Focuses on the implementation of cost calculations.
+
 #### [attarfieti/bus.mzn](https://github.com/farnoushBahrami/mapping/blob/main/attarfieti/Bus.mzn):
 This file is dedicated to the implementation of bus considerations.
  
