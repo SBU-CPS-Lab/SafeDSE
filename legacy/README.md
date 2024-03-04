@@ -14,27 +14,27 @@ Welcome to an overview of my project's codebase, a key element of my thesis that
 ### low SIL Doer Checker pattern
 ![lowSIL_DoerChecker](images/lowSIL_DoerChecker.png)
 #### Modified Version
-![highSIL_failOperational](images/highSIL_failOperationalmodified.png)
+![highSIL_failOperational](images/lowSIL_DoerCheckermodified.png)
 
 ### low SIL fail Operational patterns
 ![lowSIL_failOperational](images/lowSIL_failOperational.png)
 #### Modified Version
-![highSIL_failOperational](images/highSIL_failOperationalmodified.png)
+![highSIL_failOperational](images/lowSIL_failOperationalmodified.png)
 
 ### low SIL fail Silent Hardware pattern
 ![lowSIL_failSilentHardware](images/lowSIL_failSilentHardware.png)
 #### Modified Version
-![highSIL_failOperational](images/highSIL_failOperationalmodified.png)
+![highSIL_failOperational](images/lowSIL_failSilentHardwaremodified.png)
 
 ### mixed SIL fail Silent pattern
 ![mixedSIL_failSilent](images/mixedSIL_failSilent.png)
 #### Modified Version
-![highSIL_failOperational](images/highSIL_failOperationalmodified.png)
+![highSIL_failOperational](imagesmixedSIL_failSilentmodified.png)
 
 ### mixed SIL high Availability pattern
 ![mixedSIL_highAvailability](images/mixedSIL_highAvailability.png)
 #### Modified Version
-![highSIL_failOperational](images/highSIL_failOperationalmodified.png)
+![highSIL_failOperational](images/mixedSIL_highAvailabilitymodified.png)
 
 # Code Organization:
  **The project is organized as follows:**
