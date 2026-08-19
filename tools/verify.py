@@ -23,7 +23,7 @@ from fractions import Fraction
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from golden import mcm, selftimed_period  # noqa: E402
+from golden import mcm, selftimed_period, selftimed_trace  # noqa: E402
 
 
 # --------------------------------------------------------------------------
@@ -131,36 +131,89 @@ def main() -> int:
     sol = json.loads(Path(a.solution).read_text())
     n, edges, T = build_msag(d, sol)
 
-    reported = sol["mu"][0] if isinstance(sol["mu"], list) else sol["mu"]
-    by_karp = mcm(n, edges, T)
-    by_sim = selftimed_period(n, edges, T)
+    mus = sol["mu"] if isinstance(sol["mu"], list) else [sol["mu"]]
+    app = d.get("app", [1] * n)
+    nApps = d.get("nApps", 1)
+    ok, msgs = True, []
 
-    ok = True
-    msgs = []
-    if by_karp is None:
-        ok = False
-        msgs.append("MSAG deadlocks (token-less cycle) but the solver returned a period")
-    elif Fraction(reported) != by_karp:
-        ok = False
-        msgs.append(f"period mismatch: solver {reported}, Karp {by_karp}")
-    if by_sim is not None and by_karp is not None and by_sim != by_karp:
-        ok = False
-        msgs.append(f"oracle disagreement: Karp {by_karp}, simulation {by_sim}")
+    # In partitioned mode the applications occupy disjoint cores, so the MSAG
+    # splits into independent components and each application's period must be
+    # checked against its OWN component.  Checking a single global MCM here
+    # would compare every application against the slowest one.
+    partitioned = bool(d.get("period_mode_partitioned", False))
+    if partitioned and nApps > 1:
+        groups = [(z, [i for i in range(n) if app[i] == z]) for z in range(1, nApps + 1)]
+    else:
+        groups = [(1, list(range(n)))]
+
+    for z, members in groups:
+        if not members:
+            continue
+        idx = {g: k for k, g in enumerate(members)}
+        sub = [(idx[u], idx[v], t) for u, v, t in edges
+               if u in idx and v in idx]
+        crossing = [(u, v) for u, v, _ in edges
+                    if (u in idx) != (v in idx)]
+        if partitioned and crossing:
+            ok = False
+            msgs.append(f"app {z}: {len(crossing)} MSAG edges cross application "
+                        f"boundaries, but partitioned mode forbids core sharing")
+        subT = [T[g] for g in members]
+        reported = mus[z - 1] if z - 1 < len(mus) else mus[0]
+        k = mcm(len(members), sub, subT)
+        sim = selftimed_period(len(members), sub, subT)
+        if k is None:
+            ok = False
+            msgs.append(f"app {z}: MSAG deadlocks but a period was returned")
+        elif Fraction(reported) != k:
+            ok = False
+            msgs.append(f"app {z}: period mismatch -- solver {reported}, Karp {k}")
+        if sim is not None and k is not None and sim != k:
+            ok = False
+            msgs.append(f"app {z}: oracle disagreement -- Karp {k}, simulation {sim}")
+        if not a.quiet:
+            print(f"  app {z}: reported {reported}, Karp {k}, simulation {sim}")
+
+    # ---- exact latency, transient included -----------------------------
+    # lib/latency.mzn uses the PERIODIC-PHASE estimate
+    #     pot[d] - pot[s] + rho*mu + T[d]
+    # which is exact once the schedule has settled but ignores the transient.
+    # Simulate the real schedule and compare. A reported latency below the
+    # simulated worst case is not a bug in the solver -- it is the documented
+    # limitation of the estimate -- but it MUST be surfaced, because publishing
+    # the estimate as a worst-case bound would be wrong.
+    nlat = d.get("nLatCon", 0)
+    if nlat and "latency" in sol:
+        trace = selftimed_trace(n, edges, T, iters=40)
+        src = d["lat_src"] if isinstance(d["lat_src"], list) else [d["lat_src"]]
+        dst = d["lat_dst"] if isinstance(d["lat_dst"], list) else [d["lat_dst"]]
+        rho = d["lat_rho"] if isinstance(d["lat_rho"], list) else [d["lat_rho"]]
+        rep = sol["latency"] if isinstance(sol["latency"], list) else [sol["latency"]]
+        if trace:
+            for c in range(nlat):
+                si, di, r = src[c] - 1, dst[c] - 1, rho[c]
+                obs = max(trace[k + r][di] + T[di] - trace[k][si]
+                          for k in range(len(trace) - r))
+                if not a.quiet:
+                    print(f"  latency[{c+1}]: model estimate {rep[c]}, "
+                          f"simulated worst case {obs}")
+                if obs > rep[c]:
+                    msgs.append(
+                        f"NOTE latency[{c+1}]: transient worst case {obs} exceeds "
+                        f"the periodic-phase estimate {rep[c]} by {obs - rep[c]} "
+                        f"-- expected (see lib/latency.mzn), but do not report "
+                        f"the estimate as a worst-case bound")
 
     # the bound the open-chain bug used to lose
     load = {}
     for i in range(n):
         load[sol["proc"][i]] = load.get(sol["proc"][i], 0) + T[i]
     worst = max(load.values()) if load else 0
-    if reported < worst:
+    if max(mus) < worst:
         ok = False
-        msgs.append(f"period {reported} is below the busiest core's load {worst} "
-                    f"-- the processor-availability wrap edge is missing")
-
+        msgs.append(f"worst period {max(mus)} is below the busiest core's load "
+                    f"{worst} -- the processor-availability wrap edge is missing")
     if not a.quiet:
-        print(f"  reported mu = {reported}")
-        print(f"  Karp MCM    = {by_karp}")
-        print(f"  simulation  = {by_sim}")
         print(f"  busiest core load = {worst}")
     for m in msgs:
         print(f"  FAIL: {m}")

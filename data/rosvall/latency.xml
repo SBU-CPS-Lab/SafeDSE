@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<latency>
+  <path src="a_sobel.get_pixel" dst="a_sobel.abs"       max="1500"/>
+  <path src="c_rasta.frontEnd"  dst="c_rasta.backEnd"   max="2500"/>
+</latency>

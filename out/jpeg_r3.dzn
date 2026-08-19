@@ -59,6 +59,11 @@ symClass = array2d(1..7, 1..4,
      | 11, 12, 13, 14
      | 15, 16, 17, 18
      | 19, 20, 21, 22 |]);
+nInterGroups = 0;
+maxInterGroupSize = 1;
+interGroupSize = [];
+interGroup = array2d(1..1, 1..1,
+  [| 0 |]);
 nTmplGroups = 2;
 maxTmplGroupSize = 4;
 tmplGroupSize = [3, 4];
@@ -78,3 +83,10 @@ allow_promotion = true;
 % ---- design constraints ----
 period_ub = [9513];
 period_mode_partitioned = false;
+
+% ---- latency (B.2) ----
+nLatCon = 0;
+lat_src = [];
+lat_dst = [];
+lat_rho = [];
+lat_ub  = [];

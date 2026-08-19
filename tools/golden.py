@@ -240,6 +240,37 @@ def selftimed_period(n: int, edges: list[tuple[int, int, int]], wt: list[int],
     return None
 
 
+def selftimed_trace(n: int, edges: list[tuple[int, int, int]], wt: list[int],
+                    iters: int = 60) -> list[list[int]] | None:
+    """Start times of the first `iters` firings of every actor, transient included.
+
+    Same recurrence as selftimed_period, but it returns the whole schedule
+    rather than the steady-state slope, so end-to-end latency can be measured
+    over the transient as well as the periodic phase.
+    """
+    if _has_tokenless_cycle(n, edges):
+        return None
+    order = _topo_zero(n, edges)
+    if order is None:
+        return None
+    inc: dict[int, list[tuple[int, int]]] = {}
+    for u, v, t in edges:
+        inc.setdefault(v, []).append((u, t))
+    starts = [[0] * n]
+    for it in range(1, iters):
+        cur = [0] * n
+        for v in order:
+            s = 0
+            for u, t in inc.get(v, ()):
+                k = it - t
+                if k < 0:
+                    continue
+                s = max(s, (cur[u] if t == 0 else starts[k][u]) + wt[u])
+            cur[v] = s
+        starts.append(cur)
+    return starts
+
+
 def _topo_zero(n: int, edges: list[tuple[int, int, int]]) -> list[int] | None:
     indeg = [0] * n
     adj: dict[int, list[int]] = {}

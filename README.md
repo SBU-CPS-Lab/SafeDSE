@@ -1,187 +1,181 @@
-# SafeDSE — Phase 1
+# SafeDSE — Phase 2
 
-Core mapping model and front-end, per Part D of
-SafeDSE Architecture and Plan. No safety patterns yet (Phase 4), ideal
+Adds latency, the DeSyDe platform dialect, application-aware verification, and
+the Rosvall ToDAES benchmark set. Still no safety patterns (Phase 4) and ideal
 communication (Phase 6).
 
-Everything here was run and checked. The numbers are measurements.
+**43 tests passing, 0 failing** across eight groups.
 
-## Setup
+Read `README_PHASE1.md` first for setup and the Phase 1 findings.
 
-```bash
-./bootstrap_minizinc.sh          # ~60 s, idempotent
-export PATH=/opt/mzn/bin:$PATH
+## What's new
+
+| | |
+|---|---|
+| `lib/latency.mzn` | end-to-end latency via the periodic-phase estimate (B.2) |
+| `tools/verify.py` | now application-aware, and checks latency against a transient-aware simulation |
+| `tools/golden.py` | `selftimed_trace` — the full firing schedule, transient included |
+| `tools/platform.py` | parses the DeSyDe/Rosvall platform dialect as well as the SafeDSE catalogue |
+| `tools/build_dzn.py` | `--latency`; WCET keying by actor name or type; missing entries become binding restrictions |
+| `data/rosvall/` | the four ToDAES applications, platform, WCETs, design constraints |
+
+## Rosvall's ToDAES benchmark
+
+Each application alone on the 9-core platform, minimising hardware cost, with
+her published period constraints. All four solve in about a second and every
+solution is verified independently.
+
+| application | actors | period | bound | cores | hw cost | power |
+|---|---|---|---|---|---|---|
+| a_sobel | 4 | **384** | 400 | 2 | 16 | 102 |
+| b_susan | 5 | **1659** | 2050 | 1 | 12 | 173 |
+| c_rasta | 7 | **523** | 550 | 2 | 18 | 151 |
+| d_jpegEnc1 | 16 | 9272 | — | 1 | 8 | 51 |
+
+All four together — 32 actors, 9 cores, partitioned mode:
+
+```
+mu = [384, 1659, 523, 9272]   6 cores   hw_cost=54   power=477   VERIFY OK
 ```
 
-Do **not** export `LD_LIBRARY_PATH=/opt/mzn/lib` — the bundle ships its own
-`libselinux.so.1`, which shadows the system copy and breaks coreutils.
+Latency, on sobel + rasta with two constrained paths:
 
-## Layout
-
-```
-tools/
-  sdf3.py        SDF3 XML parsing; multi-rate SDF model; exact repetition vector
-  hsdf.py        SDF -> HSDF unfolding with parent[] provenance (C.6)
-  platform.py    FCR-template catalogue -> flat core slots (C.5)
-  build_dzn.py   the front-end driver: XML in, .dzn out
-  mkwcets.py     scaffolding: bootstrap a WCET table for a new platform
-  golden.py      independent oracles: Karp MCM + max-plus simulator
-  verify.py      rebuild the MSAG from a solution and check it externally
-  solve.py       run the model (CP-SAT) and verify the result
-lib/
-  mcm.mzn        throughput + deadlock via node potentials
-  platform.mzn   core slots, FCRs, instantiation, cost
-  order.mzn      binding, per-core static order, Rosvall 23/33
-  symmetry.mzn   symmetry breaking (must be included after order.mzn)
-model/
-  dse.mzn        top level: metrics, switchable objective
-tests/run_tests.py
-```
-
-## Run it
-
-```bash
-# XML -> dzn
-python3 tools/build_dzn.py \
-    --app data/apps/d_jpegEnc1.sdf.xml \
-    --platform data/platform/mixed.xml \
-    --wcets data/WCETs_mixed.xml \
-    --constraints data/desConst.xml \
-    -o out/jpeg_sdf.dzn
-
-# solve and verify
-python3 tools/solve.py --dzn out/jpeg_sdf.dzn \
-    --optimise HWCOST --bound THROUGHPUT=4000
-
-# tests
-python3 tests/run_tests.py                  # all groups
-python3 tests/run_tests.py golden unfold    # fast subset
-```
-
-Switching which metric is optimised needs no model edit — `--optimise` and
-`--bound` are the whole interface. Metrics: `THROUGHPUT`, `HWCOST`, `DEVCOST`,
-`TOTALCOST`, `POWER`, `NPROCS`.
-
-## Results
-
-`c_rasta`, minimise hardware cost under a throughput bound. Every solution
-independently verified by `verify.py`.
-
-| bound | period | cores | hw cost | power |
+| bound | latencies | cores | hw cost | power |
 |---|---|---|---|---|
-| μ ≤ 1620 | 1620 | 1 | 33 | 40 |
-| μ ≤ 800 | 795 | 2 | 44 | 112 |
-| μ ≤ 500 | 488 | 3 | 55 | 184 |
-| μ ≤ 350 | 334 | 5 | 96 | 264 |
-| μ ≤ 250 | 235 | 6 | 259 | 476 |
+| ≤ 1500 | 718, 1038 | 4 | 34 | 253 |
+| ≤ 900 | 718, 893 | 4 | 36 | 326 |
+| ≤ 700 | UNSAT | | | |
 
-The jump at μ≤250 is the DSE being forced off cheap Cortex-M cards onto
-expensive Cortex-R ones — heterogeneity doing real work.
-
-`d_jpegEnc1` in multi-rate form:
-
-| bound | period | cores | hw cost | power | time |
-|---|---|---|---|---|---|
-| μ ≤ 4000 | 3929 | 3 | 52 | 152 | 10.8 s |
-| μ ≤ 5000 | 4853 | 2 | 47 | 144 | 8.9 s |
-| μ ≤ 6000 | 5669 | 2 | 44 | 112 | 7.8 s |
-| μ ≤ 8000 | 7561 | 2 | 41 | 80 | 7.4 s |
-
-Test suite: **31 passing, 0 failing.**
+Tightening latency raises cost without changing the core count — the optimiser
+switches processor modes rather than buying hardware. That is the kind of
+trade-off the switchable-objective structure exists to expose.
 
 ## Findings
 
-### 1. SDF-level provenance decides tractability, not just semantics
+### 1. A missing WCET entry is a binding restriction, not an error
 
-`d_jpegEnc1` gets its parallelism from six identical DCT/Huffman branches. The
-DeSyDe benchmark ships it as `d_jpegEnc1.hsdf.xml` — already unfolded — so
-those six branches are six *distinct* SDF actors. `parent[]` comes out
-all-distinct, Rosvall's constraints 23/33 are inert, and the solver explores all
-720 equivalent branch orderings.
+Phase 1 followed Q8 literally: no WCET entry for a (task, core, mode) triple was
+a hard error. Rosvall's platform breaks that immediately. It has a `CS_HWacc`
+accelerator, and exactly one actor — `CS_0`, the 2524-cycle bottleneck of
+d_jpegEnc1 — has a WCET entry for it (1388). Every other actor has none.
 
-Written as a multi-rate SDF (one DCT actor with rate 6), the unfolder produces
-the identical 16-node HSDF but retains `parent = [1,2,3,3,3,3,3,3,4,4,4,4,4,4,5,6]`:
+Under the Phase 1 rule the benchmark is rejected. The correct reading is that a
+missing entry means *this actor cannot be bound to that core*, which is how a
+heterogeneous accelerator is specified in the first place. The rule is now:
 
-| input form | 23/33 | minimise hw cost, μ≤4000 |
-|---|---|---|
-| pre-unfolded `.hsdf.xml` | inert | **>70 s timeout** |
-| multi-rate `.sdf.xml` | off | **>70 s timeout** |
-| multi-rate `.sdf.xml` | on | **10.5 s, optimal** |
+- missing (task, core, mode) → the binding is forbidden;
+- **no** entry for any core type → hard error, naming the XML element to add.
 
-Minimising throughput instead: timeout vs 30.8 s.
+The encoding costs nothing. Forbidden combinations get a sentinel above every
+real WCET, and since `T`'s domain is `0..maxwcet` computed over real entries
+only, the binding is ruled out by domain propagation with no extra constraint.
+The front-end reports the restrictions it inferred, so an accidental omission is
+visible rather than silent.
 
-This is empirical support for two decisions taken on semantic grounds. Q5
-(apply patterns at SDF level, unfold afterwards) is also what keeps the model
-tractable, because unfolding is where the symmetry information lives. Q14
-(constraints 23/33 need `parent[]`) is load-bearing rather than a nice-to-have.
+### 2. WCETs.xml keys on actor name, not actor type
 
-**Practical consequence:** the DeSyDe `.hsdf.xml` suite is the wrong input
-format for this framework. Multi-rate `.sdf.xml` versions of Sobel and SUSAN
-will be worth having before Phase 5 benchmarking. `t_provenance` in the test
-suite records the gap and will report if it ever narrows.
+In Rosvall's files the actor named `get_pixel` has `type="getPixel"`, and the
+WCET table keys on `get_pixel`. SafeDSE pattern components (Phase 4) will key on
+a task type. Resolution is now per actor: prefer whichever of (name, type) the
+table actually contains. Both dialects work without a flag.
 
-### 2. The symmetry-breaking hypothesis was wrong
+### 3. Singleton FCRs restore strong symmetry breaking
 
-The obvious suspect for the timeout was the weakened symmetry breaking: with
-heterogeneous cores, `seq_precede_chain(proc)` is no longer sound and the
-replacement (within-card value precedence + card-level lex ordering) is weaker.
-Four variants at μ≤4000 — sound, sound-minus-lex, a deliberately **unsound**
-global chain, and none at all — **all four timed out identically**. The unsound
-variant bounds what any scheme could buy, so symmetry breaking was not the
-bottleneck. Running with `-a` then showed the solver never found a first
-feasible solution, which pointed at branch symmetry instead.
+Phase 1 noted that `seq_precede_chain(proc)` is unsound on a heterogeneous
+platform, because swapping two cores in different cards changes their fault
+containment region. There is an exception worth taking: **a card holding exactly
+one core makes a core swap identical to a whole-card swap**, which *is* a
+symmetry. `Platform.interchangeable_groups()` detects this and emits
+`value_precede_chain` over those slots.
 
-Worth keeping the diagnostic habit: build the unsound variant to bound the
-prize before optimising a sound one.
+The DeSyDe dialect has no FCR concept, so each processor becomes its own
+singleton FCR and the whole platform qualifies. That is why the 9-core Rosvall
+instances solve in under a second where the 22-slot card-based platform needs
+ten. The pruning that Phase 1 thought it had lost is recoverable wherever the
+input does not actually claim shared failure regions.
 
-### 3. The speed-class WCET encoding was not worth it
+### 4. Rosvall's benchmark needs period mode (c), which is Phase 6
 
-`wcet[i, ctype[proc[i]], pmode[proc[i]]]` is a 3-D element with two nested
-variable indices and looks like it should flatten badly. Replacing it with a
-flattened speed-class encoding (one reified implication per (actor, slot)
-feeding a 1-D parameter lookup) gave identical optima but was never faster and
-up to 4× slower — `c_rasta` at μ≤500 went 0.85 s → 3.46 s. Reverted. The
-comment in `dse.mzn` records this so it is not "fixed" again.
+The four-application experiment is the clearest possible demonstration of the
+Q15 limitation. Mode (a) forces one global period, so `mu ≤ min(400, 2050, 550)
+= 400`, while `CS_0` alone costs 1388 even on the accelerator. Correctly UNSAT
+in 1.3 s. Mode (b) partitioned solves and verifies, but it forbids core sharing
+— and core sharing is exactly what Rosvall's experiment is about.
 
-### 4. Two bugs the multi-application instance exposed
+**A semantics question to settle before Phase 6.** In an order-based static
+schedule where each core executes its order once per iteration, every
+application on a shared core completes one iteration per system period — so
+where do different per-application periods come from? Two readings:
 
-Both found by running, not reading:
+- `period[z]` is the maximum cycle mean over MSAG cycles *containing* application
+  z's actors, so applications differ because their critical cycles differ; or
+- each application has its own processor-cycle structure, implying system-level
+  unfolding when the rates differ.
 
-- The `mcm_*` predicates took a scalar `mu` and the top level passed `mu[1]` for
-  every application, so partitioned mode silently applied application 1's period
-  to all of them. They now take a per-node `mu_of` array, which is also the
-  interface Phase 6 needs for mode (c) (C.7).
-- `period_ub` was derived from nominal `exec_time`, which is wrong on a
-  heterogeneous platform where a slow core exceeds it. It produced a spurious
-  UNSAT. Now derived from the slowest achievable WCET per node.
+These are not the same model and they need different constraints. Node
+potentials express "MCM of the whole graph" directly but not "MCM over cycles
+touching a subset", so the first reading needs work beyond the current layer.
+**Which one does the ToDAES formulation use?** Her constraints are in the paper's
+image-only PDF; if you can read off the definition of `period[z]`, that settles
+Phase 6's design.
 
-## Design notes worth carrying forward
+### 5. The latency estimate matched the transient exactly here
 
-**The verifier is the point.** `verify.py` shares no code with the model. It
-rebuilds the MSAG from the solver's assignment — application edges,
-serialisation arcs, and the processor-availability wrap edges — and computes the
-period twice, by Karp and by max-plus simulation. It also checks the specific
-bound that the open-chain bug used to lose: the period can never be below the
-busiest core's total load. Constraint models fail silently; this is the only
-thing standing between a plausible number and a wrong one.
+`lib/latency.mzn` uses the periodic-phase estimate `pot[d] − pot[s] + rho·mu +
+T[d]`, which is exact once the schedule settles and ignores the transient. The
+verifier now simulates the real schedule over 40 iterations and compares. On
+every instance tested the two agreed exactly (718 vs 718, 893 vs 893).
 
-**Missing WCET entries are a hard error** (Q8), naming the exact XML element to
-add. `--wcet-fallback-scale` exists for bringing up a new platform but warns per
-use and prints "Results are NOT publishable".
+That is reassuring but **not** a proof that the estimate is always safe. When it
+disagrees the verifier prints a NOTE rather than failing, because the gap is a
+documented property of the estimate and not a solver bug. Do not report the
+model's latency as a worst-case bound without the verification step.
 
-**Cost profiles are an experimental variable** (C.8). Three profiles derived from
-Myklebust et al.: `myklebust2015`, `klosterman`, `do178b`. They disagree by a
-factor of 3.7 at SIL3, which is a fact about the literature. The question to ask
-is not "what is the right multiplier" but "does the optimal architecture change
-when the profile does".
+`rho(s,d)` is computed once in the front-end by shortest-path over token counts.
+It is a property of the application graph alone: serialisation edges carry no
+tokens, so no mapping can shorten a token-path. The CP model never sees it.
 
-## Open for Phase 2
+## Usage
 
-- Multi-rate `.sdf.xml` forms for the remaining benchmarks.
-- Latency: periodic-phase estimate plus an exact unfolding verifier (B.2).
-- Buffers and per-core memory beyond the current state-size bin-packing.
-- `tools/twostep.py` — Rosvall's two-step solving.
-- Per-application periods currently support modes (a) global and (b) partitioned;
-  mode (c), per-app periods with core sharing, is Phase 6 and needs the per-app
-  MSAG. The unsound naive version is documented in `lib/mcm.mzn` so it does not
-  get written by accident.
+```bash
+# Rosvall's benchmark
+python3 tools/build_dzn.py --app data/rosvall/c_rasta.hsdf.xml \
+    --platform data/rosvall/platform.xml --wcets data/rosvall/WCETs.xml \
+    --constraints data/rosvall/desConst.xml -o out/r_c_rasta.dzn
+
+# all four, partitioned
+python3 tools/build_dzn.py \
+    --app data/rosvall/a_sobel.hsdf.xml --app data/rosvall/b_susan.hsdf.xml \
+    --app data/rosvall/c_rasta.hsdf.xml --app data/rosvall/d_jpegEnc1.hsdf.xml \
+    --platform data/rosvall/platform.xml --wcets data/rosvall/WCETs.xml \
+    --constraints data/rosvall/desConst.xml --period-mode partitioned \
+    -o out/r_all_part.dzn
+
+# with latency constraints
+python3 tools/build_dzn.py ... --latency data/rosvall/latency.xml -o out/r_lat.dzn
+python3 tools/solve.py --dzn out/r_lat.dzn --optimise HWCOST --bound LATENCY=900
+```
+
+Metrics: `THROUGHPUT`, `LATENCY`, `HWCOST`, `DEVCOST`, `TOTALCOST`, `POWER`,
+`NPROCS`. Any one optimised, any subset bounded, no model edit.
+
+## Not done in Phase 2
+
+- **`tools/twostep.py`** — Rosvall's two-step solving. Deferred: nothing in the
+  benchmark set is currently slow enough to need it. Revisit when Phase 4
+  superposition grows the instances.
+- **Channel buffer memory.** Per-core memory is bin-packed on actor state size;
+  channel buffers are not yet counted. Belongs with Phase 6, where the
+  communication model gives buffers a size.
+- **Multi-rate `.sdf.xml` forms of sobel and susan.** Both are small and
+  single-rate with no repeated actors, so the Phase 1 provenance finding does not
+  bite. `d_jpegEnc1` is the one that mattered and it is done.
+
+## Before Phase 3
+
+The C.5 measurement is now available and worth taking seriously:
+`jpeg_sdf` (16 nodes, 22 card-based slots) needs 11 s where the 9-core
+singleton-FCR platform needs 1 s. Phase 4 superposition grows node counts by
+roughly 1.5–3×. That gap should be measured against a card-based platform *with*
+FCR constraints active, since that is the configuration Phase 4 actually needs,
+before committing to the superposition sizing.

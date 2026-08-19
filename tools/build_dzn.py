@@ -44,6 +44,60 @@ def mzn_str_array(vals) -> str:
 
 
 # --------------------------------------------------------------------------
+def min_token_path(n: int, tok: list[list[int]], src: int) -> list[int]:
+    """Shortest path from src measured in INITIAL TOKENS (Dijkstra, tiny graph).
+
+    rho(s,d) is the pipeline depth between two actors: how many iterations of
+    delay separate them. It is a property of the application graph alone --
+    serialisation edges added by the schedule carry no tokens, so no mapping
+    can shorten a token-path.  Computing it in the front-end keeps the CP model
+    free of it entirely.
+    """
+    INF = float("inf")
+    dist = [INF] * n
+    dist[src] = 0
+    seen = [False] * n
+    for _ in range(n):
+        u, best = -1, INF
+        for k in range(n):
+            if not seen[k] and dist[k] < best:
+                u, best = k, dist[k]
+        if u < 0:
+            break
+        seen[u] = True
+        for v in range(n):
+            if tok[u][v] >= 0 and dist[u] + tok[u][v] < dist[v]:
+                dist[v] = dist[u] + tok[u][v]
+    return dist
+
+
+def load_latency(path: str | None, node_names: list[str],
+                 tok: list[list[int]]) -> list[tuple[int, int, int, int]]:
+    """latency.xml -> (src, dst, rho, bound), 1-based actor indices.
+
+        <latency>
+          <path src="a_sobel.get_pixel" dst="a_sobel.abs" max="1200"/>
+        </latency>
+    """
+    if not path:
+        return []
+    idx = {nm: i for i, nm in enumerate(node_names)}
+    out = []
+    root = ET.parse(path).getroot()
+    for pe in root.findall("path"):
+        s_, d_ = pe.get("src"), pe.get("dst")
+        for nm in (s_, d_):
+            if nm not in idx:
+                raise KeyError(f"latency.xml names actor {nm!r}, which is not "
+                               f"in any application graph")
+        si, di = idx[s_], idx[d_]
+        rho = min_token_path(len(node_names), tok, si)[di]
+        if rho == float("inf"):
+            raise ValueError(f"latency.xml: no path from {s_!r} to {d_!r}")
+        out.append((si + 1, di + 1, int(rho), int(pe.get("max"))))
+    return out
+
+
 def load_safety(path: str | None, actor_names: list[str]) -> dict:
     """safety.xml -> per-SDF-actor SIL requirement + global fault model.
 
@@ -95,6 +149,7 @@ def main() -> int:
     ap.add_argument("--wcets", required=True)
     ap.add_argument("--constraints")
     ap.add_argument("--safety")
+    ap.add_argument("--latency", help="latency.xml: constrained src/dst pairs")
     ap.add_argument("--period-mode", choices=["global", "partitioned"],
                     default="global",
                     help="C.7: 'global' = one period for all apps (default); "
@@ -165,46 +220,70 @@ def main() -> int:
     wt = WCETTable(args.wcets)
     modes_per_type = [len(ct.modes) for ct in plat.core_types]
     max_modes = max(modes_per_type)
-    missing: list[str] = []
-    # wcet[node, coretype, mode]
+    FORBIDDEN = 10 ** 6
+
+    # Rosvall's WCETs.xml keys on the actor NAME (get_pixel, CS_0); SafeDSE
+    # pattern components key on a task TYPE. Resolve per actor: prefer whichever
+    # of (name, type) the table actually knows, and report the choice.
+    known = wt.types()
+    wkey: list[str] = []
+    for i in range(n):
+        bare = node_names[i].split(".", 1)[1].split("#", 1)[0]
+        wkey.append(bare if bare in known else node_types[i])
+
+    # A missing (task, core, mode) entry means the actor CANNOT be bound there.
+    # This is a mapping restriction, not an error: Rosvall's platform has a
+    # CS_HWacc accelerator with a WCET entry for exactly one actor, and every
+    # other actor is thereby excluded from it. Encoding it as a sentinel above
+    # every real WCET makes T's domain rule the binding out automatically, with
+    # no extra constraint. It IS an error for an actor to have no entry at all.
     wcet = []
+    fallback_used: list[str] = []
     for i in range(n):
         per_type = []
         for ct in plat.core_types:
             per_mode = []
             for mi in range(max_modes):
+                v = None
                 if mi < len(ct.modes):
-                    v = wt.get(node_types[i], ct.model, ct.modes[mi].name)
+                    v = wt.get(wkey[i], ct.model, ct.modes[mi].name)
                     if v is None:
-                        # try the DeSyDe default processor label
-                        v = wt.get(node_types[i], "default", ct.modes[mi].name)
+                        v = wt.get(wkey[i], "default", ct.modes[mi].name)
                     if v is None and args.wcet_fallback_scale is not None:
                         v = max(1, int(round(nodes[i].exec_time
                                              * args.wcet_fallback_scale
                                              * ct.modes[mi].cycle)))
-                        missing.append(f"{node_types[i]}/{ct.model}/{ct.modes[mi].name}")
-                    if v is None:
-                        print(
-                            f"ERROR: no WCET for task_type={node_types[i]!r} on "
-                            f"processor={ct.model!r} mode={ct.modes[mi].name!r}.\n"
-                            f"  Add to {args.wcets}:\n"
-                            f'    <mapping task_type="{node_types[i]}">\n'
-                            f'      <wcet processor="{ct.model}" '
-                            f'mode="{ct.modes[mi].name}" wcet="..."/>\n'
-                            f"    </mapping>", file=sys.stderr)
-                        return 3
-                else:
-                    v = 10 ** 6          # unusable mode index, priced out
-                per_mode.append(v)
+                        fallback_used.append(f"{wkey[i]}/{ct.model}/{ct.modes[mi].name}")
+                per_mode.append(FORBIDDEN if v is None else v)
             per_type.append(per_mode)
+        if all(v >= FORBIDDEN for t in per_type for v in t):
+            print(
+                f"ERROR: actor {node_names[i]!r} (WCET key {wkey[i]!r}) has no "
+                f"WCET entry for ANY core type in this platform, so it cannot "
+                f"be mapped anywhere.\n  Add to {args.wcets}:\n"
+                f'    <mapping task_type="{wkey[i]}">\n'
+                f'      <wcet processor="{plat.core_types[0].model}" '
+                f'mode="{plat.core_types[0].modes[0].name}" wcet="..."/>\n'
+                f"    </mapping>", file=sys.stderr)
+            return 3
         wcet.append(per_type)
-    if missing:
-        uniq = sorted(set(missing))
-        print(f"  WARNING: --wcet-fallback-scale substituted {len(missing)} "
-              f"values across {len(uniq)} (type, core, mode) combinations. "
+
+    restricted = [(node_names[i], [ct.model for ti, ct in enumerate(plat.core_types)
+                                   if all(v >= FORBIDDEN for v in wcet[i][ti])])
+                  for i in range(n)]
+    restricted = [(nm, ms) for nm, ms in restricted if ms]
+    if restricted:
+        print(f"  binding restrictions from missing WCET entries: "
+              f"{len(restricted)} actors", file=sys.stderr)
+        for nm, ms in restricted[:4]:
+            print(f"      {nm} cannot use {', '.join(ms)}", file=sys.stderr)
+        if len(restricted) > 4:
+            print(f"      ... and {len(restricted)-4} more", file=sys.stderr)
+    if fallback_used:
+        uniq = sorted(set(fallback_used))
+        print(f"  WARNING: --wcet-fallback-scale substituted "
+              f"{len(fallback_used)} values across {len(uniq)} combinations. "
               f"Results are NOT publishable.", file=sys.stderr)
-        for u in uniq[:8]:
-            print(f"      missing: {u}", file=sys.stderr)
 
     # ---- 5. safety / cost ----------------------------------------------
     sdf_actor_names = []
@@ -291,6 +370,15 @@ def main() -> int:
     W(f"symClass = array2d(1..{max(len(sym),1)}, 1..{maxsym},")
     W("  " + mzn_matrix([[c[i] + 1 if i < len(c) else 0 for i in range(maxsym)]
                          for c in sym] or [[0] * maxsym]) + ");")
+    ig = plat.interchangeable_groups()
+    W(f"nInterGroups = {len(ig)};")
+    maxig = max([len(c) for c in ig] + [1])
+    W(f"maxInterGroupSize = {maxig};")
+    W(f"interGroupSize = {mzn_array([len(c) for c in ig])};")
+    W(f"interGroup = array2d(1..{max(len(ig),1)}, 1..{maxig},")
+    W("  " + mzn_matrix([[c[i] + 1 if i < len(c) else 0 for i in range(maxig)]
+                         for c in ig] or [[0] * maxig]) + ");")
+
     tg = plat.template_groups()
     W(f"nTmplGroups = {len(tg)};")
     maxtg = max([len(c) for c in tg] + [1])
@@ -319,6 +407,16 @@ def main() -> int:
     W(f"period_ub = {mzn_array(period_ub)};")
     W(f"period_mode_partitioned = "
       f"{'true' if args.period_mode == 'partitioned' else 'false'};")
+    W("")
+    W("% ---- latency (B.2) ----")
+    lat = load_latency(args.latency, node_names, tok)
+    W(f"nLatCon = {len(lat)};")
+    W(f"lat_src = {mzn_array([x[0] for x in lat])};")
+    W(f"lat_dst = {mzn_array([x[1] for x in lat])};")
+    W(f"lat_rho = {mzn_array([x[2] for x in lat])};")
+    W(f"lat_ub  = {mzn_array([x[3] for x in lat])};")
+    if lat:
+        print(f"  {len(lat)} latency constraints", file=sys.stderr)
 
     Path(args.out).write_text("\n".join(L) + "\n")
     print(f"  wrote {args.out}  ({n} nodes, {P} core slots)", file=sys.stderr)

@@ -14,6 +14,7 @@ include "../lib/platform.mzn";
 include "../lib/order.mzn";
 include "../lib/symmetry.mzn";
 include "../lib/mcm.mzn";
+include "../lib/latency.mzn";
 
 % ---- application data -----------------------------------------------------
 array[A,A] of int: tok;                       % -1 = no channel
@@ -61,6 +62,7 @@ constraint mcm_fixed_edges(tok, T, pot, mu_of);
 constraint mcm_schedule_edges(sedge, T, pot);
 constraint mcm_wrap_edges(wrap, T, pot, mu_of);
 constraint mcm_anchor(pot);
+constraint latency_periodic(pot, T, mu_of);
 
 constraint forall(z in APP)( mu[z] <= period_ub[z] );
 
@@ -81,7 +83,7 @@ constraint total_cost = hw_cost + dev_cost;
 % ---- switchable objective (B.6) -------------------------------------------
 % Every metric is always computed and always bounded; the objective is a
 % parameter, so switching what is optimised needs a -D flag and no model edit.
-enum Metric = { THROUGHPUT, HWCOST, DEVCOST, TOTALCOST, POWER, NPROCS };
+enum Metric = { THROUGHPUT, LATENCY, HWCOST, DEVCOST, TOTALCOST, POWER, NPROCS };
 Metric: opt_metric;
 array[Metric] of int: ub;
 
@@ -94,7 +96,8 @@ var 1..maxmu: mu_worst;
 constraint mu_worst = max(mu);
 
 array[Metric] of var int: metric;
-constraint metric = [ mu_worst, hw_cost, dev_cost, total_cost, power, nprocs ];
+constraint metric = [ mu_worst, max_latency, hw_cost, dev_cost,
+                      total_cost, power, nprocs ];
 constraint forall(m in Metric)( metric[m] <= ub[m] );
 
 solve :: seq_search([
@@ -112,5 +115,6 @@ output [
   "used     = \(used)\n",
   "fcr_used = \(fcr_used)\n",
   "T        = \(T)\n",
+  "latency  = \(latency)\n",
   "metric   = \(metric)\n",
 ];

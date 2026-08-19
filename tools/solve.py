@@ -20,7 +20,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MZN = "minizinc"
-METRICS = ["THROUGHPUT", "HWCOST", "DEVCOST", "TOTALCOST", "POWER", "NPROCS"]
+METRICS = ["THROUGHPUT", "LATENCY", "HWCOST", "DEVCOST", "TOTALCOST",
+           "POWER", "NPROCS"]
 BIG = 10 ** 9
 
 
@@ -79,7 +80,7 @@ def run(dzn: str, optimise: str = "HWCOST", bounds: dict[str, int] | None = None
                 "stderr": p.stderr[-800:], "stdout": out[-1500:]}
     return {"status": "OPTIMAL" if "==========" in out else "SAT",
             "seconds": wall, "solution": sol,
-            "objective": sol.get("metric", [None] * 6)[METRICS.index(optimise)]
+            "objective": sol.get("metric", [None] * len(METRICS))[METRICS.index(optimise)]
             if isinstance(sol.get("metric"), list) else None}
 
 

@@ -93,6 +93,26 @@ class Platform:
             groups.setdefault((s.fcr_index, s.core_type.model), []).append(s.index)
         return [v for v in groups.values() if len(v) > 1]
 
+    def interchangeable_groups(self) -> list[list[int]]:
+        """Slots that are interchangeable outright, so value precedence is sound.
+
+        Cores in different cards are normally NOT interchangeable, because
+        swapping two of them changes their fault containment region.  The
+        exception is a card that holds exactly one core: then a core swap IS a
+        whole-card swap, which is a symmetry.  This is the common case for the
+        DeSyDe dialect, where every processor is its own singleton FCR, and it
+        recovers most of the pruning that `seq_precede_chain(proc)` gave on a
+        homogeneous platform.
+        """
+        size: dict[int, int] = {}
+        for s in self.slots:
+            size[s.fcr_index] = size.get(s.fcr_index, 0) + 1
+        groups: dict[str, list[int]] = {}
+        for s in self.slots:
+            if size[s.fcr_index] == 1:
+                groups.setdefault(s.core_type.model, []).append(s.index)
+        return [sorted(v) for v in groups.values() if len(v) > 1]
+
     def template_groups(self) -> list[list[int]]:
         """FCR indices grouped by template, for card-level symmetry breaking."""
         groups: dict[str, list[int]] = {}
@@ -101,8 +121,48 @@ class Platform:
         return [v for v in groups.values() if len(v) > 1]
 
 
+def _core_type(p: ET.Element, types_by_model: dict[str, CoreType]) -> CoreType:
+    model = p.get("model")
+    ct = types_by_model.get(model)
+    if ct is None:
+        ct = CoreType(
+            model=model,
+            max_sil=int(p.get("max_sil", "0")),
+            mem=int(p.get("mem", "0")),
+            partitionable=p.get("partitionable", "false").lower() == "true",
+            partition_cost=int(p.get("partition_cost", "0")),
+            modes=[Mode(name=m.get("name"),
+                        cycle=float(m.get("cycle", "1")),
+                        dyn_power=int(m.get("dynPower", "0")),
+                        area=int(m.get("area", "0")),
+                        monetary=int(m.get("monetary", "0")))
+                   for m in p.findall("mode")] or [Mode("default")])
+        # DeSyDe puts mem on the <mode>; SafeDSE puts it on the <processor>.
+        if ct.mem == 0:
+            mems = [int(m.get("mem", "0")) for m in p.findall("mode")]
+            ct.mem = max(mems) if mems else 0
+        types_by_model[model] = ct
+    return ct
+
+
 def parse_platform(path: str | Path) -> Platform:
+    """Accepts two dialects.
+
+    SafeDSE form:  <fcr_template name=".." max_instances=".." monetary="..">
+                     <processor model=".." count=".." max_sil=".."/>
+                   </fcr_template>
+
+    DeSyDe/Rosvall form:  <processor model=".." number="..">  <mode .../>  </processor>
+
+    The DeSyDe dialect has no notion of a fault containment region, so each
+    processor becomes its own singleton FCR.  That is the conservative reading
+    -- it never asserts independence that the input did not claim -- and it
+    keeps Phase-1 results directly comparable with published DeSyDe numbers.
+    Cost lands entirely on the core (per-mode `monetary`), with zero card price.
+    """
     root = ET.parse(str(path)).getroot()
+    if root.find("fcr_template") is None and root.find("processor") is not None:
+        return _parse_desyde(root)
     templates: list[FCRTemplate] = []
     types_by_model: dict[str, CoreType] = {}
 
@@ -111,23 +171,8 @@ def parse_platform(path: str | Path) -> Platform:
                            max_instances=int(t.get("max_instances", "1")),
                            monetary=int(t.get("monetary", "0")))
         for p in t.findall("processor"):
-            model = p.get("model")
-            ct = types_by_model.get(model)
-            if ct is None:
-                ct = CoreType(
-                    model=model,
-                    max_sil=int(p.get("max_sil", "0")),
-                    mem=int(p.get("mem", "0")),
-                    partitionable=p.get("partitionable", "false").lower() == "true",
-                    partition_cost=int(p.get("partition_cost", "0")),
-                    modes=[Mode(name=m.get("name"),
-                                cycle=float(m.get("cycle", "1")),
-                                dyn_power=int(m.get("dynPower", "0")),
-                                area=int(m.get("area", "0")),
-                                monetary=int(m.get("monetary", "0")))
-                           for m in p.findall("mode")] or [Mode("default")])
-                types_by_model[model] = ct
-            tmpl.cores.append((ct, int(p.get("count", "1"))))
+            tmpl.cores.append((_core_type(p, types_by_model),
+                               int(p.get("count", "1"))))
         templates.append(tmpl)
 
     # expand
@@ -152,6 +197,34 @@ def parse_platform(path: str | Path) -> Platform:
     if bus is not None:
         tdma = int(bus.get("tdma_slots", "0"))
 
+    return Platform(name=root.get("name", "platform"), templates=templates,
+                    slots=slots, fcrs=fcrs,
+                    core_types=list(types_by_model.values()), tdma_slots=tdma)
+
+
+def _parse_desyde(root: ET.Element) -> Platform:
+    """DeSyDe dialect: a flat list of <processor model number>, one FCR each."""
+    types_by_model: dict[str, CoreType] = {}
+    slots: list[Slot] = []
+    fcrs: list[tuple[int, str, str, int]] = []
+    templates: list[FCRTemplate] = []
+    for pe in root.findall("processor"):
+        ct = _core_type(pe, types_by_model)
+        for _ in range(int(pe.get("number", "1"))):
+            fi = len(fcrs)
+            fname = f"{ct.model}#{fi}"
+            fcrs.append((fi, fname, ct.model, 0))     # no card-level price
+            slots.append(Slot(index=len(slots), core_type=ct, fcr_index=fi,
+                              fcr_name=fname, template=ct.model,
+                              instance=fi, within=0))
+    for m, ct in types_by_model.items():
+        templates.append(FCRTemplate(name=m, max_instances=
+                                     sum(1 for s in slots if s.core_type is ct),
+                                     monetary=0, cores=[(ct, 1)]))
+    tdma = 0
+    bus = root.find(".//TDMA_bus")
+    if bus is not None:
+        tdma = int(bus.get("tdma_slots", "0"))
     return Platform(name=root.get("name", "platform"), templates=templates,
                     slots=slots, fcrs=fcrs,
                     core_types=list(types_by_model.values()), tdma_slots=tdma)

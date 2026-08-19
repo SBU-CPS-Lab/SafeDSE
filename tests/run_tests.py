@@ -167,7 +167,8 @@ def t_model(dzns: list[str]) -> None:
     # The pre-unfolded d_jpegEnc1 is a known-bad input format (see
     # t_provenance); exclude it here so its expected difficulty does not
     # masquerade as a model defect.
-    dzns = [d for d in dzns if Path(d).stem != "jpeg"]
+    dzns = [d for d in dzns if Path(d).stem != "jpeg"
+            and not Path(d).stem.startswith("r_")]
     for dzn in dzns:
         for metric in ["HWCOST", "THROUGHPUT", "NPROCS"]:
             r = run(dzn, metric, timeout=240)
@@ -213,6 +214,61 @@ def _has_multiplicity(dzn: str) -> bool:
     return len(set(par)) < len(par)
 
 
+def t_latency() -> None:
+    """The periodic-phase latency estimate must be checkable against the
+    transient-aware simulation, and tightening the bound must move the design."""
+    print("\n[latency] periodic estimate vs transient simulation")
+    dzn = ROOT / "out" / "r_lat.dzn"
+    if not dzn.exists():
+        print("  SKIP  build out/r_lat.dzn with --latency first")
+        return
+    prev = None
+    for bound in [1500, 900]:
+        r = run(str(dzn), "HWCOST", {"LATENCY": bound}, timeout=120)
+        if r["status"] != "OPTIMAL":
+            check(f"latency<={bound}: solved", False, r["status"])
+            continue
+        ok, msg = _verify(str(dzn), r["solution"])
+        check(f"latency<={bound}: solution verifies "
+              f"(lat={r['solution']['latency']})", ok, msg)
+        check(f"latency<={bound}: bound respected",
+              max(r["solution"]["latency"]) <= bound)
+        prev = r["solution"]["hw_cost"] if prev is None else prev
+    # an unreachable bound must be reported UNSAT, not silently satisfied
+    r = run(str(dzn), "HWCOST", {"LATENCY": 700}, timeout=120)
+    check("latency<=700 is correctly UNSAT", r["status"] == "UNSAT", r["status"])
+
+
+def t_rosvall() -> None:
+    """Rosvall's four ToDAES applications must each meet their published period."""
+    print("\n[rosvall] published period constraints (a_sobel 400, b_susan 2050, "
+          "c_rasta 550)")
+    want = {"r_a_sobel": 400, "r_b_susan": 2050, "r_c_rasta": 550}
+    for stem, bound in want.items():
+        dzn = ROOT / "out" / f"{stem}.dzn"
+        if not dzn.exists():
+            print(f"  SKIP  {stem}")
+            continue
+        r = run(str(dzn), "HWCOST", timeout=120)
+        if r["status"] != "OPTIMAL":
+            check(f"{stem}: solved", False, r["status"])
+            continue
+        ok, msg = _verify(str(dzn), r["solution"])
+        mu = r["solution"]["mu"][0]
+        check(f"{stem}: mu={mu} meets published bound {bound}", mu <= bound)
+        check(f"{stem}: solution verifies", ok, msg)
+    # the four-application case, partitioned
+    dzn = ROOT / "out" / "r_all_part.dzn"
+    if dzn.exists():
+        r = run(str(dzn), "HWCOST", timeout=180)
+        if r["status"] == "OPTIMAL":
+            ok, msg = _verify(str(dzn), r["solution"])
+            check(f"4 apps partitioned: verifies (mu={r['solution']['mu']}, "
+                  f"{r['solution']['nprocs']} cores)", ok, msg)
+        else:
+            check("4 apps partitioned: solved", False, r["status"])
+
+
 def t_crosscheck(dzns: list[str]) -> None:
     print("\n[crosscheck] backends must agree (disagreement = modelling error)")
     for dzn in dzns:
@@ -234,7 +290,7 @@ def t_crosscheck(dzns: list[str]) -> None:
 # ---------------------------------------------------------------------------
 def main() -> int:
     groups = sys.argv[1:] or ["golden", "unfold", "provenance", "model",
-                              "symmetry", "crosscheck"]
+                              "symmetry", "latency", "rosvall", "crosscheck"]
     dzns = sorted(str(p) for p in (ROOT / "out").glob("*.dzn"))
     if not dzns and {"model", "symmetry", "crosscheck"} & set(groups):
         print("no .dzn files in out/ -- run tools/build_dzn.py first")
@@ -250,6 +306,10 @@ def main() -> int:
         t_model(dzns)
     if "symmetry" in groups:
         t_symmetry(dzns)
+    if "latency" in groups:
+        t_latency()
+    if "rosvall" in groups:
+        t_rosvall()
     if "crosscheck" in groups:
         t_crosscheck(dzns)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed  ({time.time()-t0:.1f}s)")

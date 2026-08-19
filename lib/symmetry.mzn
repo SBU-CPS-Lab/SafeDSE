@@ -43,3 +43,17 @@ constraint forall(g in 1..nTmplGroups, k in 1..tmplGroupSize[g]-1)(
 
 % Declared-then-constrained rather than defined with `=`, so that these appear
 % in the solver's JSON output and can be checked by the external verifier.
+
+% (3) Slots that are interchangeable outright -- same core type, each alone in
+%     its own FCR, so a core swap is also a whole-card swap.  Value precedence
+%     is sound here and is much stronger than (2a)+(2b).  On the DeSyDe dialect,
+%     where every processor is its own singleton FCR, this covers the whole
+%     platform and recovers the pruning that seq_precede_chain(proc) used to
+%     give on a homogeneous platform.
+int: nInterGroups;  int: maxInterGroupSize;
+array[int] of int: interGroupSize;
+array[int, int] of int: interGroup;     % 0-padded
+
+constraint forall(g in 1..nInterGroups)(
+    value_precede_chain([interGroup[g,k] | k in 1..interGroupSize[g]], proc)
+);
