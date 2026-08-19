@@ -1,0 +1,17 @@
+output ["objective("++format(opt_metric)++") = "++format(metric[opt_metric])++"\n","mu       = "++format(mu)++"\n","nprocs   = "++format(nprocs)++"   hw_cost = "++format(hw_cost)++"   power = "++format(power)++"\n","proc     = "++format(proc)++"\n","pmode    = "++format(pmode)++"\n","used     = "++format(used)++"\n","fcr_used = "++format(fcr_used)++"\n","T        = "++format(T)++"\n","metric   = "++format(metric)++"\n"];
+set of int: Metric = 1..6;
+array [Metric] of int: metric;
+set of int: A = 1..7;
+array [A] of int: T;
+set of int: FCR = 1..7;
+array [FCR] of bool: fcr_used;
+set of int: PR = 1..22;
+array [PR] of bool: used;
+array [PR] of int: pmode;
+array [A] of int: proc;
+int: nprocs;
+int: hw_cost;
+int: power;
+set of int: APP = 1..1;
+array [APP] of int: mu;
+int: opt_metric = 2;

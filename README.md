@@ -1,154 +1,187 @@
-# SafeDSE — seed bundle (Phase 0 output)
+# SafeDSE — Phase 1
 
-Validated starting point for the framework described in
-SafeDSE Architecture and Plan. Everything here was run and checked;
-the numbers below are measurements, not estimates.
+Core mapping model and front-end, per Part D of
+SafeDSE Architecture and Plan. No safety patterns yet (Phase 4), ideal
+communication (Phase 6).
 
-## Contents
-
-```
-bootstrap_minizinc.sh     install MiniZinc 2.8.7 + Gecode + Chuffed + CP-SAT
-seed/
-  lib/mcm.mzn             throughput (max cycle mean) + deadlock, node potentials
-  lib/mcm_test.mzn        self-test for the above (4 cases, incl. a deadlock case)
-  core.mzn                Phase-1 + Phase-3 skeleton: mapping + static order
-                          + throughput + processor-SIL isolation + cost
-  data/p{10,20,30}.dzn    synthetic pipelined HSDF instances
-  tools/gen.py            instance generator
-```
+Everything here was run and checked. The numbers are measurements.
 
 ## Setup
 
 ```bash
-./bootstrap_minizinc.sh          # ~60 s; idempotent
+./bootstrap_minizinc.sh          # ~60 s, idempotent
 export PATH=/opt/mzn/bin:$PATH
 ```
 
-Do **not** export `LD_LIBRARY_PATH=/opt/mzn/lib`. The bundle ships its own
-`libselinux.so.1`, which shadows the system copy and breaks coreutils
-(`mkdir`, `cp`, …) with "no version information available". MiniZinc runs
-fine without it.
+Do **not** export `LD_LIBRARY_PATH=/opt/mzn/lib` — the bundle ships its own
+`libselinux.so.1`, which shadows the system copy and breaks coreutils.
 
-## Run the throughput self-test
+## Layout
+
+```
+tools/
+  sdf3.py        SDF3 XML parsing; multi-rate SDF model; exact repetition vector
+  hsdf.py        SDF -> HSDF unfolding with parent[] provenance (C.6)
+  platform.py    FCR-template catalogue -> flat core slots (C.5)
+  build_dzn.py   the front-end driver: XML in, .dzn out
+  mkwcets.py     scaffolding: bootstrap a WCET table for a new platform
+  golden.py      independent oracles: Karp MCM + max-plus simulator
+  verify.py      rebuild the MSAG from a solution and check it externally
+  solve.py       run the model (CP-SAT) and verify the result
+lib/
+  mcm.mzn        throughput + deadlock via node potentials
+  platform.mzn   core slots, FCRs, instantiation, cost
+  order.mzn      binding, per-core static order, Rosvall 23/33
+  symmetry.mzn   symmetry breaking (must be included after order.mzn)
+model/
+  dse.mzn        top level: metrics, switchable objective
+tests/run_tests.py
+```
+
+## Run it
 
 ```bash
-cd seed
-for t in 1 2 3 4; do minizinc --solver gecode lib/mcm_test.mzn -D "tc=$t;"; done
+# XML -> dzn
+python3 tools/build_dzn.py \
+    --app data/apps/d_jpegEnc1.sdf.xml \
+    --platform data/platform/mixed.xml \
+    --wcets data/WCETs_mixed.xml \
+    --constraints data/desConst.xml \
+    -o out/jpeg_sdf.dzn
+
+# solve and verify
+python3 tools/solve.py --dzn out/jpeg_sdf.dzn \
+    --optimise HWCOST --bound THROUGHPUT=4000
+
+# tests
+python3 tests/run_tests.py                  # all groups
+python3 tests/run_tests.py golden unfold    # fast subset
 ```
 
-Expected:
+Switching which metric is optimised needs no model edit — `--optimise` and
+`--bound` are the whole interface. Metrics: `THROUGHPUT`, `HWCOST`, `DEVCOST`,
+`TOTALCOST`, `POWER`, `NPROCS`.
 
-| case | graph | expected | got |
-|---|---|---|---|
-| 1 | 3-cycle, T=[3,4,5], 1 token | μ = 12 | 12 ✓ |
-| 2 | 4-cycle, T=[2,2,2,2], 2 tokens | μ = 4 | 4 ✓ |
-| 3 | case 2 + schedule edge 1→3 (adds a ratio-3 cycle) | μ = 4 | 4 ✓ |
-| 4 | case 2 + schedule edges 2→4 and 4→2 (token-less cycle) | UNSAT | UNSAT ✓ |
+## Results
 
-Case 4 is the important one: deadlock falls out of the same constraint that
-computes throughput. No separate `rank` family, no "throughput > 0" test.
+`c_rasta`, minimise hardware cost under a throughput bound. Every solution
+independently verified by `verify.py`.
 
-## Run the core model
+| bound | period | cores | hw cost | power |
+|---|---|---|---|---|
+| μ ≤ 1620 | 1620 | 1 | 33 | 40 |
+| μ ≤ 800 | 795 | 2 | 44 | 112 |
+| μ ≤ 500 | 488 | 3 | 55 | 184 |
+| μ ≤ 350 | 334 | 5 | 96 | 264 |
+| μ ≤ 250 | 235 | 6 | 259 | 476 |
 
-```bash
-cd seed
-minizinc --solver cp-sat core.mzn data/p20.dzn -D "mu_max=53;"
-```
+The jump at μ≤250 is the DSE being forced off cheap Cortex-M cards onto
+expensive Cortex-R ones — heterogeneity doing real work.
 
-```
-mu=25  total=176  hw=40  dev=136
-proc=[1, 2, 1, 1, 1, 3, 3, 4, 4, 3]
-csil=[1, 3, 1, 3]
-```
+`d_jpegEnc1` in multi-rate form:
 
-`csil` is the SIL each core is provisioned to; `0` means unused. Cores 1 and 3
-are low-SIL, cores 2 and 4 high-SIL — the isolation constraint at work.
+| bound | period | cores | hw cost | power | time |
+|---|---|---|---|---|---|
+| μ ≤ 4000 | 3929 | 3 | 52 | 152 | 10.8 s |
+| μ ≤ 5000 | 4853 | 2 | 47 | 144 | 8.9 s |
+| μ ≤ 6000 | 5669 | 2 | 44 | 112 | 7.8 s |
+| μ ≤ 8000 | 7561 | 2 | 41 | 80 | 7.4 s |
 
-## Measured baselines
+Test suite: **31 passing, 0 failing.**
 
-Proving optimality, throughput bound at 55% of ΣWCET, 60 s cap:
+## Findings
 
-| instance | Gecode | Chuffed | CP-SAT |
-|---|---|---|---|
-| n=10, P=4 | >60 s | 0.34 s | **0.33 s** |
-| n=20, P=6 | >60 s | 3.53 s | **1.52 s** |
-| n=30, P=8 | >60 s | >60 s | **4.08 s** |
+### 1. SDF-level provenance decides tractability, not just semantics
 
-Use CP-SAT as the primary backend. Keep Gecode only for cross-validating
-answers on small instances — the DeSyDe lineage is Gecode-based, but that
-assumption does not carry over to a MiniZinc encoding without custom
-propagators.
+`d_jpegEnc1` gets its parallelism from six identical DCT/Huffman branches. The
+DeSyDe benchmark ships it as `d_jpegEnc1.hsdf.xml` — already unfolded — so
+those six branches are six *distinct* SDF actors. `parent[]` comes out
+all-distinct, Rosvall's constraints 23/33 are inert, and the solver explores all
+720 equivalent branch orderings.
 
-## The safety/cost trade-off, reproduced
+Written as a multi-rate SDF (one DCT actor with rate 6), the unfolder produces
+the identical 16-node HSDF but retains `parent = [1,2,3,3,3,3,3,3,4,4,4,4,4,4,5,6]`:
 
-`data/p20.dzn` with `dev_k = [1.0, 1.0, 1.4, 2.2, 3.5]` (×10, integer),
-sweeping the per-core price:
-
-| throughput bound | cheap cores (price 5) | expensive cores (price 40) |
+| input form | 23/33 | minimise hw cost, μ≤4000 |
 |---|---|---|
-| μ ≤ 60 | 4 cores, dev = 344 | 3 cores, dev = 356 |
-| μ ≤ 40 | 5 cores, dev = 344 | 4 cores, dev = 368 |
-| μ ≤ 25 | 6 cores, dev = 344 | 5 cores, dev = 380 |
+| pre-unfolded `.hsdf.xml` | inert | **>70 s timeout** |
+| multi-rate `.sdf.xml` | off | **>70 s timeout** |
+| multi-rate `.sdf.xml` | on | **10.5 s, optimal** |
 
-As cores get expensive the optimiser buys fewer of them and pays to promote
-low-SIL actors to the SIL of a core they share. That is the Phase-3 result,
-and it needs no structural safety patterns.
+Minimising throughput instead: timeout vs 30.8 s.
 
-To reproduce, strip the `pcost` and `dev_k` lines out of the `.dzn` (MiniZinc
-rejects double assignment) and pass them with `-D`:
+This is empirical support for two decisions taken on semantic grounds. Q5
+(apply patterns at SDF level, unfold afterwards) is also what keeps the model
+tractable, because unfolding is where the symmetry information lives. Q14
+(constraints 23/33 need `parent[]`) is load-bearing rather than a nice-to-have.
 
-```bash
-grep -vE '^(pcost|dev_k)=' data/p20.dzn > /tmp/p20b.dzn
-minizinc --solver cp-sat core.mzn /tmp/p20b.dzn \
-  -D "mu_max=40; pcost=array1d(1..6,[40,40,40,40,40,40]);
-      dev_k=array1d(0..4,[10,10,14,22,35]);"
-```
+**Practical consequence:** the DeSyDe `.hsdf.xml` suite is the wrong input
+format for this framework. Multi-rate `.sdf.xml` versions of Sobel and SUSAN
+will be worth having before Phase 5 benchmarking. `t_provenance` in the test
+suite records the gap and will report if it ever narrows.
 
-## Two modelling traps found while building this
+### 2. The symmetry-breaking hypothesis was wrong
 
-**1. The per-core static order must close into a cycle.** Modelling it as an
-open chain (`succ[i] = 0` for the last actor) silently drops the bound "a
-core's period ≥ the sum of the WCETs mapped onto it", because no cycle is
-created and the MCM stays at max(T). The fix is the `wrap` edge in `core.mzn`
-carrying one initial token — the processor-availability token. This is
-precisely why Rosvall and Bonfietti use `circuit` over a dummy-extended array;
-the dummy node *is* the wrap. It also needs `ishead` to anchor `ord`, or the
-positions float and the wrap condition can never be detected.
+The obvious suspect for the timeout was the weakened symmetry breaking: with
+heterogeneous cores, `seq_precede_chain(proc)` is no longer sound and the
+replacement (within-card value precedence + card-level lex ordering) is weaker.
+Four variants at μ≤4000 — sound, sound-minus-lex, a deliberately **unsound**
+global chain, and none at all — **all four timed out identically**. The unsound
+variant bounds what any scheme could buy, so symmetry breaking was not the
+bottleneck. Running with `-a` then showed the solver never found a first
+feasible solution, which pointed at branch symmetry instead.
 
-Symptom if you get this wrong: μ comes out equal to max(WCET) no matter how
-many actors you pile onto one core, and the model happily reports a 20-actor
-graph running on 2 cores at full pipeline rate.
+Worth keeping the diagnostic habit: build the unsound variant to bound the
+prize before optimising a sound one.
 
-**2. Comparison binds tighter than `\/` in MiniZinc.** Writing
+### 3. The speed-class WCET encoding was not worth it
 
-```minizinc
-constraint sedge[i,j] = (A) \/ (B);
-```
+`wcet[i, ctype[proc[i]], pmode[proc[i]]]` is a 3-D element with two nested
+variable indices and looks like it should flatten badly. Replacing it with a
+flattened speed-class encoding (one reified implication per (actor, slot)
+feeding a 1-D parameter lookup) gave identical optima but was never faster and
+up to 4× slower — `c_rasta` at μ≤500 went 0.85 s → 3.46 s. Reverted. The
+comment in `dse.mzn` records this so it is not "fixed" again.
 
-parses as `(sedge[i,j] = A) \/ B`, which leaves `sedge` completely
-unconstrained whenever `B` holds. Fully parenthesise the right-hand side.
-This cost me a false pass on deadlock test case 4. It is the same family of
-error as the `forall(...) \/ forall(...)` issue in `attarfieti/todaes17+f.mzn`
-— MiniZinc's precedence around `=` is a recurring trap in this codebase, and
-worth a lint rule.
+### 4. Two bugs the multi-application instance exposed
 
-## Instance generator
+Both found by running, not reading:
 
-```bash
-python3 tools/gen.py -n 40 -P 10 --seed 3 -o data/p40.dzn
-```
+- The `mcm_*` predicates took a scalar `mu` and the top level passed `mu[1]` for
+  every application, so partitioned mode silently applied application 1's period
+  to all of them. They now take a per-node `mu_of` array, which is also the
+  interface Phase 6 needs for mode (c) (C.7).
+- `period_ub` was derived from nominal `exec_time`, which is wrong on a
+  heterogeneous platform where a slow core exceeds it. It produced a spurious
+  UNSAT. Now derived from the slowest achievable WCET per node.
 
-Generates a chain with per-actor self-loops (auto-concurrency 1) plus random
-forward dependencies. The self-loops matter: without them a single back-edge
-makes the whole graph one cycle, so μ = ΣT regardless of the mapping and the
-instance is trivially uninteresting.
+## Design notes worth carrying forward
 
-## Next (Phase 1)
+**The verifier is the point.** `verify.py` shares no code with the model. It
+rebuilds the MSAG from the solver's assignment — application edges,
+serialisation arcs, and the processor-availability wrap edges — and computes the
+period twice, by Karp and by max-plus simulation. It also checks the specific
+bound that the open-chain bug used to lose: the period can never be below the
+busiest core's total load. Constraint models fail silently; this is the only
+thing standing between a plausible number and a wrong one.
 
-1. Replace the constant `T[]` with `element(proc, mode)` WCET lookup from
-   `WCETs.xml`, restoring Rosvall's processor modes.
-2. Extend `experiment/main.py` into a proper SDF3-XML → `.dzn` front-end.
-3. Build the regression harness against `related/todaes17.mzn` — same optimal
-   periods on the 5-actor example and on ≥3 real benchmarks.
-4. Fill the two `% TODO` gaps (constraints 23 and 33) in the Rosvall
-   transcription, or confirm they are redundant.
+**Missing WCET entries are a hard error** (Q8), naming the exact XML element to
+add. `--wcet-fallback-scale` exists for bringing up a new platform but warns per
+use and prints "Results are NOT publishable".
+
+**Cost profiles are an experimental variable** (C.8). Three profiles derived from
+Myklebust et al.: `myklebust2015`, `klosterman`, `do178b`. They disagree by a
+factor of 3.7 at SIL3, which is a fact about the literature. The question to ask
+is not "what is the right multiplier" but "does the optimal architecture change
+when the profile does".
+
+## Open for Phase 2
+
+- Multi-rate `.sdf.xml` forms for the remaining benchmarks.
+- Latency: periodic-phase estimate plus an exact unfolding verifier (B.2).
+- Buffers and per-core memory beyond the current state-size bin-packing.
+- `tools/twostep.py` — Rosvall's two-step solving.
+- Per-application periods currently support modes (a) global and (b) partitioned;
+  mode (c), per-app periods with core sharing, is Phase 6 and needs the per-app
+  MSAG. The unsound naive version is documented in `lib/mcm.mzn` so it does not
+  get written by accident.

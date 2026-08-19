@@ -1,0 +1,56 @@
+<?xml version="1.0"?>
+<!-- Multi-rate SDF form of d_jpegEnc1.
+     The shipped d_jpegEnc1.hsdf.xml is already unfolded: its six DCT and six
+     Huffman actors are six DISTINCT SDF actors, so the parent[] provenance
+     that Rosvall's constraints 23 and 33 need has been thrown away before the
+     front-end ever sees the file. Expressed here as a true multi-rate graph
+     (one DCT actor with repetition 6) the unfolder reproduces exactly the
+     same 16-node HSDF but retains parent[], which lets 23/33 prune the 720
+     equivalent orderings of the identical branches. -->
+<sdf3 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.0" type="sdf">
+  <applicationGraph name="jpeg_r3">
+    <sdf name="jpeg_r3" type="JPEG">
+      <actor name="getImage" type="getImage">
+        <port name="o1" type="out" rate="1"/>
+      </actor>
+      <actor name="CC" type="CC">
+        <port name="i1" type="in"  rate="1"/>
+        <port name="o1" type="out" rate="3"/>
+      </actor>
+      <actor name="DCT" type="DCT">
+        <port name="i1" type="in"  rate="1"/>
+        <port name="o1" type="out" rate="1"/>
+      </actor>
+      <actor name="Huffman" type="Huffman">
+        <port name="i1" type="in"  rate="1"/>
+        <port name="o1" type="out" rate="1"/>
+      </actor>
+      <actor name="CS" type="CS">
+        <port name="i1" type="in"  rate="3"/>
+        <port name="o1" type="out" rate="1"/>
+      </actor>
+      <actor name="writeImage" type="writeImage">
+        <port name="i1" type="in" rate="1"/>
+      </actor>
+      <channel name="c1" srcActor="getImage" srcPort="o1" dstActor="CC"      dstPort="i1"/>
+      <channel name="c2" srcActor="CC"       srcPort="o1" dstActor="DCT"     dstPort="i1"/>
+      <channel name="c3" srcActor="DCT"      srcPort="o1" dstActor="Huffman" dstPort="i1"/>
+      <channel name="c4" srcActor="Huffman"  srcPort="o1" dstActor="CS"      dstPort="i1"/>
+      <channel name="c5" srcActor="CS"       srcPort="o1" dstActor="writeImage" dstPort="i1"/>
+    </sdf>
+    <sdfProperties>
+      <actorProperties actor="getImage"><processor type="proc" default="true">
+        <executionTime time="413"/><memory><stateSize max="8"/></memory></processor></actorProperties>
+      <actorProperties actor="CC"><processor type="proc" default="true">
+        <executionTime time="1101"/><memory><stateSize max="8"/></memory></processor></actorProperties>
+      <actorProperties actor="DCT"><processor type="proc" default="true">
+        <executionTime time="252"/><memory><stateSize max="8"/></memory></processor></actorProperties>
+      <actorProperties actor="Huffman"><processor type="proc" default="true">
+        <executionTime time="340"/><memory><stateSize max="8"/></memory></processor></actorProperties>
+      <actorProperties actor="CS"><processor type="proc" default="true">
+        <executionTime time="2524"/><memory><stateSize max="8"/></memory></processor></actorProperties>
+      <actorProperties actor="writeImage"><processor type="proc" default="true">
+        <executionTime time="132"/><memory><stateSize max="8"/></memory></processor></actorProperties>
+    </sdfProperties>
+  </applicationGraph>
+</sdf3>
