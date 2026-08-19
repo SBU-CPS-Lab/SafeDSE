@@ -3,7 +3,7 @@
 % platform     : mixed_no_isolation
 % period mode  : global   (C.7)
 % fault model  : random_hw
-% cost profile : do178b  [100, 200, 300, 500, 900]
+% cost profile : myklebust2015  [100, 113, 225, 518, 906]
 
 % ---- applications ----
 nApps = 1;
@@ -75,7 +75,7 @@ mem_req = [2, 4, 6, 5, 4, 7, 5];
 % ---- safety (C.8) ----
 sil_req_parent = [3, 1, 1, 1, 3, 1, 2];
 dev_base = [100, 100, 100, 100, 100, 100, 100];
-dev_k = array1d(0..4, [100, 200, 300, 500, 900]);
+dev_k = array1d(0..4, [100, 113, 225, 518, 906]);
 allow_promotion = true;
 
 % ---- design constraints ----
@@ -90,30 +90,39 @@ lat_rho = [];
 lat_ub  = [];
 
 % ---- safety patterns: guarded superposition (C.2) ----
-% no pattern library supplied -- `none` plus an unreachable dummy
-nPat = 2;
-pat_name = ["none", "_unused"];
-pat_recurring = [0, 0];
-pat_allowed = array2d(1..7, 1..2,
-  [| true, false
-     | true, false
-     | true, false
-     | true, false
-     | true, false
-     | true, false
-     | true, false |]);
+nPat = 4;
+pat_name = ["none", "low_sil_doer_checker", "same_cpu_doer_checker", "two_of_two_high_sil"];
+pat_recurring = [0, 2, 1, 2];
+pat_allowed = array2d(1..7, 1..4,
+  [| true, false, false, false
+     | true, false, false, false
+     | true, false, false, false
+     | true, false, false, false
+     | true, false, false, false
+     | true, false, false, false
+     | true, false, false, false |]);
 par_owner = [1, 2, 3, 4, 5, 6, 7];
 node_owner = [1, 2, 3, 4, 5, 6, 7];
 owner_node = [1, 2, 3, 4, 5, 6, 7];
-node_guard = array2d(1..7, 1..2,
-  [| true, true
-     | true, true
-     | true, true
-     | true, true
-     | true, true
-     | true, true
-     | true, true |]);
-nPE = 0;  pe_src = [1];  pe_dst = [1];  pe_tok = [0];  pe_owner = [1];
-pe_guard = array2d(1..1, 1..2, [false, false]);
-nPL = 0;  pl_u = [1];  pl_v = [1];  pl_rel = [1];  pl_owner = [1];
-pl_guard = array2d(1..1, 1..2, [false, false]);
+node_guard = array2d(1..7, 1..4,
+  [| true, true, true, true
+     | true, true, true, true
+     | true, true, true, true
+     | true, true, true, true
+     | true, true, true, true
+     | true, true, true, true
+     | true, true, true, true |]);
+nPE = 0;
+pe_src = [1];
+pe_dst = [1];
+pe_tok = [0];
+pe_owner = [1];
+pe_guard = array2d(1..1, 1..4,
+  [| false, false, false, false |]);
+nPL = 0;
+pl_u = [1];
+pl_v = [1];
+pl_rel = [1];
+pl_owner = [1];
+pl_guard = array2d(1..1, 1..4,
+  [| false, false, false, false |]);

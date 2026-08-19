@@ -37,7 +37,9 @@ array[A] of var 0..n-1: ord;
 array[A] of var bool:   ishead;
 
 constraint forall(i in A)( used[proc[i]] );
-constraint forall(p in PR)( used[p] <-> exists(i in A)(proc[i] = p) );
+% Only an ACTIVE node makes a processor used. An inactive pattern slot is
+% pinned to its owner's core and must not keep an otherwise-idle core alive.
+constraint forall(p in PR)( used[p] <-> exists(i in A)(proc[i] = p /\ active[i]) );
 
 % ---- static order ---------------------------------------------------------
 constraint alldifferent_except_0(succ);

@@ -16,6 +16,7 @@ include "../lib/symmetry.mzn";
 include "../lib/mcm.mzn";
 include "../lib/latency.mzn";
 include "../lib/safety.mzn";
+include "../lib/activation.mzn";
 
 % ---- application data -----------------------------------------------------
 array[A,A] of int: tok;                       % -1 = no channel
@@ -36,7 +37,11 @@ array[APP] of int: period_ub;
 int: maxwcet = max([wcet[i,t,m] | i in A, t in CT, m in MD
                     where wcet[i,t,m] < 1000000]);
 array[A] of var 0..maxwcet: T;
-constraint forall(i in A)( T[i] = wcet[i, ctype[proc[i]], pmode[proc[i]]] );
+% An inactive node is neutralised, not deleted: zero WCET makes it invisible to
+% every cycle mean, so it costs nothing in the static order it still sits in.
+constraint forall(i in A)(
+    T[i] = bool2int(active[i]) * wcet[i, ctype[proc[i]], pmode[proc[i]]]
+);
 
 % ---- throughput (C.7: per-application periods) ----------------------------
 int: maxmu = sum(i in A)(maxwcet) * max([1] ++ [tok[i,j] | i,j in A where tok[i,j] > 0]);
@@ -57,6 +62,7 @@ constraint forall(i in A)( mu_of[i] = mu[app[i]] );
 constraint mcm_fixed_edges(tok, T, pot, mu_of);
 constraint mcm_schedule_edges(sedge, T, pot);
 constraint mcm_wrap_edges(wrap, T, pot, mu_of);
+constraint mcm_pattern_edges(T, pot, mu_of);
 constraint mcm_anchor(pot);
 constraint latency_periodic(pot, T, mu_of);
 
@@ -64,13 +70,14 @@ constraint forall(z in APP)( mu[z] <= period_ub[z] );
 
 % ---- memory ---------------------------------------------------------------
 constraint forall(p in PR)(
-    sum(i in A)( bool2int(proc[i] = p) * mem_req[i] ) <= core_mem[ctype[p]]
+    sum(i in A)( bool2int(proc[i] = p /\ active[i]) * mem_req[i] )
+    <= core_mem[ctype[p]]
 );
 
 % ---- costs ----------------------------------------------------------------
 % dev_cost, partition_total and promotion_cost come from lib/safety.mzn.
 var int: total_cost;
-constraint total_cost = hw_cost + dev_cost + partition_total;
+constraint total_cost = hw_cost + dev_cost + partition_total + pattern_cost;
 
 % ---- switchable objective (B.6) -------------------------------------------
 % Every metric is always computed and always bounded; the objective is a
@@ -109,6 +116,8 @@ output [
   "fcr_used = \(fcr_used)\n",
   "T        = \(T)\n",
   "sil_impl = \(sil_impl)\n",
+  "pat      = \(pat)\n",
+  "active   = \(active)\n",
   "csil     = \(csil)\n",
   "promo    = \(promotion_cost)  partition = \(partition_total)\n",
   "latency  = \(latency)\n",

@@ -1,0 +1,143 @@
+# SafeDSE safety pattern library (architecture doc C.3)
+#
+# A pattern record has three parts, mirroring the three source catalogues:
+#   1. STRUCTURE   -- Koopman: what components and channels it adds
+#   2. PLACEMENT   -- the mapping constraints among them.  This is a FIRST-CLASS
+#                     field, not an afterthought: Low SIL Doer/Checker and
+#                     Same-CPU Doer/Checker are structurally IDENTICAL and
+#                     differ only here.  A representation carrying topology
+#                     alone cannot express the catalogue.
+#   3. ATTRIBUTES  -- Armoush (costs, RSI) and Preschern (tactics, for the GSN
+#                     artefact in Phase 7)
+#
+# INVARIANTS the expander checks (C.4), so a malformed record fails at build
+# time with a diagnosable message rather than as an opaque UNSAT:
+#   * every cycle a pattern introduces carries at least one initial token
+#   * every component fires once per iteration and produces on all outputs
+#     (the token-preservation obligation, A.4) -- failure behaviour lives in
+#     the VALUE domain, never the presence domain
+#   * DIFFERENT/DIFFERENT_FCR over k components is satisfiable on the platform
+#   * a pattern whose covers_faults omits the selected fault_model is not
+#     applicable, however high its achieves_sil
+#
+# Phase 4/5 admit only `voter: folded` patterns (Q10).  Explicit voters, and
+# with them the Armoush NVP / NSCP / M-out-of-N family, arrive in Phase 6.
+# No nesting (Q9): patterns apply to base SDF actors only.
+
+patterns:
+
+  # -------------------------------------------------------------------------
+  - id: none
+    source: [baseline]
+    description: >
+      No structural pattern.  The required integrity is met by development
+      process alone.  IEC 61508 treats this as adequate at the lower integrity
+      levels; SIL 3 and above normally require hardware fault tolerance, which
+      is why achieves_sil stops at 2.  Raising that ceiling is a modelling
+      decision the designer can make by editing this record, and it should be
+      an explicit one.
+    components: []
+    edges: []
+    placement: []
+    achieves_sil: [0, 1, 2]
+    covers_faults: [random_hw, systematic_sw]
+    failure_mode: none
+    voter: folded
+    recurring_cost_units: 0
+    tactics: []
+    sdf_compatible: true
+
+  # -------------------------------------------------------------------------
+  - id: low_sil_doer_checker
+    source: [koopman, "Low SIL Doer/Checker Pair (E-quizzer)"]
+    description: >
+      A low-SIL doer on one CPU, checked by a higher-SIL checker on a SEPARATE
+      CPU.  The checker quizzes the doer and can shut the channel down, so the
+      pair fails active at SIL 1-2.  Separation is what makes it tolerate a
+      random hardware fault in the doer's processor.
+    components:
+      - {role: checker, sil_offset: 1, wcet_type: "checker_<owner>"}
+    edges:
+      # the doer's result goes to the checker
+      - {from: owner,   to: checker, tokens: 0}
+      # and the checker's verdict returns.  The initial token is not optional:
+      # without it this cycle has no tokens and the graph deadlocks.
+      - {from: checker, to: owner,   tokens: 1}
+    input_fanout: [checker]        # the checker sees the doer's inputs too
+    output_from: owner
+    placement:
+      - {relation: DIFFERENT, members: [owner, checker], for: random_hw}
+    achieves_sil: [1, 2]
+    covers_faults: [random_hw]
+    failure_mode: active
+    voter: folded
+    dev_cost_multiplier: {checker: 1.0}
+    recurring_cost_units: 2
+    tactics: [Sanity Check, Replication Redundancy]
+    sdf_compatible: true
+
+  # -------------------------------------------------------------------------
+  - id: same_cpu_doer_checker
+    source: [koopman, "Same-CPU Doer/Checker"]
+    description: >
+      Structurally IDENTICAL to low_sil_doer_checker.  The only difference is
+      that the checker shares the doer's processor.  Cheaper -- one CPU instead
+      of two -- but it tolerates no hardware fault in that processor, and under
+      Koopman's rule 2 the shared core is provisioned to the checker's SIL, so
+      the doer is promoted unless certified partitioning is available.
+      This record exists to demonstrate that a pattern is a graph rewrite PLUS
+      a placement relation; drop the placement field and the two patterns
+      become indistinguishable.
+    components:
+      - {role: checker, sil_offset: 1, wcet_type: "checker_<owner>"}
+    edges:
+      - {from: owner,   to: checker, tokens: 0}
+      - {from: checker, to: owner,   tokens: 1}
+    input_fanout: [checker]
+    output_from: owner
+    placement:
+      - {relation: SAME, members: [owner, checker]}
+    achieves_sil: [1, 2]
+    covers_faults: [systematic_sw]   # NOT random_hw: one processor, no HW FT
+    failure_mode: active
+    voter: folded
+    dev_cost_multiplier: {checker: 1.0}
+    recurring_cost_units: 1
+    tactics: [Sanity Check]
+    sdf_compatible: true
+
+  # -------------------------------------------------------------------------
+  - id: two_of_two_high_sil
+    source: [koopman, "Two Channel (2-of-2)"]
+    description: >
+      Two independent channels, both at high SIL, whose outputs must agree.
+      Disagreement shuts the pair down, so it fails silent.  No explicit voter:
+      2-of-2 requires agreement rather than a majority, so the comparison folds
+      into the consuming actor -- which is why this pattern is reachable in
+      Phase 4 while NVP is not.
+      Both channels always fire and always produce, per the token-preservation
+      obligation.  A detected disagreement marks the token invalid; it never
+      withholds it.  So the timing guarantee holds in the degraded mode too
+      (Q4), at the price of being conservative in the fault-free case.
+    components:
+      - {role: channel_b, sil_offset: 0, wcet_type: "<owner>"}
+    edges:
+      - {from: owner,     to: channel_b, tokens: 0}
+      - {from: channel_b, to: owner,     tokens: 1}
+    input_fanout: [channel_b]
+    output_from: owner
+    placement:
+      - {relation: DIFFERENT_FCR, members: [owner, channel_b], for: random_hw}
+      - {relation: DIVERSE,       members: [owner, channel_b], for: systematic_sw}
+    achieves_sil: [3, 4]
+    covers_faults: [random_hw, systematic_sw]
+    failure_mode: silent
+    voter: folded
+    # Armoush: a homogeneous duplex is one development (~100%); a diverse one
+    # is two independent developments (~200%).  Which applies depends on the
+    # selected fault model, so both are recorded.
+    dev_cost_multiplier: {channel_b: 1.0}
+    dev_cost_multiplier_diverse: {channel_b: 2.0}
+    recurring_cost_units: 2
+    tactics: [Replication Redundancy, Voting, Diverse Redundancy]
+    sdf_compatible: true

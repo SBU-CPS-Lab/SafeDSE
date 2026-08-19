@@ -43,4 +43,26 @@ for prof in myklebust2015 klosterman do178b; do
 done
 $B --app data/apps/c_rasta.hsdf.xml $M --safety data/safety_rasta.xml -o out/s_rasta.dzn
 $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta_nopromo.xml -o out/s_nopromo.dzn
+
+# --- Phase 4: pattern superposition ---
+PAT="--patterns data/patterns.yaml"
+$B --app data/apps/c_rasta.hsdf.xml $M --safety data/safety_rasta.xml $PAT -o out/p_rasta.dzn
+$B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta.xml $PAT -o out/p_rasta_noiso.dzn
+# regression: same inputs as the Phase-3 instance, but through the pattern
+# machinery with every actor forced to `none`. Must reproduce it exactly.
+$B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta.xml $PAT \
+   --force-no-patterns -o out/p_none.dzn
+# systematic-fault variant: selects a different pattern set entirely
+$B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta_sw.xml $PAT \
+   -o out/p_sw.dzn
+
+# --- Phase 4 demonstration: two structurally identical patterns that differ
+#     ONLY in placement, selected by the fault model ---
+ST="--patterns data/patterns_strict.yaml"
+for fm in random_hw systematic_sw; do
+  sed "s/fault_model=\"[a-z_]*\"/fault_model=\"$fm\"/" data/safety_rasta.xml \
+    | sed 's|sil="3"|sil="2"|g' > data/safety_rasta_$fm.xml
+  $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta_$fm.xml $ST \
+     -o out/d_$fm.dzn
+done
 echo "rebuilt $(ls out/*.dzn | wc -l) instances"

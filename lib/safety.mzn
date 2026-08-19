@@ -44,8 +44,9 @@ constraint forall(p in PR)( not used[p] -> csil[p] = 0 /\ not partition[p] );
 constraint forall(p in PR)( partition[p] -> partitionable[ctype[p]] );
 
 % ---- the requirement must be met ------------------------------------------
-constraint forall(i in A)( sil_impl[i] >= sil_req_parent[parent[i]] );
-constraint forall(i in A)( sil_impl[i] <= csil[proc[i]] );
+constraint forall(i in A)( active[i] -> sil_impl[i] >= sil_req_parent[parent[i]] );
+constraint forall(i in A)( active[i] -> sil_impl[i] <= csil[proc[i]] );
+constraint forall(i in A)( not active[i] -> sil_impl[i] = 0 );
 
 % ---- Koopman rule 2: no silent mixing -------------------------------------
 % Without a certified isolation argument, everything on a core is developed to
@@ -53,13 +54,14 @@ constraint forall(i in A)( sil_impl[i] <= csil[proc[i]] );
 % With partitioning, an actor may sit below its core's SIL, and the core pays a
 % partitioning cost for the privilege.
 constraint forall(i in A)(
-    not partition[proc[i]] -> sil_impl[i] = csil[proc[i]]
+    active[i] /\ not partition[proc[i]] -> sil_impl[i] = csil[proc[i]]
 );
 
 % a provisioned core must actually be justified by something running on it,
 % otherwise the solver can inflate csil for free and the metric loses meaning
 constraint forall(p in PR)(
-    used[p] -> csil[p] = max(i in A)( bool2int(proc[i] = p) * sil_impl[i] )
+    used[p] -> csil[p] = max(i in A)( bool2int(proc[i] = p /\ active[i])
+                                      * sil_impl[i] )
 );
 
 % ---- promotion switch (Q17) -----------------------------------------------
@@ -71,7 +73,8 @@ constraint not allow_promotion ->
 
 % ---- costs ----------------------------------------------------------------
 var 0..sum(i in A)(dev_base[i] * max(dev_k)) div 100: dev_cost;
-constraint dev_cost = sum(i in A)( dev_base[i] * dev_k[sil_impl[i]] ) div 100;
+constraint dev_cost = sum(i in A)( bool2int(active[i]) * dev_base[i]
+                                 * dev_k[sil_impl[i]] ) div 100;
 
 var 0..sum(p in PR)(partition_cost[ctype[p]]): partition_total;
 constraint partition_total =
@@ -81,5 +84,5 @@ constraint partition_total =
 % separately because it is the quantity the trade-off is actually about.
 var int: promotion_cost;
 constraint promotion_cost =
-    sum(i in A)( dev_base[i] * (dev_k[sil_impl[i]]
-                              - dev_k[sil_req_parent[parent[i]]]) ) div 100;
+    sum(i in A)( bool2int(active[i]) * dev_base[i]
+               * (dev_k[sil_impl[i]] - dev_k[sil_req_parent[parent[i]]]) ) div 100;

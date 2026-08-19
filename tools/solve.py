@@ -19,7 +19,7 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MZN = "/opt/mzn/bin/minizinc"
+MZN = "minizinc"
 METRICS = ["THROUGHPUT", "LATENCY", "HWCOST", "DEVCOST", "TOTALCOST",
            "POWER", "NPROCS", "PROMOTION"]
 BIG = 10 ** 9

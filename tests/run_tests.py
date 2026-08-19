@@ -168,7 +168,8 @@ def t_model(dzns: list[str]) -> None:
     # t_provenance); exclude it here so its expected difficulty does not
     # masquerade as a model defect.
     dzns = [d for d in dzns if Path(d).stem != "jpeg"
-            and not Path(d).stem.startswith(("r_", "s_", "x_", "m_"))]
+            and not Path(d).stem.startswith(("r_", "s_", "x_", "m_",
+                                             "p_", "d_"))]
     for dzn in dzns:
         for metric in ["HWCOST", "THROUGHPUT", "NPROCS"]:
             r = run(dzn, metric, timeout=240)
@@ -323,6 +324,76 @@ def t_safety() -> None:
               "all profiles agree -- the sensitivity result has gone away")
 
 
+def t_patterns() -> None:
+    """Phase 4: the guarded-superposition mechanism.
+
+    Three claims, each checked rather than asserted:
+      1. the library is well formed under the C.4 obligations;
+      2. with every pattern forced to `none` the model reproduces the Phase-3
+         numbers EXACTLY -- the machinery must be neutral when disabled;
+      3. two structurally identical patterns differing only in placement yield
+         different mappings, which is what proves a pattern is a rewrite PLUS a
+         placement relation rather than topology alone.
+    """
+    print("\n[patterns] guarded superposition")
+    sys.path.insert(0, str(ROOT / "tools"))
+    from patterns import check_pattern, load_patterns
+
+    for lib in ["patterns.yaml", "patterns_strict.yaml"]:
+        f = ROOT / "data" / lib
+        if not f.exists():
+            continue
+        pats = load_patterns(f)
+        bad = [m for p in pats for m in check_pattern(p)]
+        check(f"{lib}: {len(pats)} records well formed (C.4)", not bad,
+              "; ".join(bad))
+
+    # (2) neutrality regression
+    base = ROOT / "out" / "s_myklebust2015.dzn"
+    forced = ROOT / "out" / "p_none.dzn"
+    if base.exists() and forced.exists():
+        for k in [3, 2, 1]:
+            a = run(str(base), "TOTALCOST", {"NPROCS": k}, timeout=120)
+            b = run(str(forced), "TOTALCOST", {"NPROCS": k}, timeout=120)
+            if "solution" not in a or "solution" not in b:
+                check(f"forced-none regression at {k} cores: solved", False,
+                      f"{a['status']}/{b['status']}")
+                continue
+            ma, mb = a["solution"]["metric"], b["solution"]["metric"]
+            check(f"forced-none reproduces Phase 3 at {k} cores", ma == mb,
+                  f"{ma} vs {mb}")
+
+    # (3) placement, not topology, distinguishes the two Doer/Checker patterns
+    got = {}
+    for fm in ["random_hw", "systematic_sw"]:
+        f = ROOT / "out" / f"d_{fm}.dzn"
+        if not f.exists():
+            continue
+        r = run(str(f), "TOTALCOST", timeout=150)
+        if r["status"] != "OPTIMAL":
+            check(f"{fm}: solved", False, r["status"])
+            continue
+        sol = r["solution"]
+        got[fm] = sol["nprocs"]
+        # checkers are the second half of the node list (one slot per actor)
+        half = len(sol["proc"]) // 2
+        pairs = [(sol["proc"][i], sol["proc"][half + i])
+                 for i in range(half) if sol["active"][half + i]]
+        same = all(u == v for u, v in pairs)
+        diff = all(u != v for u, v in pairs)
+        if fm == "random_hw":
+            check("random_hw picks the SEPARATED checker "
+                  f"({len(pairs)} pairs, all on distinct cores)", diff and pairs,
+                  f"pairs={pairs}")
+        else:
+            check("systematic_sw picks the CO-LOCATED checker "
+                  f"({len(pairs)} pairs, all sharing a core)", same and pairs,
+                  f"pairs={pairs}")
+    if len(got) == 2:
+        check(f"fault model changes the core count {got}",
+              len(set(got.values())) > 1, "both fault models agree")
+
+
 def t_crosscheck(dzns: list[str]) -> None:
     print("\n[crosscheck] backends must agree (disagreement = modelling error)")
     for dzn in dzns:
@@ -345,7 +416,7 @@ def t_crosscheck(dzns: list[str]) -> None:
 def main() -> int:
     groups = sys.argv[1:] or ["golden", "unfold", "provenance", "model",
                               "symmetry", "latency", "rosvall", "safety",
-                              "crosscheck"]
+                              "patterns", "crosscheck"]
     dzns = sorted(str(p) for p in (ROOT / "out").glob("*.dzn"))
     if not dzns and {"model", "symmetry", "crosscheck"} & set(groups):
         print("no .dzn files in out/ -- run tools/build_dzn.py first")
@@ -367,6 +438,8 @@ def main() -> int:
         t_rosvall()
     if "safety" in groups:
         t_safety()
+    if "patterns" in groups:
+        t_patterns()
     if "crosscheck" in groups:
         t_crosscheck(dzns)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed  ({time.time()-t0:.1f}s)")

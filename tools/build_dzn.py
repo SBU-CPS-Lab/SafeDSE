@@ -23,6 +23,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from hsdf import HSDFGraph, check_unfolding, unfold          # noqa: E402
+from patterns import (PatternError, check_pattern, expand,   # noqa: E402
+                      load_patterns)
 from platform import Platform, parse_platform                # noqa: E402
 from sdf3 import WCETTable, parse_design_constraints, parse_sdf3  # noqa: E402
 
@@ -44,6 +46,11 @@ def mzn_str_array(vals) -> str:
 
 
 # --------------------------------------------------------------------------
+def _slot_node(base_of: dict, appi: int, name: str, k: int):
+    """Resolve a superposed-graph actor name to its HSDF node for copy k."""
+    return base_of.get((appi, name, k))
+
+
 def min_token_path(n: int, tok: list[list[int]], src: int) -> list[int]:
     """Shortest path from src measured in INITIAL TOKENS (Dijkstra, tiny graph).
 
@@ -179,6 +186,11 @@ def main() -> int:
     ap.add_argument("--cost-model", help="cost_model.xml (C.8)")
     ap.add_argument("--cost-profile",
                     help="override the profile named in safety.xml")
+    ap.add_argument("--patterns", help="patterns.yaml (Phase 4)")
+    ap.add_argument("--force-no-patterns", action="store_true",
+                    help="restrict every actor to the `none` pattern. Used by "
+                         "the Phase-3 regression: the model must then reproduce "
+                         "pre-pattern results exactly.")
     ap.add_argument("--period-mode", choices=["global", "partitioned"],
                     default="global",
                     help="C.7: 'global' = one period for all apps (default); "
@@ -191,21 +203,61 @@ def main() -> int:
     ap.add_argument("-o", "--out", required=True)
     args = ap.parse_args()
 
-    # ---- 1. parse applications, unfold ----------------------------------
-    graphs, hgraphs = [], []
-    for a in args.app:
-        g = parse_sdf3(a)
-        h = unfold(g)
-        problems = check_unfolding(g, h)
+    # ---- 1. parse, superpose patterns (C.6 step 2/3), unfold ------------
+    graphs = [parse_sdf3(a) for a in args.app]
+    sdf_actor_names = [act.name for g in graphs for act in g.actors]
+    saf = load_safety(args.safety, sdf_actor_names)
+    if args.cost_profile:
+        saf["cost_profile"] = args.cost_profile
+
+    plat_pre = parse_platform(args.platform)
+    pats = []
+    sups = []
+    if args.patterns:
+        pats = load_patterns(args.patterns)
+        problems = [m for p in pats for m in check_pattern(p)]
         if problems:
-            print(f"unfolding of {g.name!r} FAILED:", file=sys.stderr)
-            for p in problems:
-                print("   -", p, file=sys.stderr)
+            print("pattern library FAILED well-formedness checks (C.4):",
+                  file=sys.stderr)
+            for m in problems:
+                print("   -", m, file=sys.stderr)
+            return 4
+        print(f"  pattern library: {len(pats)} records, all well formed "
+              f"({', '.join(p.id for p in pats)})", file=sys.stderr)
+
+    hgraphs = []
+    eff_graphs = []
+    for g in graphs:
+        if pats:
+            try:
+                sup = expand(g, pats, saf["sil"], saf["fault_model"],
+                             force_none=args.force_no_patterns,
+                             platform_fcrs=len(plat_pre.fcrs),
+                             platform_cores=len(plat_pre.slots))
+            except PatternError as e:
+                print(f"ERROR: {e}", file=sys.stderr)
+                return 5
+            for note in sup.notes:
+                print(f"  NOTE: {note}", file=sys.stderr)
+            eff = sup.graph
+            sups.append(sup)
+            grew = len(eff.actors) - len(g.actors)
+            print(f"  {g.name}: {len(g.actors)} SDF actors + {grew} pattern "
+                  f"slots = {len(eff.actors)}", file=sys.stderr)
+        else:
+            eff = g
+            sups.append(None)
+        eff_graphs.append(eff)
+        h = unfold(eff)
+        problems = check_unfolding(eff, h)
+        if problems:
+            print(f"unfolding of {eff.name!r} FAILED:", file=sys.stderr)
+            for pr in problems:
+                print("   -", pr, file=sys.stderr)
             return 2
-        graphs.append(g)
         hgraphs.append(h)
-        print(f"  {g.name}: {len(g.actors)} SDF actors, q={h.q}, "
-              f"-> {h.n()} HSDF nodes, {len(h.edges)} edges", file=sys.stderr)
+        print(f"  {eff.name}: q={sorted(set(h.q))} -> {h.n()} HSDF nodes, "
+              f"{len(h.edges)} edges", file=sys.stderr)
 
     # ---- 2. flatten applications into one node list ---------------------
     nodes, app_of, parent_of, copy_of, node_names, node_types = [], [], [], [], [], []
@@ -238,7 +290,7 @@ def main() -> int:
         off += h.n()
 
     # ---- 3. platform ----------------------------------------------------
-    plat: Platform = parse_platform(args.platform)
+    plat: Platform = plat_pre
     tidx = plat.type_index()
     P = len(plat.slots)
     nF = len(plat.fcrs)
@@ -315,13 +367,13 @@ def main() -> int:
               f"Results are NOT publishable.", file=sys.stderr)
 
     # ---- 5. safety / cost ----------------------------------------------
-    sdf_actor_names = []
-    for h, g in zip(hgraphs, graphs):
-        sdf_actor_names += [a.name for a in g.actors]
-    saf = load_safety(args.safety, sdf_actor_names)
-    if args.cost_profile:
-        saf["cost_profile"] = args.cost_profile
-    sil_req_parent = [saf["sil"][pn.split(".", 1)[1]] for pn in parent_names]
+    def _sil_of(parent_label: str) -> int:
+        bare = parent_label.split(".", 1)[1]
+        # a pattern slot `owner~k` carries its owner's requirement; the SIL it
+        # is DEVELOPED to is decided by the model, not fixed here
+        return saf["sil"][bare.split("~", 1)[0]]
+
+    sil_req_parent = [_sil_of(pn) for pn in parent_names]
     dev_k, dev_base, dev_base_default = load_cost_model(
         args.cost_model, saf["cost_profile"])
 
@@ -450,6 +502,137 @@ def main() -> int:
     W(f"lat_ub  = {mzn_array([x[3] for x in lat])};")
     if lat:
         print(f"  {len(lat)} latency constraints", file=sys.stderr)
+
+    # ---- 8. patterns (C.3, Phase 4) -------------------------------------
+    W("")
+    W("% ---- safety patterns: guarded superposition (C.2) ----")
+    if pats:
+        pid = {p.id: k + 1 for k, p in enumerate(pats)}
+        W(f"nPat = {len(pats)};")
+        W(f"pat_name = {mzn_str_array([p.id for p in pats])};")
+        W(f"pat_recurring = {mzn_array([p.recurring_cost_units for p in pats])};")
+
+        # applicability per parent (SDF actor of the superposed graph)
+        allowed = []
+        for lbl in parent_names:
+            appn, bare = lbl.split(".", 1)
+            owner = bare.split("~", 1)[0]
+            si = next(k for k, h in enumerate(hgraphs) if h.name == appn)
+            app = sups[si].applicable[owner] if sups[si] else [pid["none"] - 1]
+            allowed.append([("true" if (k in app) else "false")
+                            for k in range(len(pats))])
+        W(f"pat_allowed = array2d(1..{len(parent_names)}, 1..{len(pats)},")
+        W("  " + mzn_matrix(allowed) + ");")
+
+        # node guards, owner links
+        node_owner, owner_node, node_guard = [], [], []
+        base_of: dict[tuple[int, str, int], int] = {}
+        for i in range(n):
+            lbl = parent_names[parent_of[i] - 1]
+            appn, bare = lbl.split(".", 1)
+            base_of[(app_of[i], bare, copy_of[i])] = i + 1
+        for i in range(n):
+            lbl = parent_names[parent_of[i] - 1]
+            appn, bare = lbl.split(".", 1)
+            owner = bare.split("~", 1)[0]
+            si = next(k for k, h in enumerate(hgraphs) if h.name == appn)
+            sup = sups[si]
+            # owner parent index (1-based, global)
+            owner_par = next(k + 1 for k, pl in enumerate(parent_names)
+                             if pl == f"{appn}.{owner}")
+            node_owner.append(owner_par)
+            # PAIRWISE (Q16): the owner's copy with the SAME copy index
+            owner_node.append(base_of[(app_of[i], owner, copy_of[i])])
+            if sup and bare in sup.guard_of:
+                gs = set(sup.guard_of[bare])
+                node_guard.append([("true" if k in gs else "false")
+                                   for k in range(len(pats))])
+            else:
+                node_guard.append(["true"] * len(pats))   # base actor
+        par_owner = []
+        for lbl in parent_names:
+            appn, bare = lbl.split(".", 1)
+            owner = bare.split("~", 1)[0]
+            par_owner.append(next(k + 1 for k, pl in enumerate(parent_names)
+                                  if pl == f"{appn}.{owner}"))
+        W(f"par_owner = {mzn_array(par_owner)};")
+        W(f"node_owner = {mzn_array(node_owner)};")
+        W(f"owner_node = {mzn_array(owner_node)};")
+        W(f"node_guard = array2d(1..{n}, 1..{len(pats)},")
+        W("  " + mzn_matrix(node_guard) + ");")
+
+        # pattern edges: HSDF edges whose originating channel is guarded
+        pe = []
+        off = 0
+        for si, h in enumerate(hgraphs):
+            sup = sups[si]
+            for e in h.edges:
+                if sup and e.origin in sup.chan_guards:
+                    owner, gs = sup.chan_guards[e.origin]
+                    owner_par = next(k + 1 for k, pl in enumerate(parent_names)
+                                     if pl == f"{h.name}.{owner}")
+                    pe.append((off + e.src + 1, off + e.dst + 1,
+                               e.initial_tokens, owner_par, set(gs)))
+            off += h.n()
+        W(f"nPE = {len(pe)};")
+        pad = [(1, 1, 0, 1, set())]          # never referenced: PE = 1..nPE
+        pe_e = pe or pad
+        W(f"pe_src = {mzn_array([x[0] for x in pe_e])};")
+        W(f"pe_dst = {mzn_array([x[1] for x in pe_e])};")
+        W(f"pe_tok = {mzn_array([x[2] for x in pe_e])};")
+        W(f"pe_owner = {mzn_array([x[3] for x in pe_e])};")
+        W(f"pe_guard = array2d(1..{max(len(pe),1)}, 1..{len(pats)},")
+        W("  " + mzn_matrix([[("true" if k in x[4] else "false")
+                              for k in range(len(pats))] for x in pe_e]) + ");")
+
+        # placement relations, expanded PAIRWISE over HSDF copies (Q16)
+        pl = []
+        for si, h in enumerate(hgraphs):
+            sup = sups[si]
+            if not sup:
+                continue
+            for u, v, rel, owner, gs in sup.placements:
+                owner_par = next(k + 1 for k, plab in enumerate(parent_names)
+                                 if plab == f"{h.name}.{owner}")
+                q_owner = h.q[h.parent_names.index(owner)]
+                for k in range(q_owner):
+                    ui = base_of.get((si + 1, u, k)) or \
+                         _slot_node(base_of, si + 1, u, k)
+                    vi = base_of.get((si + 1, v, k)) or \
+                         _slot_node(base_of, si + 1, v, k)
+                    if ui and vi:
+                        pl.append((ui, vi, rel, owner_par, set(gs)))
+        W(f"nPL = {len(pl)};")
+        pl_e = pl or [(1, 1, 1, 1, set())]
+        W(f"pl_u = {mzn_array([x[0] for x in pl_e])};")
+        W(f"pl_v = {mzn_array([x[1] for x in pl_e])};")
+        W(f"pl_rel = {mzn_array([x[2] for x in pl_e])};")
+        W(f"pl_owner = {mzn_array([x[3] for x in pl_e])};")
+        W(f"pl_guard = array2d(1..{max(len(pl),1)}, 1..{len(pats)},")
+        W("  " + mzn_matrix([[("true" if k in x[4] else "false")
+                              for k in range(len(pats))] for x in pl_e]) + ");")
+        print(f"  patterns: {len(pe)} guarded edges, {len(pl)} placement "
+              f"relations", file=sys.stderr)
+    else:
+        # No pattern library supplied. Emit `none` plus an unreachable dummy:
+        # MiniZinc 2.8.7 segfaults when PAT is the singleton 1..1 (reproduced on
+        # nPat=1 while nPat>=2 with identical structure is fine), and a second
+        # never-allowed entry sidesteps it at no modelling cost.
+        W("% no pattern library supplied -- `none` plus an unreachable dummy")
+        W("nPat = 2;")
+        W('pat_name = ["none", "_unused"];')
+        W("pat_recurring = [0, 0];")
+        W(f"pat_allowed = array2d(1..{len(parent_names)}, 1..2,")
+        W("  " + mzn_matrix([["true", "false"]] * len(parent_names)) + ");")
+        W(f"par_owner = {mzn_array(list(range(1, len(parent_names) + 1)))};")
+        W(f"node_owner = {mzn_array(parent_of)};")
+        W(f"owner_node = {mzn_array(list(range(1, n + 1)))};")
+        W(f"node_guard = array2d(1..{n}, 1..2,")
+        W("  " + mzn_matrix([["true", "true"]] * n) + ");")
+        W("nPE = 0;  pe_src = [1];  pe_dst = [1];  pe_tok = [0];  pe_owner = [1];")
+        W("pe_guard = array2d(1..1, 1..2, [false, false]);")
+        W("nPL = 0;  pl_u = [1];  pl_v = [1];  pl_rel = [1];  pl_owner = [1];")
+        W("pl_guard = array2d(1..1, 1..2, [false, false]);")
 
     Path(args.out).write_text("\n".join(L) + "\n")
     print(f"  wrote {args.out}  ({n} nodes, {P} core slots)", file=sys.stderr)

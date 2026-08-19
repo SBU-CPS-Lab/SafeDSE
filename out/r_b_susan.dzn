@@ -79,3 +79,28 @@ lat_src = [];
 lat_dst = [];
 lat_rho = [];
 lat_ub  = [];
+
+% ---- safety patterns: guarded superposition (C.2) ----
+% no pattern library supplied -- `none` plus an unreachable dummy
+nPat = 2;
+pat_name = ["none", "_unused"];
+pat_recurring = [0, 0];
+pat_allowed = array2d(1..5, 1..2,
+  [| true, false
+     | true, false
+     | true, false
+     | true, false
+     | true, false |]);
+par_owner = [1, 2, 3, 4, 5];
+node_owner = [1, 2, 3, 4, 5];
+owner_node = [1, 2, 3, 4, 5];
+node_guard = array2d(1..5, 1..2,
+  [| true, true
+     | true, true
+     | true, true
+     | true, true
+     | true, true |]);
+nPE = 0;  pe_src = [1];  pe_dst = [1];  pe_tok = [0];  pe_owner = [1];
+pe_guard = array2d(1..1, 1..2, [false, false]);
+nPL = 0;  pl_u = [1];  pl_v = [1];  pl_rel = [1];  pl_owner = [1];
+pl_guard = array2d(1..1, 1..2, [false, false]);

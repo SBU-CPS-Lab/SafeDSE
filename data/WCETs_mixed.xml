@@ -80,6 +80,96 @@
     <wcet processor="cortexM" mode="standard" wcet="211"/>
     <wcet processor="cortexM" mode="performance" wcet="158"/>
   </mapping>
+  <mapping task_type="checker_Aud">
+    <wcet processor="cortexR" mode="standard" wcet="32"/>
+    <wcet processor="cortexR" mode="eco" wcet="42"/>
+    <wcet processor="cortexM" mode="standard" wcet="51"/>
+    <wcet processor="cortexM" mode="performance" wcet="38"/>
+  </mapping>
+  <mapping task_type="checker_BackEnd">
+    <wcet processor="cortexR" mode="standard" wcet="40"/>
+    <wcet processor="cortexR" mode="eco" wcet="52"/>
+    <wcet processor="cortexM" mode="standard" wcet="64"/>
+    <wcet processor="cortexM" mode="performance" wcet="48"/>
+  </mapping>
+  <mapping task_type="checker_CC">
+    <wcet processor="cortexR" mode="standard" wcet="330"/>
+    <wcet processor="cortexR" mode="eco" wcet="429"/>
+    <wcet processor="cortexM" mode="standard" wcet="528"/>
+    <wcet processor="cortexM" mode="performance" wcet="396"/>
+  </mapping>
+  <mapping task_type="checker_CS">
+    <wcet processor="cortexR" mode="standard" wcet="757"/>
+    <wcet processor="cortexR" mode="eco" wcet="984"/>
+    <wcet processor="cortexM" mode="standard" wcet="1211"/>
+    <wcet processor="cortexM" mode="performance" wcet="908"/>
+  </mapping>
+  <mapping task_type="checker_DCT">
+    <wcet processor="cortexR" mode="standard" wcet="76"/>
+    <wcet processor="cortexR" mode="eco" wcet="99"/>
+    <wcet processor="cortexM" mode="standard" wcet="122"/>
+    <wcet processor="cortexM" mode="performance" wcet="91"/>
+  </mapping>
+  <mapping task_type="checker_FrontEnd">
+    <wcet processor="cortexR" mode="standard" wcet="42"/>
+    <wcet processor="cortexR" mode="eco" wcet="55"/>
+    <wcet processor="cortexM" mode="standard" wcet="67"/>
+    <wcet processor="cortexM" mode="performance" wcet="50"/>
+  </mapping>
+  <mapping task_type="checker_GI">
+    <wcet processor="cortexR" mode="standard" wcet="124"/>
+    <wcet processor="cortexR" mode="eco" wcet="161"/>
+    <wcet processor="cortexM" mode="standard" wcet="198"/>
+    <wcet processor="cortexM" mode="performance" wcet="149"/>
+  </mapping>
+  <mapping task_type="checker_Huffman">
+    <wcet processor="cortexR" mode="standard" wcet="102"/>
+    <wcet processor="cortexR" mode="eco" wcet="133"/>
+    <wcet processor="cortexM" mode="standard" wcet="163"/>
+    <wcet processor="cortexM" mode="performance" wcet="122"/>
+  </mapping>
+  <mapping task_type="checker_PI">
+    <wcet processor="cortexR" mode="standard" wcet="51"/>
+    <wcet processor="cortexR" mode="eco" wcet="66"/>
+    <wcet processor="cortexM" mode="standard" wcet="82"/>
+    <wcet processor="cortexM" mode="performance" wcet="61"/>
+  </mapping>
+  <mapping task_type="checker_Pow">
+    <wcet processor="cortexR" mode="standard" wcet="70"/>
+    <wcet processor="cortexR" mode="eco" wcet="91"/>
+    <wcet processor="cortexM" mode="standard" wcet="112"/>
+    <wcet processor="cortexM" mode="performance" wcet="84"/>
+  </mapping>
+  <mapping task_type="checker_RFilter">
+    <wcet processor="cortexR" mode="standard" wcet="58"/>
+    <wcet processor="cortexR" mode="eco" wcet="75"/>
+    <wcet processor="cortexM" mode="standard" wcet="93"/>
+    <wcet processor="cortexM" mode="performance" wcet="70"/>
+  </mapping>
+  <mapping task_type="checker_Rasta">
+    <wcet processor="cortexR" mode="standard" wcet="9"/>
+    <wcet processor="cortexR" mode="eco" wcet="12"/>
+    <wcet processor="cortexM" mode="standard" wcet="14"/>
+    <wcet processor="cortexM" mode="performance" wcet="11"/>
+  </mapping>
+  <mapping task_type="checker_WI">
+    <wcet processor="cortexR" mode="standard" wcet="40"/>
+    <wcet processor="cortexR" mode="eco" wcet="52"/>
+    <wcet processor="cortexM" mode="standard" wcet="64"/>
+    <wcet processor="cortexM" mode="performance" wcet="48"/>
+  </mapping>
+  <mapping task_type="checker_getImage">
+    <wcet processor="cortexR" mode="standard" wcet="124"/>
+    <wcet processor="cortexR" mode="eco" wcet="161"/>
+    <wcet processor="cortexM" mode="standard" wcet="198"/>
+    <wcet processor="cortexM" mode="performance" wcet="149"/>
+  </mapping>
+  <mapping task_type="checker_writeImage">
+    <wcet processor="cortexR" mode="standard" wcet="40"/>
+    <wcet processor="cortexR" mode="eco" wcet="52"/>
+    <wcet processor="cortexM" mode="standard" wcet="64"/>
+    <wcet processor="cortexM" mode="performance" wcet="48"/>
+  </mapping>
   <mapping task_type="getImage">
     <wcet processor="cortexR" mode="standard" wcet="413"/>
     <wcet processor="cortexR" mode="eco" wcet="537"/>
