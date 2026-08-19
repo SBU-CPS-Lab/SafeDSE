@@ -19,9 +19,9 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MZN = "minizinc"
+MZN = "/opt/mzn/bin/minizinc"
 METRICS = ["THROUGHPUT", "LATENCY", "HWCOST", "DEVCOST", "TOTALCOST",
-           "POWER", "NPROCS"]
+           "POWER", "NPROCS", "PROMOTION"]
 BIG = 10 ** 9
 
 
@@ -114,7 +114,10 @@ def main() -> int:
 
     s = r["solution"]
     print(f"  mu={s['mu']}  nprocs={s['nprocs']}  hw_cost={s['hw_cost']}  "
+          f"dev_cost={s.get('dev_cost')}  promo={s.get('promotion_cost')}  "
           f"power={s['power']}")
+    if "csil" in s:
+        print(f"  csil={s['csil']}  sil_impl={s.get('sil_impl')}")
     print(f"  proc={s['proc']}")
 
     outp = a.json_out or "/tmp/safedse_sol.json"

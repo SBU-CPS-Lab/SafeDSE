@@ -204,6 +204,52 @@ def main() -> int:
                         f"-- expected (see lib/latency.mzn), but do not report "
                         f"the estimate as a worst-case bound")
 
+    # ---- safety invariants (Phase 3) ------------------------------------
+    # These are the claims the framework exists to make, so they are checked
+    # externally rather than trusted to hold because a constraint was written.
+    if "sil_impl" in sol and "csil" in sol:
+        sil_impl = sol["sil_impl"]
+        csil = sol["csil"]
+        proc = sol["proc"]
+        part = sol.get("partition", [False] * len(csil))
+        sreq = d["sil_req_parent"]
+        par = d["parent"]
+        ctype = d["ctype"]
+        max_sil = d["max_sil"]
+
+        for i in range(n):
+            need = sreq[par[i] - 1]
+            if sil_impl[i] < need:
+                ok = False
+                msgs.append(f"actor {i+1}: developed to SIL {sil_impl[i]} but "
+                            f"requires SIL {need}")
+            if sil_impl[i] > csil[proc[i] - 1]:
+                ok = False
+                msgs.append(f"actor {i+1}: SIL {sil_impl[i]} on a core "
+                            f"provisioned only to SIL {csil[proc[i]-1]}")
+
+        for p_ in range(len(csil)):
+            cap = max_sil[ctype[p_] - 1]
+            if csil[p_] > cap:
+                ok = False
+                msgs.append(f"core {p_+1}: provisioned to SIL {csil[p_]} but its "
+                            f"type can only be certified to SIL {cap}")
+            # Koopman rule 2: without partitioning, one SIL per core
+            if not part[p_]:
+                on = [sil_impl[i] for i in range(n) if proc[i] == p_ + 1]
+                if on and len(set(on)) > 1:
+                    ok = False
+                    msgs.append(f"core {p_+1} has mixed SILs {sorted(set(on))} "
+                                f"with no certified partitioning -- Koopman "
+                                f"rule 2 violated")
+                if on and set(on) != {csil[p_]}:
+                    ok = False
+                    msgs.append(f"core {p_+1}: csil={csil[p_]} but actors are at "
+                                f"{sorted(set(on))}")
+        if not a.quiet:
+            live = [(p_ + 1, csil[p_]) for p_ in range(len(csil)) if csil[p_] > 0]
+            print(f"  isolation: {len(live)} provisioned cores {live}")
+
     # the bound the open-chain bug used to lose
     load = {}
     for i in range(n):

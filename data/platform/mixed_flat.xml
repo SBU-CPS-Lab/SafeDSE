@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Same core inventory as mixed.xml (6 cortexR + 16 cortexM) but every core
+     alone in its own FCR. Used to isolate the cost of multi-core cards: with
+     singleton FCRs a core swap is also a whole-card swap, so value precedence
+     over the whole type-group is sound (Platform.interchangeable_groups). -->
+<platform name="mixed_flat">
+  <fcr_template name="R-single" max_instances="6" monetary="60">
+    <processor model="cortexR" count="1" max_sil="4" mem="64000"
+               partitionable="true" partition_cost="15">
+      <mode name="standard" cycle="1"   dynPower="180" area="14" monetary="40"/>
+      <mode name="eco"      cycle="1.3" dynPower="95"  area="14" monetary="40"/>
+    </processor>
+  </fcr_template>
+  <fcr_template name="M-single" max_instances="16" monetary="6">
+    <processor model="cortexM" count="1" max_sil="2" mem="16000"
+               partitionable="false" partition_cost="0">
+      <mode name="standard"    cycle="1.6" dynPower="40" area="4" monetary="8"/>
+      <mode name="performance" cycle="1.2" dynPower="72" area="5" monetary="11"/>
+    </processor>
+  </fcr_template>
+  <interconnect>
+    <TDMA_bus name="TDMA-bus" x-dimension="8" flitSize="32" tdma_slots="16"
+              maxSlotsPerProc="8"><mode name="default" cycleLength="1"/></TDMA_bus>
+  </interconnect>
+</platform>

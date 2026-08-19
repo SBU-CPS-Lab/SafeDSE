@@ -15,17 +15,13 @@ include "../lib/order.mzn";
 include "../lib/symmetry.mzn";
 include "../lib/mcm.mzn";
 include "../lib/latency.mzn";
+include "../lib/safety.mzn";
 
 % ---- application data -----------------------------------------------------
 array[A,A] of int: tok;                       % -1 = no channel
 array[A, CT, MD] of int: wcet;
 array[A] of int: mem_req;
 array[APP] of int: period_ub;
-
-% ---- safety data (used from Phase 3; carried now so the .dzn is stable) ---
-array[PAR] of 0..4: sil_req_parent;
-array[0..4] of int: dev_k;                    % dev-cost multiplier x100 (C.8)
-bool: allow_promotion;
 
 % ---- derived: WCET follows the binding ------------------------------------
 % This is a 3-D element with two nested variable indices (pmode[proc[i]] is
@@ -72,18 +68,15 @@ constraint forall(p in PR)(
 );
 
 % ---- costs ----------------------------------------------------------------
-% Development cost is inert in Phase 1 (every actor is implemented at its own
-% required SIL, no promotion decision exists yet).  Phase 3 replaces the
-% right-hand side with sil_impl[] and the isolation rules.
-var 0..n*max(dev_k): dev_cost;
-constraint dev_cost = sum(i in A)( dev_k[sil_req_parent[parent[i]]] ) div 100;
+% dev_cost, partition_total and promotion_cost come from lib/safety.mzn.
 var int: total_cost;
-constraint total_cost = hw_cost + dev_cost;
+constraint total_cost = hw_cost + dev_cost + partition_total;
 
 % ---- switchable objective (B.6) -------------------------------------------
 % Every metric is always computed and always bounded; the objective is a
 % parameter, so switching what is optimised needs a -D flag and no model edit.
-enum Metric = { THROUGHPUT, LATENCY, HWCOST, DEVCOST, TOTALCOST, POWER, NPROCS };
+enum Metric = { THROUGHPUT, LATENCY, HWCOST, DEVCOST, TOTALCOST, POWER,
+                NPROCS, PROMOTION };
 Metric: opt_metric;
 array[Metric] of int: ub;
 
@@ -97,7 +90,7 @@ constraint mu_worst = max(mu);
 
 array[Metric] of var int: metric;
 constraint metric = [ mu_worst, max_latency, hw_cost, dev_cost,
-                      total_cost, power, nprocs ];
+                      total_cost, power, nprocs, promotion_cost ];
 constraint forall(m in Metric)( metric[m] <= ub[m] );
 
 solve :: seq_search([
@@ -115,6 +108,9 @@ output [
   "used     = \(used)\n",
   "fcr_used = \(fcr_used)\n",
   "T        = \(T)\n",
+  "sil_impl = \(sil_impl)\n",
+  "csil     = \(csil)\n",
+  "promo    = \(promotion_cost)  partition = \(partition_total)\n",
   "latency  = \(latency)\n",
   "metric   = \(metric)\n",
 ];

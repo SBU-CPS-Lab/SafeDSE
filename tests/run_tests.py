@@ -168,7 +168,7 @@ def t_model(dzns: list[str]) -> None:
     # t_provenance); exclude it here so its expected difficulty does not
     # masquerade as a model defect.
     dzns = [d for d in dzns if Path(d).stem != "jpeg"
-            and not Path(d).stem.startswith("r_")]
+            and not Path(d).stem.startswith(("r_", "s_", "x_", "m_"))]
     for dzn in dzns:
         for metric in ["HWCOST", "THROUGHPUT", "NPROCS"]:
             r = run(dzn, metric, timeout=240)
@@ -269,6 +269,60 @@ def t_rosvall() -> None:
             check("4 apps partitioned: solved", False, r["status"])
 
 
+def t_safety() -> None:
+    """Phase 3: SIL isolation, promotion pricing, and cost-profile sensitivity."""
+    print("\n[safety] isolation, promotion, and cost-profile sensitivity")
+    noiso = ROOT / "out" / "s_myklebust2015.dzn"
+    if not noiso.exists():
+        print("  SKIP  build the Phase-3 instances first")
+        return
+
+    # Koopman rule 2 must hold in the returned solution, checked externally.
+    for k in [3, 2, 1]:
+        r = run(str(noiso), "TOTALCOST", {"NPROCS": k}, timeout=120)
+        if r["status"] != "OPTIMAL":
+            check(f"noiso nprocs<={k}: solved", False, r["status"])
+            continue
+        ok, msg = _verify(str(noiso), r["solution"])
+        check(f"noiso nprocs<={k}: isolation invariants hold "
+              f"(promo={r['solution']['promotion_cost']})", ok, msg)
+
+    # Consolidation must cost promotion, monotonically.
+    promos = []
+    for k in [3, 2, 1]:
+        r = run(str(noiso), "TOTALCOST", {"NPROCS": k}, timeout=120)
+        promos.append(r["solution"]["promotion_cost"] if "solution" in r else None)
+    check("fewer cores costs more promotion",
+          promos == sorted(promos) and promos[0] == 0,
+          f"promotion by core count 3/2/1 = {promos}")
+
+    # Turning promotion off must make the tight case infeasible rather than
+    # silently returning a mixed-SIL core.
+    nop = ROOT / "out" / "s_nopromo.dzn"
+    if nop.exists():
+        a = run(str(nop), "TOTALCOST", {"NPROCS": 3}, timeout=90)
+        b = run(str(nop), "TOTALCOST", {"NPROCS": 2}, timeout=90)
+        check("allow_promotion=false: 3 cores feasible", a["status"] == "OPTIMAL",
+              a["status"])
+        check("allow_promotion=false: 2 cores correctly UNSAT",
+              b["status"] == "UNSAT", b["status"])
+
+    # C.8: the cost profile is an experimental variable, and on expensive
+    # hardware the OPTIMAL ARCHITECTURE differs between profiles.
+    got = {}
+    for prof in ["myklebust2015", "klosterman", "do178b"]:
+        f = ROOT / "out" / f"x_{prof}.dzn"
+        if not f.exists():
+            continue
+        r = run(str(f), "TOTALCOST", timeout=120)
+        if r["status"] == "OPTIMAL":
+            got[prof] = r["solution"]["nprocs"]
+    if len(got) == 3:
+        check(f"cost profile changes the optimal architecture {got}",
+              len(set(got.values())) > 1,
+              "all profiles agree -- the sensitivity result has gone away")
+
+
 def t_crosscheck(dzns: list[str]) -> None:
     print("\n[crosscheck] backends must agree (disagreement = modelling error)")
     for dzn in dzns:
@@ -290,7 +344,8 @@ def t_crosscheck(dzns: list[str]) -> None:
 # ---------------------------------------------------------------------------
 def main() -> int:
     groups = sys.argv[1:] or ["golden", "unfold", "provenance", "model",
-                              "symmetry", "latency", "rosvall", "crosscheck"]
+                              "symmetry", "latency", "rosvall", "safety",
+                              "crosscheck"]
     dzns = sorted(str(p) for p in (ROOT / "out").glob("*.dzn"))
     if not dzns and {"model", "symmetry", "crosscheck"} & set(groups):
         print("no .dzn files in out/ -- run tools/build_dzn.py first")
@@ -310,6 +365,8 @@ def main() -> int:
         t_latency()
     if "rosvall" in groups:
         t_rosvall()
+    if "safety" in groups:
+        t_safety()
     if "crosscheck" in groups:
         t_crosscheck(dzns)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed  ({time.time()-t0:.1f}s)")

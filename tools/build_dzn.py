@@ -129,16 +129,42 @@ def load_safety(path: str | None, actor_names: list[str]) -> dict:
     return out
 
 
-# Development-cost multipliers x100 (C.8).  SIL0 and SIL4 are extrapolated;
-# the source paper (Myklebust/Stalhane/Haugset, ISSC 2015) covers SIL1-SIL3.
+# Fallback if no cost_model.xml is supplied. The authoritative source is
+# data/cost_model.xml; these mirror it so the tool still runs standalone.
 COST_PROFILES = {
-    # Paper's own recommendation: +100% SIL1->2, +130% SIL2->3
     "myklebust2015": [100, 113, 225, 518, 906],
-    # Table 1 (Klosterman): effort increase 5-20 / 10-36 / 20-60 / 40-100%, midpoints
     "klosterman":    [100, 113, 123, 140, 170],
-    # Allen / DO-178B ratios E=1, D=3, C=5, B=9 with the paper's D~SIL2, C~SIL3
     "do178b":        [100, 200, 300, 500, 900],
 }
+
+
+def load_cost_model(path: str | None, profile: str):
+    """cost_model.xml -> (per-SIL multipliers x100, per-task baseline, default).
+
+    The profile is an experimental variable, not a constant (C.8): the three
+    published profiles disagree by up to 3.7x at SIL3, so the interesting
+    question is whether the optimal architecture is stable across them.
+    """
+    if not path:
+        if profile not in COST_PROFILES:
+            raise KeyError(f"unknown cost profile {profile!r}; supply a "
+                           f"cost_model.xml or use one of "
+                           f"{sorted(COST_PROFILES)}")
+        return COST_PROFILES[profile], {}, 100
+    root = ET.parse(path).getroot()
+    profiles = {p.get("name"): p for p in root.findall("profile")}
+    if profile not in profiles:
+        raise KeyError(f"cost profile {profile!r} not in {path}; available: "
+                       f"{sorted(profiles)}")
+    pe = profiles[profile]
+    mult = [0] * 5
+    for se in pe.findall("sil"):
+        mult[int(se.get("level"))] = int(se.get("multiplier"))
+    base_el = root.find("baseline")
+    default = int(base_el.get("default", "100")) if base_el is not None else 100
+    per_task = {t.get("task_type"): int(t.get("cost"))
+                for t in (base_el.findall("task") if base_el is not None else [])}
+    return mult, per_task, default
 
 
 # --------------------------------------------------------------------------
@@ -150,6 +176,9 @@ def main() -> int:
     ap.add_argument("--constraints")
     ap.add_argument("--safety")
     ap.add_argument("--latency", help="latency.xml: constrained src/dst pairs")
+    ap.add_argument("--cost-model", help="cost_model.xml (C.8)")
+    ap.add_argument("--cost-profile",
+                    help="override the profile named in safety.xml")
     ap.add_argument("--period-mode", choices=["global", "partitioned"],
                     default="global",
                     help="C.7: 'global' = one period for all apps (default); "
@@ -290,8 +319,11 @@ def main() -> int:
     for h, g in zip(hgraphs, graphs):
         sdf_actor_names += [a.name for a in g.actors]
     saf = load_safety(args.safety, sdf_actor_names)
+    if args.cost_profile:
+        saf["cost_profile"] = args.cost_profile
     sil_req_parent = [saf["sil"][pn.split(".", 1)[1]] for pn in parent_names]
-    dev_k = COST_PROFILES[saf["cost_profile"]]
+    dev_k, dev_base, dev_base_default = load_cost_model(
+        args.cost_model, saf["cost_profile"])
 
     # ---- 6. design constraints -----------------------------------------
     periods = {}
@@ -400,6 +432,7 @@ def main() -> int:
     W("")
     W("% ---- safety (C.8) ----")
     W(f"sil_req_parent = {mzn_array(sil_req_parent)};")
+    W(f"dev_base = {mzn_array([dev_base.get(node_types[i], dev_base_default) for i in range(n)])};")
     W(f"dev_k = array1d(0..4, {mzn_array(dev_k)});")
     W(f"allow_promotion = {'true' if saf['allow_promotion'] else 'false'};")
     W("")
