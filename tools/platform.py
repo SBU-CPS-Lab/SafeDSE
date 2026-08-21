@@ -75,6 +75,8 @@ class Platform:
     fcrs: list[tuple[int, str, str, int]]   # (index, name, template, monetary)
     core_types: list[CoreType]
     tdma_slots: int = 0
+    flit_size: int = 32
+    cycle_length: int = 1
 
     def type_index(self) -> dict[str, int]:
         return {t.model: i for i, t in enumerate(self.core_types)}
@@ -145,6 +147,19 @@ def _core_type(p: ET.Element, types_by_model: dict[str, CoreType]) -> CoreType:
     return ct
 
 
+def _bus(root: ET.Element) -> dict:
+    """TDMA bus parameters. flitSize is the data one slot carries."""
+    bus = root.find(".//TDMA_bus")
+    if bus is None:
+        return {"tdma_slots": 0}
+    mode = bus.find("mode")
+    return {
+        "tdma_slots": int(bus.get("tdma_slots", "0")),
+        "flit_size": int(bus.get("flitSize", "32")),
+        "cycle_length": int(mode.get("cycleLength", "1")) if mode is not None else 1,
+    }
+
+
 def parse_platform(path: str | Path) -> Platform:
     """Accepts two dialects.
 
@@ -192,14 +207,9 @@ def parse_platform(path: str | Path) -> Platform:
                                       within=within))
                     within += 1
 
-    tdma = 0
-    bus = root.find(".//TDMA_bus")
-    if bus is not None:
-        tdma = int(bus.get("tdma_slots", "0"))
-
     return Platform(name=root.get("name", "platform"), templates=templates,
                     slots=slots, fcrs=fcrs,
-                    core_types=list(types_by_model.values()), tdma_slots=tdma)
+                    core_types=list(types_by_model.values()), **_bus(root))
 
 
 def _parse_desyde(root: ET.Element) -> Platform:
@@ -221,10 +231,6 @@ def _parse_desyde(root: ET.Element) -> Platform:
         templates.append(FCRTemplate(name=m, max_instances=
                                      sum(1 for s in slots if s.core_type is ct),
                                      monetary=0, cores=[(ct, 1)]))
-    tdma = 0
-    bus = root.find(".//TDMA_bus")
-    if bus is not None:
-        tdma = int(bus.get("tdma_slots", "0"))
     return Platform(name=root.get("name", "platform"), templates=templates,
                     slots=slots, fcrs=fcrs,
-                    core_types=list(types_by_model.values()), tdma_slots=tdma)
+                    core_types=list(types_by_model.values()), **_bus(root))

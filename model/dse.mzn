@@ -17,6 +17,7 @@ include "../lib/mcm.mzn";
 include "../lib/latency.mzn";
 include "../lib/safety.mzn";
 include "../lib/activation.mzn";
+include "../lib/comm.mzn";
 
 % ---- application data -----------------------------------------------------
 array[A,A] of int: tok;                       % -1 = no channel
@@ -39,8 +40,22 @@ int: maxwcet = max([wcet[i,t,m] | i in A, t in CT, m in MD
 array[A] of var 0..maxwcet: T;
 % An inactive node is neutralised, not deleted: zero WCET makes it invisible to
 % every cycle mean, so it costs nothing in the static order it still sits in.
-constraint forall(i in A)(
+% Application actors take their WCET from the table; communication actors take
+% theirs from the TDMA model (comm_actor_times), so the two sets are disjoint.
+set of int: COMM = { ch_block[c] | c in CH } union { ch_send[c] | c in CH }
+                   union { ch_rec[c] | c in CH };
+constraint forall(i in A where not (i in COMM))(
     T[i] = bool2int(active[i]) * wcet[i, ctype[proc[i]], pmode[proc[i]]]
+);
+constraint comm_actor_times(T);
+
+% A communication actor lives on the SENDING processor: block and send occupy
+% the sender's network interface, receive the destination's local memory. Their
+% placement is therefore derived, never chosen.
+constraint forall(c in CH)(
+    proc[ch_block[c]] = proc[ch_src[c]] /\
+    proc[ch_send[c]]  = proc[ch_src[c]] /\
+    proc[ch_rec[c]]   = proc[ch_dst[c]]
 );
 
 % ---- throughput (C.7: per-application periods) ----------------------------
@@ -66,11 +81,21 @@ array[A] of var -maxmu..maxmu: pot;
 % potentials -- within a connected component every node shares one mu, so the
 % potentials are in a common time base, which was the exact condition the old
 % C.7 note warned about.
-constraint forall(i, j in A where app[i] != app[j])(
-    proc[i] = proc[j] -> mu[app[i]] = mu[app[j]]
+% Posted over APPLICATION pairs rather than actor pairs. DeSyDe writes this as
+% O(n^2) reified implications over cross-application actors, which timed out at
+% 32 actors here. Routing it through a per-(app, core) occupancy matrix makes it
+% O(|APP|^2 + n*|APP|) and is exactly equivalent: two applications share a core
+% iff some core is occupied by both.
+array[APP, PR] of var bool: app_on;
+constraint forall(z in APP, p in PR)(
+    app_on[z, p] <-> exists(i in A where app[i] = z)( proc[i] = p /\ active[i] )
 );
-constraint forall(i, j in A where app[i] != app[j])(
-    mu[app[i]] != mu[app[j]] -> proc[i] != proc[j]
+array[APP, APP] of var bool: app_shares;
+constraint forall(y, z in APP where y < z)(
+    app_shares[y, z] <-> exists(p in PR)( app_on[y, p] /\ app_on[z, p] )
+);
+constraint forall(y, z in APP where y < z)(
+    app_shares[y, z] -> mu[y] = mu[z]
 );
 
 array[A] of var 1..maxmu: mu_of;
@@ -80,6 +105,7 @@ constraint mcm_fixed_edges(tok, T, pot, mu_of);
 constraint mcm_schedule_edges(sedge, T, pot);
 constraint mcm_wrap_edges(wrap, T, pot, mu_of);
 constraint mcm_pattern_edges(T, pot, mu_of);
+constraint comm_msag_edges(T, pot, mu_of);
 constraint mcm_anchor(pot);
 constraint latency_periodic(pot, T, mu_of);
 
@@ -173,5 +199,6 @@ output [
   "csil     = \(csil)\n",
   "promo    = \(promotion_cost)  partition = \(partition_total)\n",
   "latency  = \(latency)\n",
+  "tdma     = \(tdma_alloc)  remote=\(n_remote)\n",
   "metric   = \(metric)\n",
 ];

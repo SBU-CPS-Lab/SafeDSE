@@ -78,8 +78,14 @@ $B --app data/apps/c_rasta.hsdf.xml $T3 --safety data/safety_fm_both.xml $PAT -o
 for fm in random_hw systematic_sw; do
   $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta_$fm.xml $PAT -o out/d_$fm.dzn
 done
-echo "rebuilt $(ls out/*.dzn | wc -l) instances"
 $B --app data/rosvall/a_sobel.hsdf.xml --app data/rosvall/c_rasta.hsdf.xml $R -o out/r_2app.dzn
 $B --app data/rosvall/a_sobel.hsdf.xml --app data/rosvall/b_susan.hsdf.xml \
    --app data/rosvall/c_rasta.hsdf.xml $R -o out/r_3app.dzn
+echo "rebuilt $(ls out/*.dzn | wc -l) instances"
+
+# --- Phase 6: TDMA communication ---
+for a in a_sobel b_susan c_rasta; do
+  $B --app data/rosvall/$a.hsdf.xml $R --comm tdma -o out/c_$a.dzn
+done
+$B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta.xml $PAT --comm tdma -o out/c_pat.dzn
 echo "rebuilt $(ls out/*.dzn | wc -l) instances"

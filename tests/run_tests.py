@@ -12,6 +12,7 @@ Run:  python3 tests/run_tests.py [group ...]
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import time
@@ -169,7 +170,7 @@ def t_model(dzns: list[str]) -> None:
     # masquerade as a model defect.
     dzns = [d for d in dzns if Path(d).stem != "jpeg"
             and not Path(d).stem.startswith(("r_", "s_", "x_", "m_",
-                                             "p_", "d_", "f_"))]
+                                             "p_", "d_", "f_", "c_"))]
     for dzn in dzns:
         for metric in ["HWCOST", "THROUGHPUT", "NPROCS"]:
             r = run(dzn, metric, timeout=240)
@@ -484,6 +485,40 @@ def t_multiapp() -> None:
                 check(f"{stem}: solved", False, r["status"])
 
 
+def t_comm() -> None:
+    """Phase 6: TDMA communication as guarded superposition."""
+    print("\n[comm] TDMA block/send/rec superposition")
+    for a in ["a_sobel", "b_susan", "c_rasta"]:
+        ideal = ROOT / "out" / f"r_{a}.dzn"
+        tdma = ROOT / "out" / f"c_{a}.dzn"
+        if not (ideal.exists() and tdma.exists()):
+            continue
+        # relax the period bound: communication delay can push a mapping past a
+        # constraint that was feasible with ideal communication, which is the
+        # point of modelling it
+        loose = Path(f"/tmp/_c_{a}.dzn")
+        loose.write_text(re.sub(r"^period_ub = .*$", "period_ub = [100000];",
+                                tdma.read_text(), flags=re.M))
+        li = Path(f"/tmp/_i_{a}.dzn")
+        li.write_text(re.sub(r"^period_ub = .*$", "period_ub = [100000];",
+                             ideal.read_text(), flags=re.M))
+        ri = run(str(li), "HWCOST", timeout=150)
+        rt = run(str(loose), "HWCOST", timeout=200)
+        if ri["status"] != "OPTIMAL" or rt["status"] != "OPTIMAL":
+            check(f"{a}: both ideal and TDMA solve", False,
+                  f"{ri['status']}/{rt['status']}")
+            continue
+        mi, mt = ri["solution"]["mu"][0], rt["solution"]["mu"][0]
+        check(f"{a}: TDMA period {mt} >= ideal {mi} "
+              f"(communication cannot make a schedule faster)", mt >= mi)
+        nrem = rt["solution"].get("n_remote", 0)
+        slots = sum(rt["solution"].get("tdma_alloc", []))
+        check(f"{a}: {nrem} remote channels, {slots} TDMA slots allocated",
+              (nrem > 0) == (slots > 0),
+              f"remote={nrem} slots={slots} -- slots must be allocated iff "
+              f"something is sent")
+
+
 def t_crosscheck(dzns: list[str]) -> None:
     print("\n[crosscheck] backends must agree (disagreement = modelling error)")
     for dzn in dzns:
@@ -506,7 +541,8 @@ def t_crosscheck(dzns: list[str]) -> None:
 def main() -> int:
     groups = sys.argv[1:] or ["golden", "unfold", "provenance", "model",
                               "symmetry", "latency", "rosvall", "safety",
-                              "patterns", "catalogue", "multiapp", "crosscheck"]
+                              "patterns", "catalogue", "multiapp", "comm",
+                              "crosscheck"]
     dzns = sorted(str(p) for p in (ROOT / "out").glob("*.dzn"))
     if not dzns and {"model", "symmetry", "crosscheck"} & set(groups):
         print("no .dzn files in out/ -- run tools/build_dzn.py first")
@@ -534,6 +570,8 @@ def main() -> int:
         t_catalogue()
     if "multiapp" in groups:
         t_multiapp()
+    if "comm" in groups:
+        t_comm()
     if "crosscheck" in groups:
         t_crosscheck(dzns)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed  ({time.time()-t0:.1f}s)")

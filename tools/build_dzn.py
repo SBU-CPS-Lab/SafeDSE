@@ -46,6 +46,24 @@ def mzn_str_array(vals) -> str:
 
 
 # --------------------------------------------------------------------------
+class _CommNode:
+    """A block/send/receive actor. Not an SDF actor: it has no parent in the
+    application graph and its WCET comes from the TDMA model, not WCETs.xml."""
+    __slots__ = ("name", "type", "parent", "copy_index", "exec_time", "state_size")
+
+    def __init__(self, tag, idx):
+        self.name = f"__{tag}#{idx}"
+        self.type = f"__{tag}"
+        self.parent = 0
+        self.copy_index = 0
+        self.exec_time = 0
+        self.state_size = 0
+
+
+def _comm_node(tag, si, e, idx):
+    return _CommNode(tag, idx)
+
+
 def _slot_node(base_of: dict, appi: int, name: str, k: int):
     """Resolve a superposed-graph actor name to its HSDF node for copy k."""
     return base_of.get((appi, name, k))
@@ -184,6 +202,10 @@ def main() -> int:
     ap.add_argument("--safety")
     ap.add_argument("--latency", help="latency.xml: constrained src/dst pairs")
     ap.add_argument("--cost-model", help="cost_model.xml (C.8)")
+    ap.add_argument("--comm", choices=["ideal", "tdma"], default="ideal",
+                    help="'ideal' (default) charges nothing for communication; "
+                         "'tdma' adds block/send/rec actors per channel, "
+                         "activated when the endpoints land on different cores")
     ap.add_argument("--cost-profile",
                     help="override the profile named in safety.xml")
     ap.add_argument("--patterns", help="patterns.yaml (Phase 4)")
@@ -276,6 +298,39 @@ def main() -> int:
             node_types.append(nd.type)
         poff += len(h.parent_names)
 
+    # ---- 2b. communication superposition (C.6 step 6, Phase 6) ----------
+    # Three MSAG actors per channel -- block, send, receive -- instantiated
+    # statically and activated by proc[src] != proc[dst]. Same guarded
+    # expansion as the safety patterns (architecture doc A.5).
+    comm_channels = []          # (src_node, dst_node, msgsize, app, b, s, r)
+    if args.comm == "tdma":
+        off = 0
+        for si, h in enumerate(hgraphs):
+            for e in h.edges:
+                if e.src == e.dst:
+                    continue            # self-loop: auto-concurrency, not a channel
+                if e.origin == "auto-concurrency":
+                    continue
+                b = len(nodes); nodes.append(_comm_node("block", si, e, b))
+                sn = len(nodes); nodes.append(_comm_node("send", si, e, sn))
+                rn = len(nodes); nodes.append(_comm_node("rec", si, e, rn))
+                for idx, tag in ((b, "block"), (sn, "send"), (rn, "rec")):
+                    app_of.append(si + 1)
+                    parent_of.append(0)      # patched below
+                    copy_of.append(0)
+                    node_names.append(f"{h.name}.{tag}#{len(comm_channels)}")
+                    node_types.append(f"__{tag}")
+                comm_channels.append((off + e.src, off + e.dst,
+                                      e.token_size or 1, si + 1, b, sn, rn))
+            off += h.n()
+        # communication actors have no SDF parent; give them their own so the
+        # parent-indexed arrays stay total
+        for k, (_, _, _, ai, b, sn, rn) in enumerate(comm_channels):
+            for idx in (b, sn, rn):
+                parent_names.append(f"__comm.{node_names[idx].split('.')[-1]}")
+                parent_app.append(ai)
+                parent_of[idx] = len(parent_names)
+
     n = len(nodes)
 
     # token matrix across all applications (block diagonal)
@@ -308,7 +363,7 @@ def main() -> int:
     # of (name, type) the table actually knows, and report the choice.
     known = wt.types()
     wkey: list[str] = []
-    for i in range(n):
+    for i in range(n - 3 * len(comm_channels)):
         bare = node_names[i].split(".", 1)[1].split("#", 1)[0]
         wkey.append(bare if bare in known else node_types[i])
 
@@ -320,7 +375,8 @@ def main() -> int:
     # no extra constraint. It IS an error for an actor to have no entry at all.
     wcet = []
     fallback_used: list[str] = []
-    for i in range(n):
+    n_app_nodes = n - 3 * len(comm_channels)
+    for i in range(n_app_nodes):
         per_type = []
         for ct in plat.core_types:
             per_mode = []
@@ -349,9 +405,14 @@ def main() -> int:
             return 3
         wcet.append(per_type)
 
+    # Communication actors take their WCET from the TDMA model (wcct_b, wcct_s,
+    # and 0 for receive), not from WCETs.xml, so they are excluded from the
+    # lookup and from the "no entry anywhere" error.
+    for i in range(len(wcet), n):
+        wcet.append([[0] * max_modes for _ in plat.core_types])
     restricted = [(node_names[i], [ct.model for ti, ct in enumerate(plat.core_types)
                                    if all(v >= FORBIDDEN for v in wcet[i][ti])])
-                  for i in range(n)]
+                  for i in range(n_app_nodes)]
     restricted = [(nm, ms) for nm, ms in restricted if ms]
     if restricted:
         print(f"  binding restrictions from missing WCET entries: "
@@ -368,6 +429,9 @@ def main() -> int:
 
     # ---- 5. safety / cost ----------------------------------------------
     def _sil_of(parent_label: str) -> int:
+        if parent_label.startswith("__comm."):
+            return 0        # a bus transfer carries no integrity requirement
+                            # of its own; the SIL of the data is the sender's
         bare = parent_label.split(".", 1)[1]
         # a pattern slot `owner~k` carries its owner's requirement; the SIL it
         # is DEVELOPED to is decided by the model, not fixed here
@@ -394,9 +458,18 @@ def main() -> int:
         if p > 0:
             period_ub.append(p)
         else:
-            worst = sum(max(wcet[base + k][t][m]
-                            for t in range(nT) for m in range(len(plat.core_types[t].modes)))
-                        for k in range(h.n()))
+            # Only FEASIBLE bindings count. Taking the max over all entries
+            # would include the FORBIDDEN sentinel for cores an actor cannot
+            # use (a hardware accelerator reserved for one actor makes every
+            # other actor's entry forbidden), inflating the bound a
+            # millionfold and with it the domains of mu and every potential.
+            worst = 0
+            for k in range(h.n()):
+                feas = [wcet[base + k][t][m]
+                        for t in range(nT)
+                        for m in range(len(plat.core_types[t].modes))
+                        if wcet[base + k][t][m] < FORBIDDEN]
+                worst += max(feas) if feas else 0
             period_ub.append(worst or 10 ** 6)
         base += h.n()
 
@@ -484,7 +557,7 @@ def main() -> int:
     W("")
     W("% ---- safety (C.8) ----")
     W(f"sil_req_parent = {mzn_array(sil_req_parent)};")
-    W(f"dev_base = {mzn_array([dev_base.get(node_types[i], dev_base_default) for i in range(n)])};")
+    W(f"dev_base = {mzn_array([0 if node_types[i].startswith('__') else dev_base.get(node_types[i], dev_base_default) for i in range(n)])};")
     W(f"dev_k = array1d(0..4, {mzn_array(dev_k)});")
     W(f"allow_promotion = {'true' if saf['allow_promotion'] else 'false'};")
     W("")
@@ -646,6 +719,50 @@ def main() -> int:
         W("pe_guard = array2d(1..1, 1..1, [false]);")
         W("nPL = 0;  pl_u = [1];  pl_v = [1];  pl_rel = [1];  pl_owner = [1];")
         W("pl_guard = array2d(1..1, 1..1, [false]);")
+
+    # ---- 9. communication (B.5, Phase 6) ---------------------------------
+    W("")
+    W("% ---- TDMA communication ----")
+    tdma_n = plat.tdma_slots or 8
+    data_per_slot = plat.flit_size
+    cycle_len = plat.cycle_length
+    W(f"nCh = {len(comm_channels)};")
+    if comm_channels:
+        W(f"ch_src = {mzn_array([c[0] + 1 for c in comm_channels])};")
+        W(f"ch_dst = {mzn_array([c[1] + 1 for c in comm_channels])};")
+        W(f"ch_msgsize = {mzn_array([c[2] for c in comm_channels])};")
+        W(f"ch_app = {mzn_array([c[3] for c in comm_channels])};")
+        W(f"ch_block = {mzn_array([c[4] + 1 for c in comm_channels])};")
+        W(f"ch_send = {mzn_array([c[5] + 1 for c in comm_channels])};")
+        W(f"ch_rec = {mzn_array([c[6] + 1 for c in comm_channels])};")
+        slots_needed = [max(1, -(-c[2] // data_per_slot)) for c in comm_channels]
+        W(f"ch_slots_needed = {mzn_array(slots_needed)};")
+        # rounds[s] : full TDMA rounds needed with s slots allocated
+        rows = []
+        for sn in slots_needed:
+            row = [0, sn - 1]
+            for k in range(2, tdma_n + 1):
+                r = sn // k
+                if sn % k == 0:
+                    r -= 1
+                row.append(max(0, r))
+            rows.append([max(0, v) for v in row])
+        W(f"ch_rounds = array2d(1..{len(comm_channels)}, 0..{tdma_n},")
+        W("  " + mzn_matrix(rows) + ");")
+    else:
+        W("ch_src = [1]; ch_dst = [1]; ch_msgsize = [0]; ch_app = [1];")
+        W("ch_block = [1]; ch_send = [1]; ch_rec = [1]; ch_slots_needed = [1];")
+        W(f"ch_rounds = array2d(1..1, 0..{tdma_n}, "
+          f"{mzn_array([0] * (tdma_n + 1))});")
+    W(f"tdma_slots = {tdma_n};")
+    W(f"tdma_cycle_len = {cycle_len};")
+    W(f"data_per_slot = {data_per_slot};")
+    W(f"max_buf = 4;")
+    W(f"ni_capacity = 100000;")
+    W("nSep = 0;  sep_a = [1];  sep_b = [1];")
+    if comm_channels:
+        print(f"  TDMA: {len(comm_channels)} channels -> "
+              f"{3 * len(comm_channels)} communication actors", file=sys.stderr)
 
     Path(args.out).write_text("\n".join(L) + "\n")
     print(f"  wrote {args.out}  ({n} nodes, {P} core slots)", file=sys.stderr)
