@@ -57,6 +57,12 @@ constraint forall(c in CH)(
     proc[ch_send[c]]  = proc[ch_src[c]] /\
     proc[ch_rec[c]]   = proc[ch_dst[c]]
 );
+% An inactive communication actor is neutralised the same way an inactive
+% pattern slot is: zero WCET, and no claim on its core.
+constraint forall(c in CH)(
+    not ch_remote[c] -> ( T[ch_block[c]] = 0 /\ T[ch_send[c]] = 0
+                       /\ T[ch_rec[c]] = 0 )
+);
 
 % ---- throughput (C.7: per-application periods) ----------------------------
 int: maxmu = sum(i in A)(maxwcet) * max([1] ++ [tok[i,j] | i,j in A where tok[i,j] > 0]);
@@ -121,8 +127,13 @@ constraint forall(z in APP)( mu[z] <= period_ub[z] );
 %     edge already implies this, but only through a cycle the solver has to
 %     find; as a linear sum it propagates immediately.
 array[PR] of var 0..maxmu: proc_load;
+% Communication actors are excluded: their time is spent on the bus, not on the
+% core's execution unit, which is the same reason they are outside the processor
+% static order. Counting them here would charge the sender's core for time it
+% does not spend.
 constraint forall(p in PR)(
-    proc_load[p] = sum(j in A)( bool2int(proc[j] = p) * T[j] )
+    proc_load[p] = sum(j in A where not comm_actor[j])(
+        bool2int(proc[j] = p) * T[j] )
 );
 constraint forall(i in A, p in PR)( proc[i] = p -> mu[app[i]] >= proc_load[p] );
 

@@ -129,7 +129,13 @@ def _core_type(p: ET.Element, types_by_model: dict[str, CoreType]) -> CoreType:
     if ct is None:
         ct = CoreType(
             model=model,
-            max_sil=int(p.get("max_sil", "0")),
+            # An undeclared max_sil means the platform description says
+            # nothing about certifiability, not that the core is uncertifiable.
+            # Defaulting to 0 would make every SIL requirement unsatisfiable on
+            # any platform written in the DeSyDe dialect, which has no such
+            # attribute. Default to the top of the scale and let the designer
+            # restrict it explicitly.
+            max_sil=int(p.get("max_sil", "4")),
             mem=int(p.get("mem", "0")),
             partitionable=p.get("partitionable", "false").lower() == "true",
             partition_cost=int(p.get("partition_cost", "0")),

@@ -36,27 +36,42 @@ array[A] of var 0..n:   succ;
 array[A] of var 0..n-1: ord;
 array[A] of var bool:   ishead;
 
+% Communication actors are scheduled on the BUS, not in a processor's static
+% order: DeSyDe keeps them in separate sendNext/recNext circuits, and folding
+% them into the computation order is both wrong and expensive. Wrong, because a
+% block or send actor does not occupy a core's execution slot; expensive,
+% because the order machinery is O(n^2) and communication triples the node
+% count. Contention for the bus is already priced into the TDMA WCCT -- wcct_b
+% is the worst-case wait for a slot and wcct_s covers whole rounds -- which is
+% precisely what makes a TDMA bus time-predictable, so excluding them here does
+% not make the model optimistic.
+array[A] of bool: comm_actor;
+set of int: CPU_A = { i | i in A where not comm_actor[i] };
+constraint forall(i in A where comm_actor[i])( succ[i] = 0 /\ ord[i] = 0
+                                            /\ not ishead[i] );
+
 constraint forall(i in A)( used[proc[i]] );
 % Only an ACTIVE node makes a processor used. An inactive pattern slot is
 % pinned to its owner's core and must not keep an otherwise-idle core alive.
 constraint forall(p in PR)( used[p] <-> exists(i in A)(proc[i] = p /\ active[i]) );
 
 % ---- static order ---------------------------------------------------------
-constraint alldifferent_except_0(succ);
-constraint forall(i in A)( succ[i] != i );
-constraint forall(i in A)( succ[i] > 0 -> proc[succ[i]] = proc[i] );
-constraint forall(p in PR)( used[p] -> sum(i in A)(proc[i] = p /\ succ[i] = 0) = 1 );
-constraint forall(i in A)( succ[i] > 0 -> ord[succ[i]] = ord[i] + 1 );
-constraint forall(i, j in A where i != j)( proc[i] = proc[j] -> ord[i] != ord[j] );
-constraint forall(j in A)( ishead[j] <-> not exists(i in A)(succ[i] = j) );
-constraint forall(j in A)( ishead[j] -> ord[j] = 0 );
+constraint alldifferent_except_0([succ[i] | i in CPU_A]);
+constraint forall(i in CPU_A)( succ[i] != i );
+constraint forall(i in CPU_A)( succ[i] > 0 -> proc[succ[i]] = proc[i] );
+constraint forall(p in PR)( used[p] -> sum(i in CPU_A)(proc[i] = p /\ succ[i] = 0) = 1 );
+constraint forall(i in CPU_A)( succ[i] > 0 -> ord[succ[i]] = ord[i] + 1 );
+constraint forall(i, j in CPU_A where i != j)( proc[i] = proc[j] -> ord[i] != ord[j] );
+constraint forall(j in CPU_A)( ishead[j] <-> not exists(i in CPU_A)(succ[i] = j) );
+constraint forall(j in CPU_A)( ishead[j] -> ord[j] = 0 );
 
 array[A,A] of var bool: sedge;
-constraint forall(i, j in A)( sedge[i,j] <-> (i != j /\ succ[i] = j) );
+constraint forall(i, j in A)( sedge[i,j] <-> (i != j /\ not comm_actor[i] /\ succ[i] = j) );
 
 array[A,A] of var bool: wrap;
 constraint forall(i, j in A)(
-    wrap[i,j] <-> ( succ[i] = 0 /\ ishead[j] /\ proc[i] = proc[j] )
+    wrap[i,j] <-> ( not comm_actor[i] /\ not comm_actor[j]
+                    /\ succ[i] = 0 /\ ishead[j] /\ proc[i] = proc[j] )
 );
 
 % ---- Rosvall constraints 23 and 33 (Q14) ----------------------------------

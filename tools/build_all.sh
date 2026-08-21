@@ -81,11 +81,17 @@ done
 $B --app data/rosvall/a_sobel.hsdf.xml --app data/rosvall/c_rasta.hsdf.xml $R -o out/r_2app.dzn
 $B --app data/rosvall/a_sobel.hsdf.xml --app data/rosvall/b_susan.hsdf.xml \
    --app data/rosvall/c_rasta.hsdf.xml $R -o out/r_3app.dzn
-echo "rebuilt $(ls out/*.dzn | wc -l) instances"
 
 # --- Phase 6: TDMA communication ---
 for a in a_sobel b_susan c_rasta; do
   $B --app data/rosvall/$a.hsdf.xml $R --comm tdma -o out/c_$a.dzn
 done
 $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta.xml $PAT --comm tdma -o out/c_pat.dzn
+echo "rebuilt $(ls out/*.dzn | wc -l) instances"
+# patterns AND communication together -- the composition that did not work
+# before communication actors were removed from the processor static order
+$B --app data/rosvall/a_sobel.hsdf.xml --platform data/rosvall/platform.xml \
+   --wcets data/rosvall/WCETs_pat.xml --constraints data/rosvall/desConst.xml \
+   --cost-model data/cost_model.xml --safety data/safety_sobel3.xml \
+   $PAT --comm tdma -o out/pc_sobel.dzn
 echo "rebuilt $(ls out/*.dzn | wc -l) instances"

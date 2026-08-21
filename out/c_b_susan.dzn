@@ -15,10 +15,10 @@ copy_index = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 node_name = ["b_susan.getImage", "b_susan.usan", "b_susan.direction", "b_susan.thin", "b_susan.putImage", "b_susan.block#0", "b_susan.send#0", "b_susan.rec#0", "b_susan.block#1", "b_susan.send#1", "b_susan.rec#1", "b_susan.block#2", "b_susan.send#2", "b_susan.rec#2", "b_susan.block#3", "b_susan.send#3", "b_susan.rec#3", "b_susan.block#4", "b_susan.send#4", "b_susan.rec#4", "b_susan.block#5", "b_susan.send#5", "b_susan.rec#5", "b_susan.block#6", "b_susan.send#6", "b_susan.rec#6", "b_susan.block#7", "b_susan.send#7", "b_susan.rec#7"];
 parent_name = ["b_susan.getImage", "b_susan.usan", "b_susan.direction", "b_susan.thin", "b_susan.putImage", "__comm.block#0", "__comm.send#0", "__comm.rec#0", "__comm.block#1", "__comm.send#1", "__comm.rec#1", "__comm.block#2", "__comm.send#2", "__comm.rec#2", "__comm.block#3", "__comm.send#3", "__comm.rec#3", "__comm.block#4", "__comm.send#4", "__comm.rec#4", "__comm.block#5", "__comm.send#5", "__comm.rec#5", "__comm.block#6", "__comm.send#6", "__comm.rec#6", "__comm.block#7", "__comm.send#7", "__comm.rec#7"];
 tok = array2d(1..29, 1..29,
-  [| 1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-       | -1, 1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-       | -1, -1, 1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
-       | -1, -1, -1, 1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+  [| 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+       | -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+       | -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+       | -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
        | -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
        | -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
        | -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
@@ -53,7 +53,7 @@ nModes = 3;
 ctype = [1, 1, 1, 1, 1, 2, 1, 1, 1];
 fcr = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 core_model = ["default", "CS_HWacc"];
-max_sil = [0, 0];
+max_sil = [4, 4];
 core_mem = [20000, 20000];
 partitionable = [false, false];
 partition_cost = [0, 0];
@@ -131,6 +131,7 @@ ch_block = [6, 9, 12, 15, 18, 21, 24, 27];
 ch_send = [7, 10, 13, 16, 19, 22, 25, 28];
 ch_rec = [8, 11, 14, 17, 20, 23, 26, 29];
 ch_slots_needed = [4, 4, 4, 4, 4, 4, 4, 4];
+ch_direct_tok = [0, 0, 0, 0, 0, 0, 0, 0];
 ch_rounds = array2d(1..8, 0..9,
   [| 0, 3, 1, 1, 0, 0, 0, 0, 0, 0
      | 0, 3, 1, 1, 0, 0, 0, 0, 0, 0
@@ -146,3 +147,5 @@ data_per_slot = 32;
 max_buf = 4;
 ni_capacity = 100000;
 nSep = 0;  sep_a = [1];  sep_b = [1];
+comm_sil_mode = 0;
+comm_actor = [false, false, false, false, false, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];

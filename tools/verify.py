@@ -127,19 +127,45 @@ def build_msag(d: dict, sol: dict):
             if tok[i][j] >= 0:
                 edges.append((i, j, tok[i][j]))
 
+    # Communication actors are scheduled on the bus, not in a processor's
+    # static order, so they take no part in the succ/wrap reconstruction.
+    comm = d.get("comm_actor", [False] * n)
+    if not isinstance(comm, list):
+        comm = [comm] * n
+    comm = [bool(x) for x in comm] + [False] * (n - len(comm))
+    cpu = [i for i in range(n) if not comm[i]]
+
     # serialisation arcs, token-less
-    for i in range(n):
+    for i in cpu:
         if succ[i] > 0:
             edges.append((i, succ[i] - 1, 0))
 
     # wrap arcs: last -> head on the same core, carrying one token
     heads = {}
-    for j in range(n):
-        if not any(succ[i] == j + 1 for i in range(n)):
+    for j in cpu:
+        if not any(succ[i] == j + 1 for i in cpu):
             heads[proc[j]] = j
-    for i in range(n):
+    for i in cpu:
         if succ[i] == 0 and proc[i] in heads:
             edges.append((i, heads[proc[i]], 1))
+
+    # communication path: src -> block -> send -> rec -> dst, plus the two
+    # buffer back-edges, for every channel whose endpoints ended up apart
+    nch = d.get("nCh", 0)
+    if nch:
+        cs = _aslist(d["ch_src"]); cd = _aslist(d["ch_dst"])
+        cb = _aslist(d["ch_block"]); csd = _aslist(d["ch_send"])
+        cr = _aslist(d["ch_rec"])
+        sbuf = sol.get("sendbuf", [1] * nch)
+        rbuf = sol.get("recbuf", [1] * nch)
+        for c in range(nch):
+            s_, d_ = cs[c] - 1, cd[c] - 1
+            if proc[s_] == proc[d_]:
+                continue                      # local: no communication actors
+            b, sn, r = cb[c] - 1, csd[c] - 1, cr[c] - 1
+            edges += [(s_, b, 0), (b, sn, 0), (sn, r, 0), (r, d_, 0)]
+            edges.append((b, s_, sbuf[c]))    # send-side buffer
+            edges.append((r, sn, rbuf[c]))    # receive-side FIFO
 
     return n, edges, T
 
@@ -165,15 +191,47 @@ def main() -> int:
     # application: two applications sharing a processor are in one component and
     # must report the same period. Splitting by application instead would
     # compare an application against a subgraph it does not own.
-    comp = _components(n, edges)
+    # Only LIVE nodes take part: active application actors, plus communication
+    # actors whose channel actually turned out remote. Inactive pattern slots
+    # and the communication actors of local channels are isolated zero-weight
+    # nodes; including them would split the MSAG into a component per orphan,
+    # each with a cycle mean of zero.
+    live = set()
+    act = sol.get("active", [True] * n)
+    comm_flags = d.get("comm_actor", [False] * n)
+    if not isinstance(comm_flags, list):
+        comm_flags = [comm_flags] * n
+    for i in range(n):
+        if i < len(comm_flags) and comm_flags[i]:
+            continue
+        # Inactive pattern slots stay in: the model keeps them in the processor
+        # static order with zero WCET, so the wrap cycle can pass through them.
+        # Dropping them here breaks that cycle and yields a different MCR.
+        live.add(i)
+    nch0 = d.get("nCh", 0)
+    if nch0:
+        cs0 = _aslist(d["ch_src"]); cd0 = _aslist(d["ch_dst"])
+        cb0 = _aslist(d["ch_block"]); cs1 = _aslist(d["ch_send"])
+        cr0 = _aslist(d["ch_rec"])
+        for c in range(nch0):
+            if sol["proc"][cs0[c] - 1] != sol["proc"][cd0[c] - 1]:
+                live |= {cb0[c] - 1, cs1[c] - 1, cr0[c] - 1}
+    live_edges = [(u, v, t) for u, v, t in edges if u in live and v in live]
+    comp = [c & live for c in _components(n, live_edges) if c & live]
+    comp = [c for c in comp if any(not (i < len(comm_flags) and comm_flags[i])
+                                   for i in c)]
     if not a.quiet and len(comp) > 1:
         print(f"  MSAG has {len(comp)} connected components")
     for members in comp:
         members = sorted(members)
         idx = {g: k for k, g in enumerate(members)}
-        sub = [(idx[u], idx[v], t) for u, v, t in edges if u in idx and v in idx]
+        sub = [(idx[u], idx[v], t) for u, v, t in live_edges
+               if u in idx and v in idx]
         subT = [T[g] for g in members]
-        apps_here = sorted({app[g] for g in members})
+        apps_here = sorted({app[g] for g in members
+                            if not (g < len(comm_flags) and comm_flags[g])})
+        if not apps_here:
+            continue
         k = mcm(len(members), sub, subT)
         sim = selftimed_period(len(members), sub, subT)
         if k is None:
@@ -238,11 +296,17 @@ def main() -> int:
         par = d["parent"]
         ctype = d["ctype"]
         max_sil = d["max_sil"]
+        comm_flags = d.get("comm_actor", [False] * n)
+        if not isinstance(comm_flags, list):
+            comm_flags = [comm_flags] * n
 
         act = sol.get("active", [True] * n)
+        exempt0 = d.get("comm_sil_mode", 0) == 0
         for i in range(n):
             if not act[i]:
                 continue          # inactive pattern slot: neutralised, not real
+            if exempt0 and i < len(comm_flags) and comm_flags[i]:
+                continue
             need = sreq[par[i] - 1]
             if sil_impl[i] < need:
                 ok = False
@@ -260,9 +324,14 @@ def main() -> int:
                 msgs.append(f"core {p_+1}: provisioned to SIL {csil[p_]} but its "
                             f"type can only be certified to SIL {cap}")
             # Koopman rule 2: without partitioning, one SIL per core
+            # In exempt mode (Q21) communication actors are not application
+            # software and Koopman rule 2 does not reach them, so the model
+            # leaves them at SIL 0 and the check must skip them too.
+            exempt = d.get("comm_sil_mode", 0) == 0
             if not part[p_]:
                 on = [sil_impl[i] for i in range(n)
-                      if proc[i] == p_ + 1 and act[i]]
+                      if proc[i] == p_ + 1 and act[i]
+                      and not (exempt and i < len(comm_flags) and comm_flags[i])]
                 if on and len(set(on)) > 1:
                     ok = False
                     msgs.append(f"core {p_+1} has mixed SILs {sorted(set(on))} "
@@ -317,8 +386,16 @@ def main() -> int:
                   f"checked")
 
     # the bound the open-chain bug used to lose
+    # Communication actors are excluded, consistently with the model: their
+    # time is spent on the bus, not on the core's execution unit. A transfer
+    # overlaps computation, so it lengthens LATENCY but only lengthens the
+    # PERIOD when the bus is genuinely the bottleneck.
     load = {}
     for i in range(n):
+        if i < len(comm_flags) and comm_flags[i]:
+            continue
+        if not act[i]:
+            continue
         load[sol["proc"][i]] = load.get(sol["proc"][i], 0) + T[i]
     worst = max(load.values()) if load else 0
     if max(mus) < worst:

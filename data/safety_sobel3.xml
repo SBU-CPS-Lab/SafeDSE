@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<safety fault_model="random_hw" cost_profile="myklebust2015" allow_promotion="true">
+  <default sil="1"/>
+  <actor name="get_pixel" sil="3"/>
+</safety>

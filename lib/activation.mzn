@@ -48,6 +48,7 @@ array[A] of int: owner_node;        % HSDF node of the owner's MATCHING COPY
 array[A, PAT] of bool: node_guard;  % base nodes: all true
 
 array[A] of var bool: active;
+
 constraint forall(i in A)( active[i] <-> node_guard[i, pat[node_owner[i]]] );
 
 % Neutralise inactive nodes.  Pinning to the owner's processor is canonical and

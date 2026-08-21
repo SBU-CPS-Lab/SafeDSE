@@ -27,7 +27,12 @@ plat = parse_platform(a.platform)
 seen = {}
 for app in a.app:
     for act in parse_sdf3(app).actors:
+        # Key on whichever the table will be looked up by. Emitting both the
+        # name and the type costs a few lines and removes an entire class of
+        # "no WCET entry" failure when the two differ, as they do in the
+        # DeSyDe benchmark files.
         seen.setdefault(act.type, act.exec_time)
+        seen.setdefault(act.name, act.exec_time)
 
 if a.patterns:
     import yaml

@@ -218,11 +218,11 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
             roles = {by_id[ids[pi]].components[k]["role"] for pi in guards}
             comp = by_id[ids[guards[0]]].components[k]
             name = f"{a.name}~{k}"
-            # <owner> resolves to the owner's TASK TYPE, not its name: a
-            # duplicated channel runs the same code and so keys the same WCET
-            # entry. A checker keys `checker_<type>`, which the designer must
-            # supply (Q8) -- tools/mkwcets.py generates a scaffold.
-            wt = str(comp.get("wcet_type", "<owner>")).replace("<owner>", a.type)
+            # Keep <owner> UNSUBSTITUTED. Which key the WCET table uses for the
+            # owner is not knowable here -- Rosvall's table keys on actor names
+            # (`get_pixel`), SafeDSE's on task types (`getPixel`) -- so the
+            # front-end resolves the owner's key first and substitutes then.
+            wt = str(comp.get("wcet_type", "<owner>"))
             sup.graph.actors.append(Actor(name=name, type=wt,
                                           exec_time=a.exec_time,
                                           state_size=a.state_size))

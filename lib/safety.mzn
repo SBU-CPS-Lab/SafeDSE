@@ -53,15 +53,21 @@ constraint forall(i in A)( not active[i] -> sil_impl[i] = 0 );
 % the core's SIL -- "if one function is SIL 4, all software must be SIL 4".
 % With partitioning, an actor may sit below its core's SIL, and the core pays a
 % partitioning cost for the privilege.
+% Communication actors are exempted from Koopman rule 2 only in mode 0 (Q21);
+% in modes 1 and 2 they are ordinary software on their core and the rule
+% applies to them like anything else.
 constraint forall(i in A)(
-    active[i] /\ not partition[proc[i]] -> sil_impl[i] = csil[proc[i]]
+    active[i] /\ not partition[proc[i]]
+    /\ not (comm_actor[i] /\ comm_sil_exempt)
+    -> sil_impl[i] = csil[proc[i]]
 );
 
 % a provisioned core must actually be justified by something running on it,
 % otherwise the solver can inflate csil for free and the metric loses meaning
 constraint forall(p in PR)(
-    used[p] -> csil[p] = max(i in A)( bool2int(proc[i] = p /\ active[i])
-                                      * sil_impl[i] )
+    used[p] -> csil[p] = max(i in A)(
+        bool2int(proc[i] = p /\ active[i]
+                 /\ not (comm_actor[i] /\ comm_sil_exempt)) * sil_impl[i] )
 );
 
 % ---- promotion switch (Q17) -----------------------------------------------

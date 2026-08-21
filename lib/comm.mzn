@@ -40,7 +40,8 @@ int: nCh;  set of int: CH = 1..nCh;
 array[int] of int: ch_src;         % HSDF node index of the producing actor
 array[int] of int: ch_dst;
 array[int] of int: ch_msgsize;
-array[int] of int: ch_slots_needed;   % ceil(msgsize / data_per_slot)
+array[int] of int: ch_slots_needed;
+array[int] of int: ch_direct_tok;  % initial tokens on the original channel   % ceil(msgsize / data_per_slot)
 array[int] of int: ch_app;
 
 % Declared over `int` rather than CH because the front-end always emits at least
@@ -74,6 +75,12 @@ constraint forall(p in PR)(
     p_sends[p] <-> exists(c in CH)( ch_remote[c] /\ proc[ch_src[c]] = p )
 );
 constraint forall(p in PR)( p_sends[p] <-> tdma_alloc[p] > 0 );
+
+% NOTE. Tying `active` for communication actors to ch_remote was tried and
+% measured WORSE (a_sobel TDMA-only went 3.1s -> 15.1s): it adds a reified
+% equivalence per actor and buys nothing, because the WCCT model already forces
+% a local channel's times to zero. The real cost was elsewhere -- see the
+% processor-order exclusion below.
 
 % ---- WCCT -----------------------------------------------------------------
 int: max_wcct = (tdma_slots + 1) * tdma_cycle_len
@@ -136,8 +143,17 @@ predicate comm_msag_edges(
     array[int] of var int: pot,
     array[int] of var int: mu_of
 ) =
+    % A LOCAL channel keeps its original direct edge; a REMOTE one is replaced
+    % by the block/send/rec path below. The front-end removes these edges from
+    % the token matrix so exactly one of the two forms is ever posted.
     forall(c in CH)(
-        (ch_remote[c] -> pot[ch_block[c]] >= pot[ch_src[c]] + T[ch_src[c]])
+        not ch_remote[c] -> pot[ch_dst[c]] >= pot[ch_src[c]] + T[ch_src[c]]
+                                            - ch_direct_tok[c] * mu_of[ch_src[c]]
+    )
+    /\
+    forall(c in CH)(
+        (ch_remote[c] -> pot[ch_block[c]] >= pot[ch_src[c]] + T[ch_src[c]]
+                                           - ch_direct_tok[c] * mu_of[ch_src[c]])
         /\
         (ch_remote[c] -> pot[ch_send[c]] >= pot[ch_block[c]] + T[ch_block[c]])
         /\
@@ -145,6 +161,8 @@ predicate comm_msag_edges(
         /\
         (ch_remote[c] -> pot[ch_dst[c]] >= pot[ch_rec[c]] + T[ch_rec[c]])
         /\
+        % the path carries the original channel's initial tokens, placed on its
+        % first edge so the pipeline depth is preserved
         % send-side buffer: cycle {src, block} carrying sendbuf tokens
         (ch_remote[c] -> pot[ch_src[c]] >= pot[ch_block[c]] + T[ch_block[c]]
                                          - sendbuf[c] * mu_of[ch_src[c]])
@@ -174,6 +192,30 @@ constraint forall(k in SEP)(
     (ch_remote[sep_a[k]] /\ ch_remote[sep_b[k]]) ->
         proc[ch_src[sep_a[k]]] != proc[ch_src[sep_b[k]]]
 );
+
+% ---- Q21: does bus traffic count against its core's SIL? ------------------
+% A designer setting, because the answer depends on the platform, not on the
+% model. If the transfer is DMA driven by dedicated hardware, the block/send
+% actors are not application software and Koopman rule 2 does not reach them.
+% If the bus driver is software running on that core, it is subject to the rule
+% and a SIL-3 core's driver must be developed to SIL 3 -- which makes remote
+% communication from a high-SIL core materially more expensive.
+%
+%   comm_sil_mode = 0  exempt: transfers carry no integrity requirement (DMA)
+%   comm_sil_mode = 1  inherit: a transfer inherits the SIL of the data it
+%                      carries, i.e. of its sending actor
+%   comm_sil_mode = 2  core: a transfer is developed to the SIL of the core it
+%                      runs on, exactly like any other software there
+int: comm_sil_mode;
+
+constraint comm_sil_mode = 1 -> forall(c in CH)(
+    ch_remote[c] -> ( sil_impl[ch_block[c]] >= sil_impl[ch_src[c]]
+                   /\ sil_impl[ch_send[c]]  >= sil_impl[ch_src[c]]
+                   /\ sil_impl[ch_rec[c]]   >= sil_impl[ch_src[c]] )
+);
+% mode 2 is enforced by lib/safety.mzn's no-silent-mixing rule once the
+% communication actors are no longer exempted from it; see comm_sil_exempt.
+bool: comm_sil_exempt = (comm_sil_mode = 0);
 
 var int: n_remote;
 constraint n_remote = sum(c in CH)( bool2int(ch_remote[c]) );

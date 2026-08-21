@@ -170,7 +170,7 @@ def t_model(dzns: list[str]) -> None:
     # masquerade as a model defect.
     dzns = [d for d in dzns if Path(d).stem != "jpeg"
             and not Path(d).stem.startswith(("r_", "s_", "x_", "m_",
-                                             "p_", "d_", "f_", "c_"))]
+                                             "p_", "d_", "f_", "c_", "pc"))]
     for dzn in dzns:
         for metric in ["HWCOST", "THROUGHPUT", "NPROCS"]:
             r = run(dzn, metric, timeout=240)
@@ -519,6 +519,74 @@ def t_comm() -> None:
               f"something is sent")
 
 
+def t_commsil() -> None:
+    """Q21: whether bus transfers count against their core's SIL is a designer
+    setting, and the three modes must all be expressible and self-consistent."""
+    print("\n[commsil] Q21 communication-SIL modes")
+    import subprocess as sp
+    outs = {}
+    for mode in ["exempt", "inherit", "core"]:
+        out = Path(f"/tmp/_csil_{mode}.dzn")
+        r = sp.run([sys.executable, str(ROOT / "tools" / "build_dzn.py"),
+                    "--app", str(ROOT / "data/rosvall/c_rasta.hsdf.xml"),
+                    "--platform", str(ROOT / "data/rosvall/platform.xml"),
+                    "--wcets", str(ROOT / "data/rosvall/WCETs.xml"),
+                    "--constraints", str(ROOT / "data/rosvall/desConst.xml"),
+                    "--cost-model", str(ROOT / "data/cost_model.xml"),
+                    "--comm", "tdma", "--comm-sil", mode, "-o", str(out)],
+                   capture_output=True, text=True)
+        check(f"comm-sil={mode}: instance builds", r.returncode == 0,
+              r.stderr[-200:])
+        if r.returncode:
+            continue
+        loose = Path(f"/tmp/_csill_{mode}.dzn")
+        loose.write_text(re.sub(r"^period_ub = .*$", "period_ub = [100000];",
+                                out.read_text(), flags=re.M))
+        res = run(str(loose), "TOTALCOST", timeout=150)
+        if res["status"] != "OPTIMAL":
+            check(f"comm-sil={mode}: solves", False, res["status"])
+            continue
+        outs[mode] = res["solution"]["metric"]
+        ok, msg = _verify(str(loose), res["solution"])
+        check(f"comm-sil={mode}: solution verifies", ok, msg)
+    # exempt can never cost more than core: exempting transfers from Koopman
+    # rule 2 only ever removes constraints
+    if "exempt" in outs and "core" in outs:
+        check("exempt is no more expensive than core",
+              outs["exempt"][4] <= outs["core"][4],
+              f"exempt total {outs['exempt'][4]} > core {outs['core'][4]}")
+
+
+def t_composition() -> None:
+    """Safety patterns and TDMA communication active at once.
+
+    Both are guarded superposition (architecture doc A.5) and each works alone,
+    but composing them was the one thing that did not work: the model grew to
+    265 nodes and found no solution in 100 s. The cause was that communication
+    actors were being folded into the PROCESSOR static order, whose machinery is
+    O(n^2), when they belong on the bus. Excluding them took a_sobel with TDMA
+    alone from 3.1 s to 0.66 s and made the composition solvable at all.
+    """
+    print("\n[composition] safety patterns + TDMA together")
+    f = ROOT / "out" / "pc_sobel.dzn"
+    if not f.exists():
+        print("  SKIP  build out/pc_sobel.dzn first")
+        return
+    loose = Path("/tmp/_pc.dzn")
+    loose.write_text(re.sub(r"^period_ub = .*$", "period_ub = [100000];",
+                            f.read_text(), flags=re.M))
+    r = run(str(loose), "TOTALCOST", timeout=200)
+    if r["status"] != "OPTIMAL":
+        check("patterns + TDMA solves", False, r["status"])
+        return
+    ok, msg = _verify(str(loose), r["solution"])
+    check(f"patterns + TDMA solves and verifies "
+          f"({r['seconds']:.1f}s, mu={r['solution']['mu'][0]})", ok, msg)
+    sel = {r["solution"]["pat"][i] for i in range(len(r["solution"]["pat"]))}
+    check("a safety pattern is actually applied", len(sel) > 1,
+          "only one pattern selected; the composition may be trivial")
+
+
 def t_crosscheck(dzns: list[str]) -> None:
     print("\n[crosscheck] backends must agree (disagreement = modelling error)")
     for dzn in dzns:
@@ -542,7 +610,7 @@ def main() -> int:
     groups = sys.argv[1:] or ["golden", "unfold", "provenance", "model",
                               "symmetry", "latency", "rosvall", "safety",
                               "patterns", "catalogue", "multiapp", "comm",
-                              "crosscheck"]
+                              "commsil", "composition", "crosscheck"]
     dzns = sorted(str(p) for p in (ROOT / "out").glob("*.dzn"))
     if not dzns and {"model", "symmetry", "crosscheck"} & set(groups):
         print("no .dzn files in out/ -- run tools/build_dzn.py first")
@@ -572,6 +640,10 @@ def main() -> int:
         t_multiapp()
     if "comm" in groups:
         t_comm()
+    if "commsil" in groups:
+        t_commsil()
+    if "composition" in groups:
+        t_composition()
     if "crosscheck" in groups:
         t_crosscheck(dzns)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed  ({time.time()-t0:.1f}s)")

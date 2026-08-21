@@ -202,6 +202,20 @@ def main() -> int:
     ap.add_argument("--safety")
     ap.add_argument("--latency", help="latency.xml: constrained src/dst pairs")
     ap.add_argument("--cost-model", help="cost_model.xml (C.8)")
+    ap.add_argument("--comm-sil", choices=["exempt", "inherit", "core"],
+                    default="exempt",
+                    help="Q21: whether bus transfers count against their core's "
+                         "SIL. 'exempt' (default) treats them as DMA; 'inherit' "
+                         "gives a transfer the SIL of its sending actor; 'core' "
+                         "treats the bus driver as ordinary software on that "
+                         "core, subject to Koopman rule 2.")
+    ap.add_argument("--comm-scope", choices=["app", "all"], default="app",
+                    help="which channels get block/send/rec actors. 'app' "
+                         "(default) covers application dataflow only, treating "
+                         "replica cross-check traffic as a dedicated link -- "
+                         "which is what Koopman's patterns assume. 'all' also "
+                         "routes pattern traffic over the shared bus, at a "
+                         "large cost in model size.")
     ap.add_argument("--comm", choices=["ideal", "tdma"], default="ideal",
                     help="'ideal' (default) charges nothing for communication; "
                          "'tdma' adds block/send/rec actors per channel, "
@@ -311,6 +325,15 @@ def main() -> int:
                     continue            # self-loop: auto-concurrency, not a channel
                 if e.origin == "auto-concurrency":
                     continue
+                # Pattern-introduced channels carry cross-check traffic between
+                # replicas. Koopman's patterns assume a dedicated comparison
+                # link for this, not the shared application bus, and routing it
+                # over the bus multiplies the model: a_sobel goes from 14
+                # channels to 85, and 42 communication actors to 255. Default
+                # to the dedicated-link reading and make the alternative a flag.
+                if args.comm_scope == "app" and sups[si] \
+                        and e.origin in sups[si].chan_guards:
+                    continue
                 b = len(nodes); nodes.append(_comm_node("block", si, e, b))
                 sn = len(nodes); nodes.append(_comm_node("send", si, e, sn))
                 rn = len(nodes); nodes.append(_comm_node("rec", si, e, rn))
@@ -336,13 +359,28 @@ def main() -> int:
     # token matrix across all applications (block diagonal)
     tok = [[-1] * n for _ in range(n)]
     off = 0
+    comm_pairs = {(c[0], c[1]) for c in comm_channels}
     for h in hgraphs:
         sub = h.token_matrix()
         for i in range(h.n()):
             for j in range(h.n()):
-                if sub[i][j] >= 0:
+                if sub[i][j] >= 0 and (off + i, off + j) not in comm_pairs:
                     tok[off + i][off + j] = sub[i][j]
         off += h.n()
+    # Channels that received block/send/rec actors are REPLACED by that path
+    # when remote and keep their direct edge only when local. Leaving the direct
+    # edge in unconditionally makes it a shortcut past the communication delay,
+    # so the period comes out as if the bus were free.
+    ch_tok = []
+    off = 0
+    for h in hgraphs:
+        sub = h.token_matrix()
+        for i in range(h.n()):
+            for j in range(h.n()):
+                if sub[i][j] >= 0 and (off + i, off + j) in comm_pairs:
+                    ch_tok.append(((off + i, off + j), sub[i][j]))
+        off += h.n()
+    tok_of_pair = dict(ch_tok)
 
     # ---- 3. platform ----------------------------------------------------
     plat: Platform = plat_pre
@@ -363,9 +401,24 @@ def main() -> int:
     # of (name, type) the table actually knows, and report the choice.
     known = wt.types()
     wkey: list[str] = []
+
+    def _resolve(bare: str, typ: str) -> str:
+        """Prefer whichever of (name, type) the WCET table actually knows."""
+        return bare if bare in known else typ
+
     for i in range(n - 3 * len(comm_channels)):
         bare = node_names[i].split(".", 1)[1].split("#", 1)[0]
-        wkey.append(bare if bare in known else node_types[i])
+        typ = node_types[i]
+        if "<owner>" in typ:
+            # A pattern component: resolve the OWNER's key, then substitute.
+            owner_bare = bare.split("~", 1)[0]
+            owner_typ = next((node_types[j] for j in range(len(node_names))
+                              if node_names[j].split(".", 1)[1] == owner_bare),
+                             owner_bare)
+            typ = typ.replace("<owner>", _resolve(owner_bare, owner_typ))
+            wkey.append(typ if typ in known else _resolve(bare, typ))
+        else:
+            wkey.append(_resolve(bare, typ))
 
     # A missing (task, core, mode) entry means the actor CANNOT be bound there.
     # This is a mapping restriction, not an error: Rosvall's platform has a
@@ -604,6 +657,10 @@ def main() -> int:
         allowed = []
         for lbl in parent_names:
             appn, bare = lbl.split(".", 1)
+            if appn == "__comm":
+                # a bus transfer is not an SDF actor and takes no pattern
+                allowed.append(["true"] + ["false"] * (len(pats) - 1))
+                continue
             owner = bare.split("~", 1)[0]
             si = next(k for k, h in enumerate(hgraphs) if h.name == appn)
             app = sups[si].applicable[owner] if sups[si] else [pid["none"] - 1]
@@ -622,6 +679,11 @@ def main() -> int:
         for i in range(n):
             lbl = parent_names[parent_of[i] - 1]
             appn, bare = lbl.split(".", 1)
+            if appn == "__comm":
+                node_owner.append(parent_of[i])
+                owner_node.append(i + 1)
+                node_guard.append(["true"] * len(pats))
+                continue
             owner = bare.split("~", 1)[0]
             si = next(k for k, h in enumerate(hgraphs) if h.name == appn)
             sup = sups[si]
@@ -638,8 +700,11 @@ def main() -> int:
             else:
                 node_guard.append(["true"] * len(pats))   # base actor
         par_owner = []
-        for lbl in parent_names:
+        for k0, lbl in enumerate(parent_names):
             appn, bare = lbl.split(".", 1)
+            if appn == "__comm":
+                par_owner.append(k0 + 1)
+                continue
             owner = bare.split("~", 1)[0]
             par_owner.append(next(k + 1 for k, pl in enumerate(parent_names)
                                   if pl == f"{appn}.{owner}"))
@@ -737,6 +802,8 @@ def main() -> int:
         W(f"ch_rec = {mzn_array([c[6] + 1 for c in comm_channels])};")
         slots_needed = [max(1, -(-c[2] // data_per_slot)) for c in comm_channels]
         W(f"ch_slots_needed = {mzn_array(slots_needed)};")
+        W(f"ch_direct_tok = "
+          f"{mzn_array([tok_of_pair.get((c[0], c[1]), 0) for c in comm_channels])};")
         # rounds[s] : full TDMA rounds needed with s slots allocated
         rows = []
         for sn in slots_needed:
@@ -752,6 +819,7 @@ def main() -> int:
     else:
         W("ch_src = [1]; ch_dst = [1]; ch_msgsize = [0]; ch_app = [1];")
         W("ch_block = [1]; ch_send = [1]; ch_rec = [1]; ch_slots_needed = [1];")
+        W("ch_direct_tok = [0];")
         W(f"ch_rounds = array2d(1..1, 0..{tdma_n}, "
           f"{mzn_array([0] * (tdma_n + 1))});")
     W(f"tdma_slots = {tdma_n};")
@@ -760,6 +828,10 @@ def main() -> int:
     W(f"max_buf = 4;")
     W(f"ni_capacity = 100000;")
     W("nSep = 0;  sep_a = [1];  sep_b = [1];")
+    W(f"comm_sil_mode = {{'exempt': 0, 'inherit': 1, 'core': 2}}[args.comm_sil];"
+      .replace("{'exempt': 0, 'inherit': 1, 'core': 2}[args.comm_sil]",
+               str({"exempt": 0, "inherit": 1, "core": 2}[args.comm_sil])))
+    W(f"comm_actor = {mzn_array([('true' if node_types[i].startswith('__') else 'false') for i in range(n)])};")
     if comm_channels:
         print(f"  TDMA: {len(comm_channels)} channels -> "
               f"{3 * len(comm_channels)} communication actors", file=sys.stderr)
