@@ -48,13 +48,30 @@ int: maxmu = sum(i in A)(maxwcet) * max([1] ++ [tok[i,j] | i,j in A where tok[i,
 array[APP] of var 1..maxmu: mu;
 array[A] of var -maxmu..maxmu: pot;
 
-% Mode (a), the default: one period shared by all applications.  Mode (b) is
-% selected by period_mode_partitioned in order.mzn, which forbids core sharing
-% and thereby lets the potential graph decompose.  Mode (c) -- per-app periods
-% WITH sharing -- needs a per-application MSAG and is Phase 6.  See C.7 for why
-% the naive version of (c) is unsound rather than merely imprecise.
-constraint not period_mode_partitioned ->
-    forall(z in APP where z > 1)( mu[z] = mu[1] );
+% PER-APPLICATION PERIODS (Q15 -- RESOLVED).
+%
+% Rosvall's MCR propagator decomposes the MSAG into connected sub-graphs and
+% runs the analysis per sub-graph, so every application covered by one sub-graph
+% receives that sub-graph's period. Two applications land in the same sub-graph
+% exactly when they share a processor, because the per-core static order links
+% their actors. DeSyDe states this as a plain model constraint, not inside the
+% propagator (src/cp_model/throughput.constraints):
+%
+%     (proc[ii]==proc[ij]) >> (period[app(ii)] == period[app(ij)])
+%     (period[app(ii)] != period[app(ij)]) >> (proc[ii] != proc[ij])
+%
+% So the general case is one line, and it subsumes the earlier taxonomy:
+% applications sharing a core are coupled to a common period, applications on
+% disjoint cores get independent ones. Crucially it is also SOUND for the node
+% potentials -- within a connected component every node shares one mu, so the
+% potentials are in a common time base, which was the exact condition the old
+% C.7 note warned about.
+constraint forall(i, j in A where app[i] != app[j])(
+    proc[i] = proc[j] -> mu[app[i]] = mu[app[j]]
+);
+constraint forall(i, j in A where app[i] != app[j])(
+    mu[app[i]] != mu[app[j]] -> proc[i] != proc[j]
+);
 
 array[A] of var 1..maxmu: mu_of;
 constraint forall(i in A)( mu_of[i] = mu[app[i]] );
@@ -67,6 +84,41 @@ constraint mcm_anchor(pot);
 constraint latency_periodic(pot, T, mu_of);
 
 constraint forall(z in APP)( mu[z] <= period_ub[z] );
+
+% ---- redundant constraints (from DeSyDe throughput.constraints) -----------
+% These are implied by the potential formulation but stated explicitly, which
+% is what lets a declarative model keep pace with a hand-written propagator:
+% the solver derives them only after search, whereas stated up front they prune
+% at the root. DeSyDe posts all of them alongside its propagator.
+
+% (1) A core's period is at least the sum of the WCETs mapped onto it. The wrap
+%     edge already implies this, but only through a cycle the solver has to
+%     find; as a linear sum it propagates immediately.
+array[PR] of var 0..maxmu: proc_load;
+constraint forall(p in PR)(
+    proc_load[p] = sum(j in A)( bool2int(proc[j] = p) * T[j] )
+);
+constraint forall(i in A, p in PR)( proc[i] = p -> mu[app[i]] >= proc_load[p] );
+
+% (2) No actor may exceed its application's period bound, so bind its WCET.
+constraint forall(i in A)( active[i] -> T[i] <= period_ub[app[i]] );
+
+% (3) Two actors whose combined minimum WCETs exceed the bound cannot share a
+%     core, and cannot be adjacent in a static order.
+array[A] of int: min_wcet;
+constraint forall(i, j in A where i < j
+                  /\ min_wcet[i] + min_wcet[j] > min(period_ub))(
+    (app[i] = app[j] /\ min_wcet[i] + min_wcet[j] > period_ub[app[i]]) ->
+        (proc[i] != proc[j] /\ succ[i] != j /\ succ[j] != i)
+);
+
+% (4) An application needs at least ceil(sum of its minimum WCETs / its period
+%     bound) distinct processors. A direct lower bound on the core count, which
+%     is often the binding constraint and is invisible to the cycle analysis.
+array[APP] of int: min_procs;
+constraint forall(z in APP where min_procs[z] > 1)(
+    nvalue([proc[i] | i in A where app[i] = z]) >= min_procs[z]
+);
 
 % ---- memory ---------------------------------------------------------------
 constraint forall(p in PR)(

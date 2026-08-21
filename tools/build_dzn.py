@@ -490,6 +490,21 @@ def main() -> int:
     W("")
     W("% ---- design constraints ----")
     W(f"period_ub = {mzn_array(period_ub)};")
+    # redundant-constraint data (DeSyDe throughput.constraints)
+    nT2 = len(plat.core_types)
+    minw = []
+    for i in range(n):
+        vals = [wcet[i][t][m] for t in range(nT2)
+                for m in range(len(plat.core_types[t].modes))
+                if wcet[i][t][m] < FORBIDDEN]
+        minw.append(min(vals) if vals else 0)
+    W(f"min_wcet = {mzn_array(minw)};")
+    minp = []
+    for z in range(len(hgraphs)):
+        s_min = sum(minw[i] for i in range(n) if app_of[i] == z + 1)
+        ub = period_ub[z]
+        minp.append(max(1, -(-s_min // ub)) if ub > 0 else 1)
+    W(f"min_procs = {mzn_array(minp)};")
     W(f"period_mode_partitioned = "
       f"{'true' if args.period_mode == 'partitioned' else 'false'};")
     W("")

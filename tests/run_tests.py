@@ -446,6 +446,44 @@ def t_catalogue() -> None:
               f"({r['solution']['nprocs']} cores)", ok, msg)
 
 
+def t_multiapp() -> None:
+    """Q15: per-application periods couple exactly when applications share a core.
+
+    Rosvall computes period[z] as the MCR of the MSAG's connected component
+    containing z, so sharing a processing element forces a common period -- and
+    therefore forces every application on that core down to the TIGHTEST bound
+    among them. Verified by squeezing the core count until sharing is unavoidable.
+    """
+    print("\n[multiapp] period coupling under core sharing (Q15)")
+    dzn = ROOT / "out" / "r_2app.dzn"
+    if not dzn.exists():
+        print("  SKIP  build out/r_2app.dzn first")
+        return
+    a = run(str(dzn), "HWCOST", timeout=150)
+    if a["status"] != "OPTIMAL":
+        check("2 apps with cores to spare: solved", False, a["status"])
+        return
+    mu = a["solution"]["mu"]
+    check(f"disjoint cores give independent periods mu={mu}",
+          len(set(mu)) > 1, "periods coincided; coupling may be over-applied")
+    ok, msg = _verify(str(dzn), a["solution"])
+    check("2 apps: solution verifies", ok, msg)
+    # squeeze until sharing is forced: a common period must then meet the
+    # tightest bound, which these two applications cannot do
+    b = run(str(dzn), "HWCOST", {"NPROCS": 3}, timeout=150)
+    check("forced sharing with incompatible bounds is UNSAT",
+          b["status"] == "UNSAT", b["status"])
+    for stem in ["r_3app"]:
+        f = ROOT / "out" / f"{stem}.dzn"
+        if f.exists():
+            r = run(str(f), "HWCOST", timeout=200)
+            if r["status"] == "OPTIMAL":
+                ok, msg = _verify(str(f), r["solution"])
+                check(f"{stem}: mu={r['solution']['mu']} verifies", ok, msg)
+            else:
+                check(f"{stem}: solved", False, r["status"])
+
+
 def t_crosscheck(dzns: list[str]) -> None:
     print("\n[crosscheck] backends must agree (disagreement = modelling error)")
     for dzn in dzns:
@@ -468,7 +506,7 @@ def t_crosscheck(dzns: list[str]) -> None:
 def main() -> int:
     groups = sys.argv[1:] or ["golden", "unfold", "provenance", "model",
                               "symmetry", "latency", "rosvall", "safety",
-                              "patterns", "catalogue", "crosscheck"]
+                              "patterns", "catalogue", "multiapp", "crosscheck"]
     dzns = sorted(str(p) for p in (ROOT / "out").glob("*.dzn"))
     if not dzns and {"model", "symmetry", "crosscheck"} & set(groups):
         print("no .dzn files in out/ -- run tools/build_dzn.py first")
@@ -494,6 +532,8 @@ def main() -> int:
         t_patterns()
     if "catalogue" in groups:
         t_catalogue()
+    if "multiapp" in groups:
+        t_multiapp()
     if "crosscheck" in groups:
         t_crosscheck(dzns)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed  ({time.time()-t0:.1f}s)")

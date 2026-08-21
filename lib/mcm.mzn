@@ -27,11 +27,15 @@
 % Phase 6 can add per-app MSAGs without rewriting this layer.  With nApps = 1
 % MiniZinc folds the extra dimension away at flattening.
 %
-% THE TRAP.  Do NOT give each application its own mu[z] and then post schedule
-% edges across applications on a shared potential row.  Potentials in different
-% periods are not in a common time base; the model stays satisfiable and the
-% answers are wrong.  Modes 'global' and 'partitioned' below are the only two
-% that are sound before Phase 6.
+% SOUNDNESS, RESOLVED (Q15).  The earlier concern was that potentials belonging
+% to different periods are not in a common time base.  The resolution, taken
+% from Rosvall's MCR propagator, is that period[z] is the maximum cycle ratio of
+% the CONNECTED COMPONENT of the MSAG containing application z -- so two
+% applications sharing a processor necessarily share a period.  With that
+% coupling constraint present (see model/dse.mzn) every potential inequality
+% lies within one component and therefore within one time base, and the
+% formulation is sound in general rather than only under the earlier
+% 'global'/'partitioned' restrictions.
 % ===========================================================================
 
 % Fixed application edges.  tok[i,j] < 0 means "no channel".

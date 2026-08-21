@@ -80,6 +80,8 @@ allow_promotion = true;
 
 % ---- design constraints ----
 period_ub = [1620];
+min_wcet = [141, 31, 235, 108, 170, 194, 133];
+min_procs = [1];
 period_mode_partitioned = false;
 
 % ---- latency (B.2) ----

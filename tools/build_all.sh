@@ -75,8 +75,11 @@ done
 $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_fm_random_hw.xml $PAT -o out/f_random_hw.dzn
 $B --app data/apps/c_rasta.hsdf.xml $T3 --safety data/safety_fm_systematic_sw.xml $PAT -o out/f_sw3.dzn
 $B --app data/apps/c_rasta.hsdf.xml $T3 --safety data/safety_fm_both.xml $PAT -o out/f_both3.dzn
-echo "rebuilt $(ls out/*.dzn | wc -l) instances"
 for fm in random_hw systematic_sw; do
   $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta_$fm.xml $PAT -o out/d_$fm.dzn
 done
+echo "rebuilt $(ls out/*.dzn | wc -l) instances"
+$B --app data/rosvall/a_sobel.hsdf.xml --app data/rosvall/c_rasta.hsdf.xml $R -o out/r_2app.dzn
+$B --app data/rosvall/a_sobel.hsdf.xml --app data/rosvall/b_susan.hsdf.xml \
+   --app data/rosvall/c_rasta.hsdf.xml $R -o out/r_3app.dzn
 echo "rebuilt $(ls out/*.dzn | wc -l) instances"

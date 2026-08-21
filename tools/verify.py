@@ -27,6 +27,26 @@ from golden import mcm, selftimed_period, selftimed_trace  # noqa: E402
 
 
 # --------------------------------------------------------------------------
+def _components(n: int, edges: list[tuple[int, int, int]]) -> list[set[int]]:
+    """Weakly connected components of the MSAG (union-find)."""
+    parent = list(range(n))
+
+    def find(x: int) -> int:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for u, v, _ in edges:
+        ru, rv = find(u), find(v)
+        if ru != rv:
+            parent[ru] = rv
+    groups: dict[int, set[int]] = {}
+    for i in range(n):
+        groups.setdefault(find(i), set()).add(i)
+    return list(groups.values())
+
+
 def _aslist(x):
     return x if isinstance(x, list) else [x]
 
@@ -140,43 +160,41 @@ def main() -> int:
     nApps = d.get("nApps", 1)
     ok, msgs = True, []
 
-    # In partitioned mode the applications occupy disjoint cores, so the MSAG
-    # splits into independent components and each application's period must be
-    # checked against its OWN component.  Checking a single global MCM here
-    # would compare every application against the slowest one.
-    partitioned = bool(d.get("period_mode_partitioned", False))
-    if partitioned and nApps > 1:
-        groups = [(z, [i for i in range(n) if app[i] == z]) for z in range(1, nApps + 1)]
-    else:
-        groups = [(1, list(range(n)))]
-
-    for z, members in groups:
-        if not members:
-            continue
+    # Rosvall computes period[z] as the MCR of the MSAG's CONNECTED COMPONENT
+    # containing application z, so the check must be per component, not per
+    # application: two applications sharing a processor are in one component and
+    # must report the same period. Splitting by application instead would
+    # compare an application against a subgraph it does not own.
+    comp = _components(n, edges)
+    if not a.quiet and len(comp) > 1:
+        print(f"  MSAG has {len(comp)} connected components")
+    for members in comp:
+        members = sorted(members)
         idx = {g: k for k, g in enumerate(members)}
-        sub = [(idx[u], idx[v], t) for u, v, t in edges
-               if u in idx and v in idx]
-        crossing = [(u, v) for u, v, _ in edges
-                    if (u in idx) != (v in idx)]
-        if partitioned and crossing:
-            ok = False
-            msgs.append(f"app {z}: {len(crossing)} MSAG edges cross application "
-                        f"boundaries, but partitioned mode forbids core sharing")
+        sub = [(idx[u], idx[v], t) for u, v, t in edges if u in idx and v in idx]
         subT = [T[g] for g in members]
-        reported = mus[z - 1] if z - 1 < len(mus) else mus[0]
+        apps_here = sorted({app[g] for g in members})
         k = mcm(len(members), sub, subT)
         sim = selftimed_period(len(members), sub, subT)
         if k is None:
             ok = False
-            msgs.append(f"app {z}: MSAG deadlocks but a period was returned")
-        elif Fraction(reported) != k:
+            msgs.append(f"component {apps_here}: MSAG deadlocks but a period "
+                        f"was returned")
+            continue
+        for z in apps_here:
+            reported = mus[z - 1] if z - 1 < len(mus) else mus[0]
+            if Fraction(reported) != k:
+                ok = False
+                msgs.append(
+                    f"app {z}: period mismatch -- solver {reported}, component "
+                    f"MCR {k}. Applications sharing a component must share a "
+                    f"period (Q15).")
+        if sim is not None and sim != k:
             ok = False
-            msgs.append(f"app {z}: period mismatch -- solver {reported}, Karp {k}")
-        if sim is not None and k is not None and sim != k:
-            ok = False
-            msgs.append(f"app {z}: oracle disagreement -- Karp {k}, simulation {sim}")
+            msgs.append(f"component {apps_here}: oracle disagreement -- "
+                        f"Karp {k}, simulation {sim}")
         if not a.quiet:
-            print(f"  app {z}: reported {reported}, Karp {k}, simulation {sim}")
+            print(f"  component apps={apps_here}: Karp {k}, simulation {sim}")
 
     # ---- exact latency, transient included -----------------------------
     # lib/latency.mzn uses the PERIODIC-PHASE estimate
