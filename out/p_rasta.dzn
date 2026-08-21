@@ -7,28 +7,32 @@
 
 % ---- applications ----
 nApps = 1;
-n = 14;
-app = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-nParents = 14;
-parent = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14];
-copy_index = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-node_name = ["c_rasta.frontEnd", "c_rasta.rasta", "c_rasta.powspec", "c_rasta.audspec", "c_rasta.compJah", "c_rasta.rastaFilter", "c_rasta.backEnd", "c_rasta.frontEnd~0", "c_rasta.rasta~0", "c_rasta.powspec~0", "c_rasta.audspec~0", "c_rasta.compJah~0", "c_rasta.rastaFilter~0", "c_rasta.backEnd~0"];
-parent_name = ["c_rasta.frontEnd", "c_rasta.rasta", "c_rasta.powspec", "c_rasta.audspec", "c_rasta.compJah", "c_rasta.rastaFilter", "c_rasta.backEnd", "c_rasta.frontEnd~0", "c_rasta.rasta~0", "c_rasta.powspec~0", "c_rasta.audspec~0", "c_rasta.compJah~0", "c_rasta.rastaFilter~0", "c_rasta.backEnd~0"];
-tok = array2d(1..14, 1..14,
-  [| 1, 0, -1, -1, 0, -1, 0, 0, 0, -1, -1, 0, -1, 0
-       | -1, 1, 0, -1, -1, -1, -1, -1, 0, 0, -1, -1, -1, -1
-       | -1, -1, 1, 0, -1, -1, -1, -1, -1, 0, 0, -1, -1, -1
-       | -1, -1, -1, 1, 0, 0, -1, -1, -1, -1, 0, 0, 0, -1
-       | -1, -1, -1, -1, 1, 0, -1, -1, -1, -1, -1, 0, 0, -1
-       | -1, -1, -1, -1, -1, 1, 0, -1, -1, -1, -1, -1, 0, 0
-       | -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 0
-       | 1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1
-       | -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1
-       | -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1
-       | -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1
-       | -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1, -1
-       | -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1, -1
-       | -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, 1 |]);
+n = 18;
+app = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+nParents = 18;
+parent = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+copy_index = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+node_name = ["c_rasta.frontEnd", "c_rasta.rasta", "c_rasta.powspec", "c_rasta.audspec", "c_rasta.compJah", "c_rasta.rastaFilter", "c_rasta.backEnd", "c_rasta.frontEnd~0", "c_rasta.frontEnd~1", "c_rasta.frontEnd~2", "c_rasta.rasta~0", "c_rasta.powspec~0", "c_rasta.audspec~0", "c_rasta.compJah~0", "c_rasta.compJah~1", "c_rasta.compJah~2", "c_rasta.rastaFilter~0", "c_rasta.backEnd~0"];
+parent_name = ["c_rasta.frontEnd", "c_rasta.rasta", "c_rasta.powspec", "c_rasta.audspec", "c_rasta.compJah", "c_rasta.rastaFilter", "c_rasta.backEnd", "c_rasta.frontEnd~0", "c_rasta.frontEnd~1", "c_rasta.frontEnd~2", "c_rasta.rasta~0", "c_rasta.powspec~0", "c_rasta.audspec~0", "c_rasta.compJah~0", "c_rasta.compJah~1", "c_rasta.compJah~2", "c_rasta.rastaFilter~0", "c_rasta.backEnd~0"];
+tok = array2d(1..18, 1..18,
+  [| 1, 0, -1, -1, 0, -1, 0, 0, 0, -1, 0, -1, -1, 0, 0, 0, -1, 0
+       | -1, 1, 0, -1, -1, -1, -1, -1, -1, -1, 0, 0, -1, -1, -1, -1, -1, -1
+       | -1, -1, 1, 0, -1, -1, -1, -1, -1, -1, -1, 0, 0, -1, -1, -1, -1, -1
+       | -1, -1, -1, 1, 0, 0, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, 0, -1
+       | -1, -1, -1, -1, 1, 0, -1, -1, -1, -1, -1, -1, -1, 0, 0, -1, 0, -1
+       | -1, -1, -1, -1, -1, 1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, 0
+       | -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0
+       | 1, -1, -1, -1, -1, -1, -1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+       | 1, -1, -1, -1, -1, -1, -1, 1, 1, 0, -1, -1, -1, -1, -1, -1, -1, -1
+       | -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1
+       | -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1
+       | -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1
+       | -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1
+       | -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, -1, -1, -1
+       | -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 0, -1, -1
+       | -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, -1, -1
+       | -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, -1
+       | -1, -1, -1, -1, -1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1 |]);
 
 % ---- platform (C.5) ----
 P = 22;
@@ -76,17 +80,17 @@ tmplGroup = array2d(1..2, 1..4,
      | 4, 5, 6, 7 |]);
 
 % ---- timing ----
-wcet = array3d(1..14, 1..2, 1..2, [141, 183, 226, 169, 31, 40, 50, 37, 235, 306, 376, 282, 108, 140, 173, 130, 170, 221, 272, 204, 194, 252, 310, 233, 133, 173, 213, 160, 141, 183, 226, 169, 9, 12, 14, 11, 70, 91, 112, 84, 32, 42, 51, 38, 170, 221, 272, 204, 58, 75, 93, 70, 40, 52, 64, 48]);
-mem_req = [2, 4, 6, 5, 4, 7, 5, 2, 4, 6, 5, 4, 7, 5];
+wcet = array3d(1..18, 1..2, 1..2, [141, 183, 226, 169, 31, 40, 50, 37, 235, 306, 376, 282, 108, 140, 173, 130, 170, 221, 272, 204, 194, 252, 310, 233, 133, 173, 213, 160, 141, 183, 226, 169, 42, 55, 67, 50, 141, 183, 226, 169, 9, 12, 14, 11, 70, 91, 112, 84, 32, 42, 51, 38, 170, 221, 272, 204, 51, 66, 82, 61, 170, 221, 272, 204, 58, 75, 93, 70, 40, 52, 64, 48]);
+mem_req = [2, 4, 6, 5, 4, 7, 5, 2, 2, 2, 4, 6, 5, 4, 4, 4, 7, 5];
 
 % ---- safety (C.8) ----
-sil_req_parent = [3, 1, 1, 1, 3, 1, 2, 3, 1, 1, 1, 3, 1, 2];
-dev_base = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100];
+sil_req_parent = [3, 1, 1, 1, 3, 1, 2, 3, 3, 3, 1, 1, 1, 3, 3, 3, 1, 2];
+dev_base = [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100];
 dev_k = array1d(0..4, [100, 113, 225, 518, 906]);
 allow_promotion = true;
 
 % ---- design constraints ----
-period_ub = [2452];
+period_ub = [3099];
 period_mode_partitioned = false;
 
 % ---- latency (B.2) ----
@@ -97,87 +101,194 @@ lat_rho = [];
 lat_ub  = [];
 
 % ---- safety patterns: guarded superposition (C.2) ----
-nPat = 4;
-pat_name = ["none", "low_sil_doer_checker", "same_cpu_doer_checker", "two_of_two_high_sil"];
-pat_recurring = [0, 2, 1, 2];
-pat_allowed = array2d(1..14, 1..4,
-  [| false, false, false, true
-     | true, true, false, false
-     | true, true, false, false
-     | true, true, false, false
-     | false, false, false, true
-     | true, true, false, false
-     | true, true, false, false
-     | false, false, false, true
-     | true, true, false, false
-     | true, true, false, false
-     | true, true, false, false
-     | false, false, false, true
-     | true, true, false, false
-     | true, true, false, false |]);
-par_owner = [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7];
-node_owner = [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7];
-owner_node = [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7];
-node_guard = array2d(1..14, 1..4,
-  [| true, true, true, true
-     | true, true, true, true
-     | true, true, true, true
-     | true, true, true, true
-     | true, true, true, true
-     | true, true, true, true
-     | true, true, true, true
-     | false, false, false, true
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, false, false, true
-     | false, true, false, false
-     | false, true, false, false |]);
-nPE = 29;
-pe_src = [1, 8, 2, 9, 1, 1, 3, 10, 2, 2, 4, 11, 3, 3, 5, 12, 4, 4, 1, 6, 13, 4, 5, 5, 5, 7, 14, 6, 1];
-pe_dst = [8, 1, 9, 2, 9, 9, 10, 3, 10, 10, 11, 4, 11, 11, 12, 5, 12, 12, 12, 13, 6, 13, 13, 13, 13, 14, 7, 14, 14];
-pe_tok = [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0];
-pe_owner = [1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7];
-pe_guard = array2d(1..29, 1..4,
-  [| false, false, false, true
-     | false, false, false, true
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, false, false, true
-     | false, false, false, true
-     | false, false, false, true
-     | false, false, false, true
-     | false, false, false, true
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false |]);
-nPL = 7;
-pl_u = [1, 2, 3, 4, 5, 6, 7];
-pl_v = [8, 9, 10, 11, 12, 13, 14];
-pl_rel = [3, 2, 2, 2, 3, 2, 2];
-pl_owner = [1, 2, 3, 4, 5, 6, 7];
-pl_guard = array2d(1..7, 1..4,
-  [| false, false, false, true
-     | false, true, false, false
-     | false, true, false, false
-     | false, true, false, false
-     | false, false, false, true
-     | false, true, false, false
-     | false, true, false, false |]);
+nPat = 9;
+pat_name = ["none", "low_sil_doer_checker", "same_cpu_doer_checker", "two_of_two_high_sil", "high_sil_isolated_checker", "mixed_sil_doer_checker", "dual_two_of_two", "one_of_two_failover", "low_sil_diverse_doer_checker"];
+pat_recurring = [0, 2, 1, 2, 2, 3, 4, 2, 2];
+pat_allowed = array2d(1..18, 1..9,
+  [| false, false, false, true, true, true, true, false, false
+     | true, true, false, false, false, false, false, true, true
+     | true, true, false, false, false, false, false, true, true
+     | true, true, false, false, false, false, false, true, true
+     | false, false, false, true, true, true, true, false, false
+     | true, true, false, false, false, false, false, true, true
+     | false, true, false, false, false, false, false, false, true
+     | false, false, false, true, true, true, true, false, false
+     | false, false, false, true, true, true, true, false, false
+     | false, false, false, true, true, true, true, false, false
+     | true, true, false, false, false, false, false, true, true
+     | true, true, false, false, false, false, false, true, true
+     | true, true, false, false, false, false, false, true, true
+     | false, false, false, true, true, true, true, false, false
+     | false, false, false, true, true, true, true, false, false
+     | false, false, false, true, true, true, true, false, false
+     | true, true, false, false, false, false, false, true, true
+     | false, true, false, false, false, false, false, false, true |]);
+par_owner = [1, 2, 3, 4, 5, 6, 7, 1, 1, 1, 2, 3, 4, 5, 5, 5, 6, 7];
+node_owner = [1, 2, 3, 4, 5, 6, 7, 1, 1, 1, 2, 3, 4, 5, 5, 5, 6, 7];
+owner_node = [1, 2, 3, 4, 5, 6, 7, 1, 1, 1, 2, 3, 4, 5, 5, 5, 6, 7];
+node_guard = array2d(1..18, 1..9,
+  [| true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | false, false, false, true, true, true, true, false, false
+     | false, false, false, false, false, true, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, true, false, false, false, false, false, true, true
+     | false, true, false, false, false, false, false, true, true
+     | false, true, false, false, false, false, false, true, true
+     | false, false, false, true, true, true, true, false, false
+     | false, false, false, false, false, true, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, true, false, false, false, false, false, true, true
+     | false, true, false, false, false, false, false, false, true |]);
+nPE = 107;
+pe_src = [1, 8, 1, 8, 1, 1, 8, 9, 8, 1, 8, 9, 10, 9, 2, 11, 1, 1, 11, 1, 1, 2, 11, 1, 1, 3, 12, 2, 2, 12, 2, 2, 3, 12, 2, 2, 4, 13, 3, 3, 13, 3, 3, 4, 13, 3, 3, 5, 14, 4, 4, 1, 5, 14, 4, 4, 1, 5, 5, 14, 15, 14, 4, 4, 1, 4, 4, 1, 5, 14, 15, 16, 15, 4, 4, 1, 4, 4, 1, 4, 4, 1, 6, 17, 4, 5, 5, 5, 17, 4, 5, 5, 5, 6, 17, 4, 5, 5, 5, 7, 18, 6, 1, 7, 18, 6, 1];
+pe_dst = [8, 1, 8, 1, 8, 9, 9, 8, 1, 8, 1, 10, 9, 1, 11, 2, 11, 11, 2, 11, 11, 11, 2, 11, 11, 12, 3, 12, 12, 3, 12, 12, 12, 3, 12, 12, 13, 4, 13, 13, 4, 13, 13, 13, 4, 13, 13, 14, 5, 14, 14, 14, 14, 5, 14, 14, 14, 14, 15, 15, 14, 5, 14, 14, 14, 15, 15, 15, 14, 5, 16, 15, 5, 14, 14, 14, 15, 15, 15, 16, 16, 16, 17, 6, 17, 17, 17, 17, 6, 17, 17, 17, 17, 17, 6, 17, 17, 17, 17, 18, 7, 18, 18, 18, 7, 18, 18];
+pe_tok = [0, 1, 0, 1, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0];
+pe_owner = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7];
+pe_guard = array2d(1..107, 1..9,
+  [| false, false, false, true, false, false, false, false, false
+     | false, false, false, true, false, false, false, false, false
+     | false, false, false, false, true, false, false, false, false
+     | false, false, false, false, true, false, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, true, false, false, false, false, false
+     | false, false, false, true, false, false, false, false, false
+     | false, false, false, true, false, false, false, false, false
+     | false, false, false, true, false, false, false, false, false
+     | false, false, false, true, false, false, false, false, false
+     | false, false, false, false, true, false, false, false, false
+     | false, false, false, false, true, false, false, false, false
+     | false, false, false, false, true, false, false, false, false
+     | false, false, false, false, true, false, false, false, false
+     | false, false, false, false, true, false, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true |]);
+nPL = 28;
+pl_u = [1, 1, 1, 8, 1, 9, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 14, 5, 15, 5, 6, 6, 6, 7, 7];
+pl_v = [8, 8, 8, 9, 8, 10, 9, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 14, 16, 15, 17, 17, 17, 18, 18];
+pl_rel = [3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 2, 3, 3, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 2, 3];
+pl_owner = [1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 7, 7];
+pl_guard = array2d(1..28, 1..9,
+  [| false, false, false, true, false, false, false, false, false
+     | false, false, false, false, true, false, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, false, true
+     | false, true, false, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, false, true
+     | false, true, false, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, true, false, false, false, false, false
+     | false, false, false, false, true, false, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, true, false, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, false, false, false, false, false, true, false, false
+     | false, true, false, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, true, false
+     | false, false, false, false, false, false, false, false, true
+     | false, true, false, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, false, true |]);

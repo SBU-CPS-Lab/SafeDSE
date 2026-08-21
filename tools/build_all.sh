@@ -58,11 +58,25 @@ $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta_sw.xml $PAT \
 
 # --- Phase 4 demonstration: two structurally identical patterns that differ
 #     ONLY in placement, selected by the fault model ---
-ST="--patterns data/patterns_strict.yaml"
+ST="--patterns data/patterns.yaml"
 for fm in random_hw systematic_sw; do
   sed "s/fault_model=\"[a-z_]*\"/fault_model=\"$fm\"/" data/safety_rasta.xml \
     | sed 's|sil="3"|sil="2"|g' > data/safety_rasta_$fm.xml
   $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta_$fm.xml $ST \
      -o out/d_$fm.dzn
+done
+
+# --- Phase 5: full Koopman catalogue ---
+python3 tools/mkwcets.py --app data/apps/c_rasta.hsdf.xml --platform data/platform/mixed_3type.xml --patterns data/patterns.yaml -o data/WCETs_3type.xml >/dev/null
+T3="--platform data/platform/mixed_3type.xml --wcets data/WCETs_3type.xml --constraints data/desConst.xml --cost-model data/cost_model.xml"
+for fm in random_hw systematic_sw both; do
+  sed "s/fault_model=\"[a-z_]*\"/fault_model=\"$fm\"/" data/safety_rasta.xml > data/safety_fm_$fm.xml
+done
+$B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_fm_random_hw.xml $PAT -o out/f_random_hw.dzn
+$B --app data/apps/c_rasta.hsdf.xml $T3 --safety data/safety_fm_systematic_sw.xml $PAT -o out/f_sw3.dzn
+$B --app data/apps/c_rasta.hsdf.xml $T3 --safety data/safety_fm_both.xml $PAT -o out/f_both3.dzn
+echo "rebuilt $(ls out/*.dzn | wc -l) instances"
+for fm in random_hw systematic_sw; do
+  $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta_$fm.xml $PAT -o out/d_$fm.dzn
 done
 echo "rebuilt $(ls out/*.dzn | wc -l) instances"

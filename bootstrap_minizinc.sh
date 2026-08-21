@@ -2,7 +2,7 @@
 # Bootstrap MiniZinc + Gecode + Chuffed + OR-Tools CP-SAT.
 # Run once per session (the container filesystem resets between sessions).
 set -euo pipefail
-MZN_VERSION="${MZN_VERSION:-2.8.7}"
+MZN_VERSION="${MZN_VERSION:-2.10.0}"
 PREFIX="${PREFIX:-/opt/mzn}"
 URL="https://github.com/MiniZinc/MiniZincIDE/releases/download/${MZN_VERSION}/MiniZincIDE-${MZN_VERSION}-bundle-linux-x86_64.tgz"
 

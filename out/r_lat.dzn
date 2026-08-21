@@ -87,38 +87,16 @@ lat_rho = [0, 0];
 lat_ub  = [1500, 2500];
 
 % ---- safety patterns: guarded superposition (C.2) ----
-% no pattern library supplied -- `none` plus an unreachable dummy
-nPat = 2;
-pat_name = ["none", "_unused"];
-pat_recurring = [0, 0];
-pat_allowed = array2d(1..11, 1..2,
-  [| true, false
-     | true, false
-     | true, false
-     | true, false
-     | true, false
-     | true, false
-     | true, false
-     | true, false
-     | true, false
-     | true, false
-     | true, false |]);
+% no pattern library supplied -- single trivial `none` pattern
+nPat = 1;
+pat_name = ["none"];
+pat_recurring = [0];
+pat_allowed = array2d(1..11, 1..1, [true, true, true, true, true, true, true, true, true, true, true]);
 par_owner = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 node_owner = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 owner_node = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-node_guard = array2d(1..11, 1..2,
-  [| true, true
-     | true, true
-     | true, true
-     | true, true
-     | true, true
-     | true, true
-     | true, true
-     | true, true
-     | true, true
-     | true, true
-     | true, true |]);
+node_guard = array2d(1..11, 1..1, [true, true, true, true, true, true, true, true, true, true, true]);
 nPE = 0;  pe_src = [1];  pe_dst = [1];  pe_tok = [0];  pe_owner = [1];
-pe_guard = array2d(1..1, 1..2, [false, false]);
+pe_guard = array2d(1..1, 1..1, [false]);
 nPL = 0;  pl_u = [1];  pl_v = [1];  pl_rel = [1];  pl_owner = [1];
-pl_guard = array2d(1..1, 1..2, [false, false]);
+pl_guard = array2d(1..1, 1..1, [false]);

@@ -614,25 +614,23 @@ def main() -> int:
         print(f"  patterns: {len(pe)} guarded edges, {len(pl)} placement "
               f"relations", file=sys.stderr)
     else:
-        # No pattern library supplied. Emit `none` plus an unreachable dummy:
-        # MiniZinc 2.8.7 segfaults when PAT is the singleton 1..1 (reproduced on
-        # nPat=1 while nPat>=2 with identical structure is fine), and a second
-        # never-allowed entry sidesteps it at no modelling cost.
-        W("% no pattern library supplied -- `none` plus an unreachable dummy")
-        W("nPat = 2;")
-        W('pat_name = ["none", "_unused"];')
-        W("pat_recurring = [0, 0];")
-        W(f"pat_allowed = array2d(1..{len(parent_names)}, 1..2,")
-        W("  " + mzn_matrix([["true", "false"]] * len(parent_names)) + ");")
+        # No pattern library supplied: a single trivial `none` pattern.
+        # (2.8.7 segfaulted on this singleton domain and needed a dummy second
+        # entry; fixed in 2.10.0, so the workaround is gone.)
+        W("% no pattern library supplied -- single trivial `none` pattern")
+        W("nPat = 1;")
+        W('pat_name = ["none"];')
+        W("pat_recurring = [0];")
+        W(f"pat_allowed = array2d(1..{len(parent_names)}, 1..1, "
+          f"{mzn_array(['true'] * len(parent_names))});")
         W(f"par_owner = {mzn_array(list(range(1, len(parent_names) + 1)))};")
         W(f"node_owner = {mzn_array(parent_of)};")
         W(f"owner_node = {mzn_array(list(range(1, n + 1)))};")
-        W(f"node_guard = array2d(1..{n}, 1..2,")
-        W("  " + mzn_matrix([["true", "true"]] * n) + ");")
+        W(f"node_guard = array2d(1..{n}, 1..1, {mzn_array(['true'] * n)});")
         W("nPE = 0;  pe_src = [1];  pe_dst = [1];  pe_tok = [0];  pe_owner = [1];")
-        W("pe_guard = array2d(1..1, 1..2, [false, false]);")
+        W("pe_guard = array2d(1..1, 1..1, [false]);")
         W("nPL = 0;  pl_u = [1];  pl_v = [1];  pl_rel = [1];  pl_owner = [1];")
-        W("pl_guard = array2d(1..1, 1..2, [false, false]);")
+        W("pl_guard = array2d(1..1, 1..1, [false]);")
 
     Path(args.out).write_text("\n".join(L) + "\n")
     print(f"  wrote {args.out}  ({n} nodes, {P} core slots)", file=sys.stderr)

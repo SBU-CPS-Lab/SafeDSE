@@ -19,7 +19,9 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-MZN = "minizinc"
+# Prefer the newest install; bootstrap_minizinc.sh puts 2.10.0 in /opt/mzn.
+MZN = next((p for p in ("/opt/mzn210/bin/minizinc", "/opt/mzn/bin/minizinc")
+            if Path(p).exists()), "minizinc")
 METRICS = ["THROUGHPUT", "LATENCY", "HWCOST", "DEVCOST", "TOTALCOST",
            "POWER", "NPROCS", "PROMOTION"]
 BIG = 10 ** 9

@@ -169,7 +169,7 @@ def t_model(dzns: list[str]) -> None:
     # masquerade as a model defect.
     dzns = [d for d in dzns if Path(d).stem != "jpeg"
             and not Path(d).stem.startswith(("r_", "s_", "x_", "m_",
-                                             "p_", "d_"))]
+                                             "p_", "d_", "f_"))]
     for dzn in dzns:
         for metric in ["HWCOST", "THROUGHPUT", "NPROCS"]:
             r = run(dzn, metric, timeout=240)
@@ -363,6 +363,31 @@ def t_patterns() -> None:
             check(f"forced-none reproduces Phase 3 at {k} cores", ma == mb,
                   f"{ma} vs {mb}")
 
+    # anti-patterns and malformed records must be REJECTED, not merely absent
+    from patterns import Pattern
+    rejects = [
+        ("Koopman's Attempted High SIL Doer/Checker", Pattern(
+            id="attempted", components=[{"role": "c", "wcet_type": "x"}],
+            edges=[{"from": "owner", "to": "c", "tokens": 0},
+                   {"from": "c", "to": "owner", "tokens": 1}],
+            placement=[{"relation": "SAME", "members": ["owner", "c"]}],
+            achieves_sil=[3], covers_faults=["random_hw"],
+            failure_mode="silent")),
+        ("a pattern whose cycle has no initial token", Pattern(
+            id="deadlocks", components=[{"role": "r", "wcet_type": "x"}],
+            edges=[{"from": "owner", "to": "r", "tokens": 0},
+                   {"from": "r", "to": "owner", "tokens": 0}],
+            achieves_sil=[3], covers_faults=["random_hw"])),
+        ("SIL 3 claimed with no redundancy", Pattern(
+            id="bare", achieves_sil=[3], covers_faults=["random_hw"])),
+        ("an explicit voter before Phase 6", Pattern(
+            id="nvp", components=[{"role": "v", "wcet_type": "x"}],
+            edges=[{"from": "owner", "to": "v", "tokens": 0}],
+            voter="explicit", achieves_sil=[3], covers_faults=["random_hw"])),
+    ]
+    for label, p in rejects:
+        check(f"C.4 rejects {label}", bool(check_pattern(p)))
+
     # (3) placement, not topology, distinguishes the two Doer/Checker patterns
     got = {}
     for fm in ["random_hw", "systematic_sw"]:
@@ -394,6 +419,33 @@ def t_patterns() -> None:
               len(set(got.values())) > 1, "both fault models agree")
 
 
+def t_catalogue() -> None:
+    """Phase 5: the full Koopman catalogue, and what DIVERSE actually forbids."""
+    print("\n[catalogue] full Koopman set")
+    sys.path.insert(0, str(ROOT / "tools"))
+    from patterns import load_patterns
+
+    pats = load_patterns(ROOT / "data" / "patterns.yaml")
+    check(f"catalogue has {len(pats)} patterns", len(pats) >= 9,
+          f"only {len(pats)}")
+    # `none` must stop at SIL 1: from SIL 2 up, IEC 61508 expects diagnostics
+    nn = next(p for p in pats if p.id == "none")
+    check("`none` is capped at SIL 1 per IEC 61508",
+          max(nn.achieves_sil) == 1, f"achieves_sil={nn.achieves_sil}")
+
+    for stem in ["f_random_hw", "f_sw3", "f_both3"]:
+        f = ROOT / "out" / f"{stem}.dzn"
+        if not f.exists():
+            continue
+        r = run(str(f), "TOTALCOST", timeout=240)
+        if r["status"] != "OPTIMAL":
+            check(f"{stem}: solved", False, r["status"])
+            continue
+        ok, msg = _verify(str(f), r["solution"])
+        check(f"{stem}: solves and every placement relation verifies "
+              f"({r['solution']['nprocs']} cores)", ok, msg)
+
+
 def t_crosscheck(dzns: list[str]) -> None:
     print("\n[crosscheck] backends must agree (disagreement = modelling error)")
     for dzn in dzns:
@@ -416,7 +468,7 @@ def t_crosscheck(dzns: list[str]) -> None:
 def main() -> int:
     groups = sys.argv[1:] or ["golden", "unfold", "provenance", "model",
                               "symmetry", "latency", "rosvall", "safety",
-                              "patterns", "crosscheck"]
+                              "patterns", "catalogue", "crosscheck"]
     dzns = sorted(str(p) for p in (ROOT / "out").glob("*.dzn"))
     if not dzns and {"model", "symmetry", "crosscheck"} & set(groups):
         print("no .dzn files in out/ -- run tools/build_dzn.py first")
@@ -440,6 +492,8 @@ def main() -> int:
         t_safety()
     if "patterns" in groups:
         t_patterns()
+    if "catalogue" in groups:
+        t_catalogue()
     if "crosscheck" in groups:
         t_crosscheck(dzns)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed  ({time.time()-t0:.1f}s)")

@@ -27,6 +27,10 @@ from golden import mcm, selftimed_period, selftimed_trace  # noqa: E402
 
 
 # --------------------------------------------------------------------------
+def _aslist(x):
+    return x if isinstance(x, list) else [x]
+
+
 def parse_dzn(path: str) -> dict:
     """Minimal .dzn reader for the arrays this framework emits."""
     txt = Path(path).read_text()
@@ -217,7 +221,10 @@ def main() -> int:
         ctype = d["ctype"]
         max_sil = d["max_sil"]
 
+        act = sol.get("active", [True] * n)
         for i in range(n):
+            if not act[i]:
+                continue          # inactive pattern slot: neutralised, not real
             need = sreq[par[i] - 1]
             if sil_impl[i] < need:
                 ok = False
@@ -236,7 +243,8 @@ def main() -> int:
                             f"type can only be certified to SIL {cap}")
             # Koopman rule 2: without partitioning, one SIL per core
             if not part[p_]:
-                on = [sil_impl[i] for i in range(n) if proc[i] == p_ + 1]
+                on = [sil_impl[i] for i in range(n)
+                      if proc[i] == p_ + 1 and act[i]]
                 if on and len(set(on)) > 1:
                     ok = False
                     msgs.append(f"core {p_+1} has mixed SILs {sorted(set(on))} "
@@ -249,6 +257,46 @@ def main() -> int:
         if not a.quiet:
             live = [(p_ + 1, csil[p_]) for p_ in range(len(csil)) if csil[p_] > 0]
             print(f"  isolation: {len(live)} provisioned cores {live}")
+
+    # ---- placement relations (Phase 5) -----------------------------------
+    # The safety argument rests on these: a 2-of-2 pair in the same fault
+    # containment region tolerates nothing.  Checked externally against the
+    # returned mapping rather than trusted to the constraint that posted them.
+    npl = d.get("nPL", 0)
+    if npl and "pat" in sol:
+        RELN = {1: "SAME", 2: "DIFFERENT", 3: "DIFFERENT_FCR", 4: "DIVERSE"}
+        pl_u = _aslist(d["pl_u"]); pl_v = _aslist(d["pl_v"])
+        pl_rel = _aslist(d["pl_rel"]); pl_owner = _aslist(d["pl_owner"])
+        guard = d["pl_guard"]
+        npat = d["nPat"]
+        if guard and not isinstance(guard[0], list):
+            guard = [guard[r * npat:(r + 1) * npat] for r in range(len(guard) // npat)]
+        pat = sol["pat"]
+        fcr = d["fcr"]; ctype = d["ctype"]
+        checked = 0
+        for c in range(npl):
+            if not guard[c][pat[pl_owner[c] - 1] - 1]:
+                continue                       # this pattern was not selected
+            u, v = pl_u[c] - 1, pl_v[c] - 1
+            pu, pv = sol["proc"][u], sol["proc"][v]
+            rel = pl_rel[c]
+            bad = (
+                (rel == 1 and pu != pv) or
+                (rel == 2 and pu == pv) or
+                (rel == 3 and fcr[pu - 1] == fcr[pv - 1]) or
+                (rel == 4 and ctype[pu - 1] == ctype[pv - 1])
+            )
+            checked += 1
+            if bad:
+                ok = False
+                msgs.append(
+                    f"placement {RELN[rel]} between nodes {u+1} and {v+1} is "
+                    f"violated: cores {pu}/{pv}, FCRs "
+                    f"{fcr[pu-1]}/{fcr[pv-1]}, types {ctype[pu-1]}/{ctype[pv-1]}")
+        if not a.quiet:
+            sel = sorted({d["pat_name"][p - 1] for p in pat})
+            print(f"  patterns: {sel}; {checked} active placement relations "
+                  f"checked")
 
     # the bound the open-chain bug used to lose
     load = {}
