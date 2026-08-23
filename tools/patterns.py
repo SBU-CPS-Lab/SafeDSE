@@ -166,10 +166,43 @@ def check_pattern(p: Pattern, n_cores_by_fcr: tuple[int, int, int] | None = None
         bad.append(f"{p.id}: has redundant components but states no general "
                    f"scenario, so no safety argument can be generated for it")
 
-    # Phase 4/5 restriction (Q10)
+    # (7) explicit voters (Q10, Phase 8 Priority 2)
+    #
+    # This was a blanket rejection. It is now a structural check, because an
+    # explicit voter is only meaningful if it is actually wired as one: it must
+    # be a declared component, it must be named as the output producer, and it
+    # must SEE the redundant results it is supposed to vote on. A "voter" with
+    # one incoming edge is a relay, and a folded voter that claims to be
+    # explicit is a mislabelled record -- both would generate a safety argument
+    # crediting a Voting tactic to something that does not vote.
     if p.voter == "explicit":
-        bad.append(f"{p.id}: explicit voters are Phase 6; only voter=folded "
-                   f"patterns are admitted so far")
+        roles = [c["role"] for c in p.components]
+        if p.output_from == "owner":
+            bad.append(f"{p.id}: voter=explicit but output_from is still "
+                       f"'owner'; name the voter component that produces the "
+                       f"pattern's output")
+        elif p.output_from not in roles:
+            bad.append(f"{p.id}: output_from={p.output_from!r} is not one of "
+                       f"this pattern's components {roles}")
+        else:
+            fan_in = [e for e in p.edges if e.get("to") == p.output_from]
+            if len(fan_in) < 2:
+                bad.append(
+                    f"{p.id}: the explicit voter {p.output_from!r} has "
+                    f"{len(fan_in)} incoming edge(s); a voter must receive at "
+                    f"least two redundant results to compare")
+            # a voter that votes on a channel carrying an initial token is
+            # voting on last iteration's result against this one's
+            stale = [e for e in fan_in if int(e.get("tokens", 0)) > 0]
+            if stale:
+                bad.append(
+                    f"{p.id}: voter {p.output_from!r} has incoming edge(s) "
+                    f"{[e['from'] for e in stale]} carrying initial tokens, so "
+                    f"it would compare results from different iterations")
+    elif p.output_from != "owner":
+        bad.append(f"{p.id}: output_from={p.output_from!r} but voter=folded; a "
+                   f"folded voter is subsumed into the owner, so the output "
+                   f"must come from the owner")
     if not p.sdf_compatible:
         bad.append(f"{p.id}: marked sdf_compatible=false; a pattern whose "
                    f"runtime behaviour is rate-inconsistent or data-dependent "
@@ -201,7 +234,8 @@ def _cycles(adj: dict[str, list[tuple[str, int]]]) -> list[list[tuple[str, int]]
 # ---------------------------------------------------------------------------
 def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
            fault_model: str, force_none: bool = False,
-           platform_fcrs: int = 0, platform_cores: int = 0) -> Superposition:
+           platform_fcrs: int = 0, platform_cores: int = 0,
+           platform_ctypes: int = 0) -> Superposition:
     """Build the superposed SDF graph.
 
     Slot sharing: actor `a` receives max(|components(p)|) slots over its
@@ -307,9 +341,115 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
                             resolve(a.name, pi, ms[y]),
                             RELATIONS[pl["relation"]], a.name, [pi]))
 
+    # ---- output rerouting for explicit voters (Q10, Phase 8) --------------
+    #
+    # With a folded voter the owner is still the thing that produces the
+    # pattern's output, so the application's own channels are correct as they
+    # stand and go into the graph unguarded. An explicit voter changes that:
+    # the voter, not the owner, produces the output, so every channel leaving
+    # the owner has to become a channel leaving the voter -- but only under the
+    # patterns that actually have an explicit voter, since the same actor's
+    # other candidate patterns still produce from the owner.
+    #
+    # So the original channel stops being unconditional and becomes guarded by
+    # the folded-voter patterns, and a rerouted copy is added per voter role,
+    # guarded by the patterns that use it. Getting this wrong in the obvious
+    # direction -- leaving the direct edge in place alongside the rerouted one
+    # -- would let output bypass the voter entirely while still looking
+    # plausible, which is the same failure as the remote-channel direct edge in
+    # comm.mzn (A.7): the shortcut does not error, it just silently makes the
+    # safety mechanism optional.
+    def producer_role(pi: int) -> str:
+        return by_id[ids[pi]].output_from
+
+    rerouted: list[Channel] = []
+    keep: list[Channel] = []
+    for ch in sup.graph.channels:
+        src_app = sup.applicable.get(ch.src)
+        gowner = sup.chan_guards.get(ch.name, (None, None))[0]
+        if src_app is None or gowner == ch.src:
+            # Either the source is a component slot rather than a base actor,
+            # or this is one of the pattern's own internal edges, which really
+            # is produced by the owner -- the voter votes on the checkers'
+            # results, so owner->checker must NOT be rerouted through it.
+            keep.append(ch)
+            continue
+        folded = [pi for pi in src_app if producer_role(pi) == "owner"]
+        voted: dict[str, list[int]] = {}
+        for pi in src_app:
+            r = producer_role(pi)
+            if r != "owner":
+                voted.setdefault(r, []).append(pi)
+        if not voted:
+            keep.append(ch)               # no explicit voter in play
+            continue
+        if gowner is not None and gowner != ch.src:
+            # This channel is an input_fanout copy, already guarded by the
+            # DESTINATION's pattern, and its source now also needs guarding by
+            # the source's pattern. That is a conjunction of two guards over two
+            # different owners, and chan_guards carries exactly one owner --
+            # build_dzn emits (src, dst, tok, owner_par, guard_set), so there is
+            # nowhere to put the second condition.
+            #
+            # Refusing is the only honest option. Dropping the second guard
+            # would leave a copy of the pre-voter result feeding a downstream
+            # checker under patterns that are supposed to route through the
+            # voter, which is exactly the silent bypass this rerouting exists to
+            # prevent. Fixing it properly means giving guarded edges a
+            # conjunctive guard in lib/activation.mzn, which is a model change,
+            # not a front-end one.
+            raise PatternError(
+                f"channel {ch.name!r} is guarded by {gowner!r}'s pattern and "
+                f"its source {ch.src!r} uses an explicit voter, so it needs "
+                f"both guards at once. Guarded edges carry a single owner, so "
+                f"this composition is not expressible yet. It arises when an "
+                f"actor with an explicit-voter pattern feeds an actor whose "
+                f"pattern uses input_fanout; avoid one of the two, or extend "
+                f"lib/activation.mzn to conjunctive edge guards.")
+        # the original edge survives only under the folded-voter patterns
+        if folded:
+            keep.append(ch)
+            sup.chan_guards[ch.name] = (ch.src, folded)
+        for role, pis in voted.items():
+            v = resolve(ch.src, pis[0], role)
+            cn = f"VOT:{ch.src}:{role}:{ch.name}"
+            rerouted.append(Channel(
+                name=cn, src=v, dst=ch.dst, prod=ch.prod, cons=ch.cons,
+                initial_tokens=ch.initial_tokens, token_size=ch.token_size))
+            sup.chan_guards[cn] = (ch.src, pis)
+            sup.notes.append(
+                f"output of {ch.src} on channel {ch.name} is produced by "
+                f"{v} under pattern(s) "
+                f"{[ids[pi] for pi in pis]} (explicit voter)")
+    sup.graph.channels = keep + rerouted
+
     # ---- (4) placement satisfiability -------------------------------------
     # Catching this here gives a diagnosable error instead of an opaque UNSAT.
     if platform_cores:
+        # DIVERSE is checked against the number of distinct CORE TYPES, not
+        # cores. A pattern with three pairwise-DIVERSE members needs three
+        # distinct types, and a platform with two returns plain UNSAT with
+        # nothing to point at -- which is what nvp_three_version did on
+        # Rosvall's platform (two types) and cost real time to diagnose. The
+        # existing checks below cover DIFFERENT and DIFFERENT_FCR; this one was
+        # the gap.
+        if platform_ctypes:
+            need_diverse: dict[str, set[str]] = {}
+            for u, v, rel, owner, _ in sup.placements:
+                if rel == RELATIONS["DIVERSE"]:
+                    need_diverse.setdefault(owner, set()).update((u, v))
+            for owner, members in need_diverse.items():
+                if len(members) > platform_ctypes:
+                    raise PatternError(
+                        f"pattern applied to {owner!r} requires {len(members)} "
+                        f"pairwise-DIVERSE components ({sorted(members)}) but "
+                        f"the platform declares only {platform_ctypes} distinct "
+                        f"core type(s). Diversity is realised here as distinct "
+                        f"core types, so N mutually diverse components need N "
+                        f"types. Either add a core type to the platform, or "
+                        f"select a fault model that does not motivate the "
+                        f"DIVERSE relation, or use a pattern with fewer "
+                        f"diverse members.")
         for u, v, rel, owner, _ in sup.placements:
             if rel in (RELATIONS["DIFFERENT"], RELATIONS["DIFFERENT_FCR"]) \
                     and platform_cores < 2:

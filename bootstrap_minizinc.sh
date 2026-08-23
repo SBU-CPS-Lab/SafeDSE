@@ -3,16 +3,33 @@
 # Run once per session (the container filesystem resets between sessions).
 set -euo pipefail
 MZN_VERSION="${MZN_VERSION:-2.10.0}"
-PREFIX="${PREFIX:-/opt/mzn}"
+PREFIX="${PREFIX:-/opt/mzn210}"
 URL="https://github.com/MiniZinc/MiniZincIDE/releases/download/${MZN_VERSION}/MiniZincIDE-${MZN_VERSION}-bundle-linux-x86_64.tgz"
 
-if [ -x "${PREFIX}/bin/minizinc" ]; then
-  echo "MiniZinc already present at ${PREFIX}"
+# `-x` alone is not enough to call an install good. An interrupted extraction
+# leaves a bin/minizinc that exists, is executable, and segfaults -- and because
+# tools/solve.py probed with a plain existence test, every solve then returned
+# NOSOL and the whole suite failed as though the MODEL were broken. That is the
+# silent-failure mode this project is built to avoid, so the check is "does it
+# actually run", and the extraction is atomic so the half-written state is never
+# visible under PREFIX in the first place.
+if [ -x "${PREFIX}/bin/minizinc" ] && "${PREFIX}/bin/minizinc" --version >/dev/null 2>&1; then
+  echo "MiniZinc already present and working at ${PREFIX}"
 else
+  if [ -e "${PREFIX}" ]; then
+    echo "Removing a broken or partial install at ${PREFIX}"
+    rm -rf "${PREFIX}"
+  fi
   echo "Downloading MiniZinc ${MZN_VERSION} ..."
-  curl -sS -L --max-time 900 -o /tmp/mzn.tgz "${URL}"
-  mkdir -p "${PREFIX}"
-  tar xzf /tmp/mzn.tgz -C "${PREFIX}" --strip-components=1
+  curl -sS -L --max-time 900 -o /tmp/mzn.tgz.part "${URL}"
+  mv /tmp/mzn.tgz.part /tmp/mzn.tgz
+  STAGE="$(mktemp -d "${PREFIX}.stage.XXXXXX")"
+  trap 'rm -rf "${STAGE}"' EXIT
+  echo "Extracting ..."
+  tar xzf /tmp/mzn.tgz -C "${STAGE}" --strip-components=1
+  "${STAGE}/bin/minizinc" --version >/dev/null   # fail here, not three hours later
+  mv "${STAGE}" "${PREFIX}"
+  trap - EXIT
   rm -f /tmp/mzn.tgz
 fi
 

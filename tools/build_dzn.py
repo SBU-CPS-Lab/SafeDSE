@@ -269,7 +269,8 @@ def main() -> int:
                 sup = expand(g, pats, saf["sil"], saf["fault_model"],
                              force_none=args.force_no_patterns,
                              platform_fcrs=len(plat_pre.fcrs),
-                             platform_cores=len(plat_pre.slots))
+                             platform_cores=len(plat_pre.slots),
+                             platform_ctypes=len(plat_pre.core_types))
             except PatternError as e:
                 print(f"ERROR: {e}", file=sys.stderr)
                 return 5

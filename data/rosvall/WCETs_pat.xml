@@ -287,4 +287,52 @@
     <wcet processor="default" mode="performance" wcet="256" />
     <wcet processor="CS_HWacc" mode="default" wcet="320" />
   </mapping>
-  </WCET_table>
+    <mapping task_type="voter_ABS">
+    <wcet processor="default" mode="eco" wcet="11" />
+    <wcet processor="default" mode="standard" wcet="9" />
+    <wcet processor="default" mode="performance" wcet="7" />
+    <wcet processor="CS_HWacc" mode="default" wcet="9" />
+  </mapping>
+  <mapping task_type="voter_GX">
+    <wcet processor="default" mode="eco" wcet="7" />
+    <wcet processor="default" mode="standard" wcet="5" />
+    <wcet processor="default" mode="performance" wcet="4" />
+    <wcet processor="CS_HWacc" mode="default" wcet="5" />
+  </mapping>
+  <mapping task_type="voter_GY">
+    <wcet processor="default" mode="eco" wcet="7" />
+    <wcet processor="default" mode="standard" wcet="5" />
+    <wcet processor="default" mode="performance" wcet="4" />
+    <wcet processor="CS_HWacc" mode="default" wcet="5" />
+  </mapping>
+  <mapping task_type="voter_abs">
+    <wcet processor="default" mode="eco" wcet="11" />
+    <wcet processor="default" mode="standard" wcet="9" />
+    <wcet processor="default" mode="performance" wcet="7" />
+    <wcet processor="CS_HWacc" mode="default" wcet="9" />
+  </mapping>
+  <mapping task_type="voter_getPixel">
+    <wcet processor="default" mode="eco" wcet="28" />
+    <wcet processor="default" mode="standard" wcet="24" />
+    <wcet processor="default" mode="performance" wcet="19" />
+    <wcet processor="CS_HWacc" mode="default" wcet="24" />
+  </mapping>
+  <mapping task_type="voter_get_pixel">
+    <wcet processor="default" mode="eco" wcet="28" />
+    <wcet processor="default" mode="standard" wcet="24" />
+    <wcet processor="default" mode="performance" wcet="19" />
+    <wcet processor="CS_HWacc" mode="default" wcet="24" />
+  </mapping>
+  <mapping task_type="voter_gx">
+    <wcet processor="default" mode="eco" wcet="7" />
+    <wcet processor="default" mode="standard" wcet="5" />
+    <wcet processor="default" mode="performance" wcet="4" />
+    <wcet processor="CS_HWacc" mode="default" wcet="5" />
+  </mapping>
+  <mapping task_type="voter_gy">
+    <wcet processor="default" mode="eco" wcet="7" />
+    <wcet processor="default" mode="standard" wcet="5" />
+    <wcet processor="default" mode="performance" wcet="4" />
+    <wcet processor="CS_HWacc" mode="default" wcet="5" />
+  </mapping>
+</WCET_table>
