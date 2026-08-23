@@ -237,6 +237,41 @@ def _cycles(adj: dict[str, list[tuple[str, int]]]) -> list[list[tuple[str, int]]
 
 
 # ---------------------------------------------------------------------------
+def _diverse_placeable(p: Pattern, need: int, faults: set[str],
+                       ctype_sils: list[int]) -> tuple[bool, str]:
+    """Can this pattern's DIVERSE groups be placed on this platform?
+
+    Diversity is realised as distinct core TYPES, so N mutually diverse
+    components need N types -- and only types that may legally host them. A
+    type capped at SIL 2 is no help to a SIL-3 replica however diverse it is.
+    """
+    if not ctype_sils:
+        return True, ""
+    groups: list[set[str]] = []
+    for pl in p.placement:
+        if pl.get("relation") != "DIVERSE":
+            continue
+        if "for" in pl and pl["for"] not in faults:
+            continue          # not motivated by the selected fault model
+        groups.append(set(pl["members"]))
+    for ms in groups:
+        worst = need
+        for role in ms:
+            if role == "owner":
+                continue
+            for c in p.components:
+                if c["role"] == role:
+                    worst = max(worst, min(4, need + int(
+                        c.get("sil_offset", 0))))
+        usable = [s for s in ctype_sils if s >= worst]
+        if len(ms) > len(usable):
+            return False, (f"needs {len(ms)} mutually diverse components "
+                           f"({sorted(ms)}) at up to SIL {worst}, but only "
+                           f"{len(usable)} of the platform's {len(ctype_sils)} "
+                           f"core type(s) can be certified to that level")
+    return True, ""
+
+
 def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
            fault_model: str, force_none: bool = False,
            platform_fcrs: int = 0, platform_cores: int = 0,
@@ -262,13 +297,34 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
             continue
         app = [ids.index(p.id) for p in patterns
                if need in p.achieves_sil and faults <= set(p.covers_faults)]
+        # Drop candidates whose diversity requirement this platform cannot
+        # satisfy. A pattern that cannot be placed is not an instance error --
+        # patterns are ALTERNATIVES, and the actor is free to take another one.
+        # Raising here instead (as an earlier version did) killed the build of
+        # p_rasta_noiso, where two_of_two_high_sil is unplaceable on a platform
+        # with one SIL-3-capable core type but mixed_sil_doer_checker is not.
+        # The error belongs only at the point where NOTHING is left.
+        dropped = []
+        for pi in list(app):
+            ok_pl, why = _diverse_placeable(by_id[ids[pi]], need, faults,
+                                            platform_ctype_sils or [])
+            if not ok_pl:
+                app.remove(pi)
+                dropped.append(f"{ids[pi]} ({why})")
+        if dropped:
+            sup.notes.append(
+                f"actor {a.name}: pattern(s) excluded as unplaceable on this "
+                f"platform -- " + "; ".join(dropped))
         if not app:
             reachable = sorted({s for p in patterns
                                 if faults <= set(p.covers_faults)
                                 for s in p.achieves_sil})
             raise PatternError(
                 f"actor {a.name!r} requires SIL {need} under fault model "
-                f"{fault_model!r}, but no pattern in the library achieves it. "
+                f"{fault_model!r}, but no pattern in the library both achieves "
+                f"it and is placeable on this platform. "
+                + (f"Excluded as unplaceable: {'; '.join(dropped)}. "
+                   if dropped else "") +
                 f"Reachable SILs under this fault model: {reachable}. "
                 f"Either add a pattern, relax the requirement, or select a "
                 f"different fault model.")
@@ -298,6 +354,29 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
             sup.owner_of[name] = a.name
             sup.guard_of[name] = guards
             if len(roles) > 1:
+                # Slot sharing takes the slot's wcet_type from the FIRST pattern
+                # that uses that position, so patterns sharing a slot for
+                # different roles get whichever WCET the earlier record names.
+                # For two checkers that is a warning: they cost roughly alike.
+                # For a voter it is not. A voter is deliberately an order of
+                # magnitude cheaper than the thing it votes on -- that cheapness
+                # is Armoush's whole argument for trusting it -- so pricing one
+                # as a checker inflates it several-fold and moves the optimum,
+                # silently and in the direction that makes the pattern look
+                # worse than it is.
+                voter_roles = {r for pi in guards
+                               for c2 in [by_id[ids[pi]].components[k]]
+                               if by_id[ids[pi]].output_from == c2["role"]
+                               for r in [c2["role"]]}
+                if voter_roles and roles - voter_roles:
+                    raise PatternError(
+                        f"slot {name} is shared between the explicit-voter role "
+                        f"{sorted(voter_roles)} and non-voter role(s) "
+                        f"{sorted(roles - voter_roles)}. Slot sharing assigns "
+                        f"one wcet_type per position, so the voter would be "
+                        f"priced as {comp.get('wcet_type')!r}. Reorder the "
+                        f"components so the voter does not share a position "
+                        f"with a replica or checker.")
                 sup.notes.append(
                     f"slot {name} is shared by patterns with differing roles "
                     f"{sorted(roles)}; sharing is by position, so verify the "
@@ -433,51 +512,11 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
     # ---- (4) placement satisfiability -------------------------------------
     # Catching this here gives a diagnosable error instead of an opaque UNSAT.
     if platform_cores:
-        # DIVERSE is checked against the number of distinct CORE TYPES, not
-        # cores. A pattern with three pairwise-DIVERSE members needs three
-        # distinct types, and a platform with two returns plain UNSAT with
-        # nothing to point at -- which is what nvp_three_version did on
-        # Rosvall's platform (two types) and cost real time to diagnose. The
-        # existing checks below cover DIFFERENT and DIFFERENT_FCR; this one was
-        # the gap.
-        if platform_ctypes:
-            need_diverse: dict[str, set[str]] = {}
-            for u, v, rel, owner, _ in sup.placements:
-                if rel == RELATIONS["DIVERSE"]:
-                    need_diverse.setdefault(owner, set()).update((u, v))
-            for owner, members in need_diverse.items():
-                # Diversity is realised as distinct core TYPES, so N mutually
-                # diverse components need N types -- but only types that can
-                # legally host them. A type capped at SIL 2 is no help to a
-                # SIL-3 replica however diverse it is, and counting all types
-                # made this check pass on a platform where it should not:
-                # mixed_3type declares three types, of which only two are
-                # certifiable above SIL 2, so three-version programming at SIL 3
-                # is infeasible there and came back as a bare UNSAT anyway.
-                need = sil_req.get(owner, 0)
-                worst = need
-                for m in members:
-                    if "~" in m:
-                        k = int(m.split("~")[1])
-                        for pi in sup.applicable.get(owner, []):
-                            comps = by_id[ids[pi]].components
-                            if k < len(comps):
-                                worst = max(worst, min(4, need + int(
-                                    comps[k].get("sil_offset", 0))))
-                usable = ([s for s in platform_ctype_sils if s >= worst]
-                          if platform_ctype_sils else [0] * platform_ctypes)
-                if len(members) > len(usable):
-                    raise PatternError(
-                        f"pattern applied to {owner!r} requires {len(members)} "
-                        f"pairwise-DIVERSE components ({sorted(members)}) at up "
-                        f"to SIL {worst}, but only {len(usable)} of the "
-                        f"platform's {platform_ctypes} core type(s) can be "
-                        f"certified to that level. Diversity is realised here "
-                        f"as distinct core types, so N mutually diverse "
-                        f"components need N types EACH admissible at their SIL. "
-                        f"Add a core type certifiable to SIL {worst}, or select "
-                        f"a fault model that does not motivate DIVERSE, or use "
-                        f"a pattern with fewer diverse members.")
+        # NOTE: diversity placeability is checked during APPLICABILITY
+        # above, where an unplaceable pattern is dropped as a candidate
+        # rather than failing the build -- patterns are alternatives, so
+        # one that will not fit is not an instance error. By the time
+        # placements exist every surviving pattern is placeable.
         for u, v, rel, owner, _ in sup.placements:
             if rel in (RELATIONS["DIFFERENT"], RELATIONS["DIFFERENT_FCR"]) \
                     and platform_cores < 2:

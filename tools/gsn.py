@@ -881,6 +881,31 @@ def main() -> int:
             print(f"  {m}", file=sys.stderr)
         return 2
 
+    # The catalogue must be the one the instance was BUILT with.
+    #
+    # Without this check a mismatch degrades silently and catastrophically:
+    # build() looks a pattern up by name, gets None for anything the loaded
+    # catalogue lacks, and falls through to the "no structural pattern applied"
+    # branch. The result is a fluent, internally consistent, audit-passing
+    # safety argument stating that an actor is argued by development process
+    # alone -- for an actor that in fact carries three-version programming and a
+    # voter. Observed, not hypothetical: generating for out/v_nvp.dzn against
+    # the default data/patterns.yaml produced exactly that.
+    #
+    # It is the same failure the fault-model inference exists to prevent, one
+    # level up, and it fails the same way: not by erroring, but by understating
+    # the architecture in a document whose whole purpose is to describe it.
+    if d.get("nPat", 0) > 1:
+        known = {p.id for p in pats}
+        unknown = sorted(set(_l(d["pat_name"])) - known)
+        if unknown:
+            print(f"REFUSING to generate: the instance uses pattern(s) "
+                  f"{unknown} that are absent from {a.patterns}. Pass the "
+                  f"catalogue the instance was built with (--patterns). "
+                  f"Generating anyway would silently argue those actors as "
+                  f"having no safety pattern at all.", file=sys.stderr)
+            return 4
+
     fm, how = infer_fault_model(d, pats)
     if a.fault_model:
         if fm and fm != a.fault_model:

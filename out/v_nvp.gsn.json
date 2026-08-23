@@ -3,7 +3,7 @@
  "meta": {
   "label": "v_nvp",
   "dzn": "out/v_nvp.dzn",
-  "solution": "/tmp/vn.json",
+  "solution": "/tmp/v_nvp.s.json",
   "fault_model": "undetermined",
   "fault_model_how": "ambiguous between ['random_hw', 'systematic_sw', 'both'] (this instance does not distinguish them)",
   "verifier_ok": true

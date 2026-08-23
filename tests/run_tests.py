@@ -757,6 +757,37 @@ def t_gsn() -> None:
                   Path("/tmp/gsn_bad_out.gsn.md").exists(),
                   f"rc={p.returncode}")
 
+    # ---- voter/checker slot sharing must be an error, not a warning -----
+    from patterns import PatternError, expand
+    from sdf3 import SDFGraph, Actor, Channel
+    demo = ROOT / "data" / "patterns_explicit_voter_demo.yaml"
+    clash = ROOT / "data" / "patterns_explicit_voter.yaml"
+    if clash.exists():
+        import yaml as _y
+        def _recs(f):
+            d = _y.safe_load(open(f))
+            return d["patterns"] if isinstance(d, dict) else d
+        recs = [x for x in _recs(ROOT / "data" / "patterns.yaml")
+                if x["id"] in ("none", "dual_two_of_two")]
+        recs += [x for x in _recs(clash) if x["id"] == "nvp_three_version"]
+        cf = Path("/tmp/gsn_clash.yaml")
+        cf.write_text(_y.safe_dump({"patterns": recs}, sort_keys=False))
+        g = SDFGraph(name="t")
+        g.actors = [Actor(name="a", type="ta", exec_time=10),
+                    Actor(name="b", type="tb", exec_time=10)]
+        g.channels = [Channel(name="ab", src="a", dst="b", prod=1, cons=1,
+                              initial_tokens=0)]
+        caught = False
+        try:
+            expand(g, load_patterns(str(cf)), {"a": 3, "b": 0}, "random_hw",
+                   platform_fcrs=9, platform_cores=9, platform_ctypes=4,
+                   platform_ctype_sils=[4, 4, 4, 4])
+        except PatternError as e:
+            caught = "explicit-voter role" in str(e)
+        check("a voter sharing a slot with a replica is an error, not a "
+              "warning", caught,
+              "the voter would silently be priced as the replica")
+
     # ---- rendering ------------------------------------------------------
     if Path("/tmp/gsn_frh.json").exists() and f.exists():
         p = subprocess.run(
@@ -778,6 +809,51 @@ def t_gsn() -> None:
             check("undeveloped goals are marked in the diagram",
                   dot.count("UNDEVELOPED") ==
                   sum(1 for e in doc["elements"] if e["undeveloped"]))
+
+
+    # ---- catalogue mismatch must be refused, not degraded ---------------
+    # The nastiest failure this tool has had. build() looks patterns up by
+    # name; an absent one becomes None and falls through to the "no structural
+    # pattern applied" branch, producing a fluent, audit-passing argument that
+    # says an actor is argued by development process alone when it in fact
+    # carries three-version programming and a voter.
+    vn = ROOT / "out" / "v_nvp.dzn"
+    if not vn.exists():
+        print("  SKIP  out/v_nvp.dzn not built")
+    else:
+        r = run(str(vn), "TOTALCOST", {}, timeout=200)
+        if "solution" not in r:
+            check("v_nvp: solved", False, r["status"])
+        else:
+            sp = Path("/tmp/gsn_vnvp.json")
+            sp.write_text(_json.dumps(r["solution"]))
+            p = subprocess.run(
+                [sys.executable, str(ROOT / "tools" / "gsn.py"), "--dzn",
+                 str(vn), "--solution", str(sp), "--out", "/tmp/gsn_mm"],
+                capture_output=True, text=True)
+            check("refuses to generate against the wrong pattern catalogue",
+                  p.returncode == 4
+                  and not Path("/tmp/gsn_mm.gsn.md").exists(),
+                  f"rc={p.returncode}")
+            demo = ROOT / "data" / "patterns_explicit_voter_demo.yaml"
+            if demo.exists():
+                p2 = subprocess.run(
+                    [sys.executable, str(ROOT / "tools" / "gsn.py"), "--dzn",
+                     str(vn), "--solution", str(sp), "--out", "/tmp/gsn_ok",
+                     "--patterns", str(demo), "--quiet"],
+                    capture_output=True, text=True)
+                ok = Path("/tmp/gsn_ok.gsn.md").exists()
+                check("generates against the catalogue the instance was built "
+                      "with", p2.returncode == 0 and ok, p2.stderr[-200:])
+                if ok:
+                    md = Path("/tmp/gsn_ok.gsn.md").read_text()
+                    # the explicit voter must appear as a real component, and
+                    # the actor must NOT be argued as pattern-free
+                    check("the explicit voter appears in the argument",
+                          "voter on core" in md)
+                    check("an actor with a pattern is not argued as "
+                          "pattern-free",
+                          "nvp_three_version" in md)
 
 
 def t_crosscheck(dzns: list[str]) -> None:

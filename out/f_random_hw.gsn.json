@@ -3,7 +3,7 @@
  "meta": {
   "label": "f_random_hw",
   "dzn": "out/f_random_hw.dzn",
-  "solution": "/tmp/f.json",
+  "solution": "/tmp/f_random_hw.s.json",
   "fault_model": "random_hw",
   "fault_model_how": "inferred from pat_allowed",
   "verifier_ok": true

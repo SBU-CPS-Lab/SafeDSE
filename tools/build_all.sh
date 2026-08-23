@@ -104,3 +104,18 @@ $B --app data/rosvall/a_sobel.hsdf.xml --platform data/rosvall/platform.xml \
    --cost-model data/cost_model.xml --safety data/safety_sobel3.xml \
    $PAT --comm tdma -o out/pc_sobel.dzn
 echo "rebuilt $(ls out/*.dzn | wc -l) instances"
+
+# Explicit voter (Phase 8, Priority 2). Built from a SEPARATE catalogue:
+# nvp_three_version is not in data/patterns.yaml because it is expensive enough
+# to move every existing regression optimum, which is a decision independent of
+# making it work. mixed_4type is needed because N mutually diverse components
+# need N core types EACH certifiable at their SIL, and the 3-type platform has
+# only two above SIL 2.
+python3 tools/mkwcets.py --app data/apps/c_rasta.hsdf.xml \
+   --platform data/platform/mixed_4type.xml \
+   --patterns data/patterns_explicit_voter_demo.yaml \
+   -o data/WCETs_4type.xml >/dev/null
+$B --app data/apps/c_rasta.hsdf.xml --platform data/platform/mixed_4type.xml \
+   --wcets data/WCETs_4type.xml --constraints data/desConst.xml \
+   --cost-model data/cost_model.xml --safety data/safety_fm_both.xml \
+   --patterns data/patterns_explicit_voter_demo.yaml -o out/v_nvp.dzn
