@@ -46,6 +46,7 @@ patterns:
     failure_mode: none
     voter: folded
     recurring_cost_units: 0
+    scenarios: []
     tactics: []
     sdf_compatible: true
 
@@ -75,6 +76,17 @@ patterns:
     voter: folded
     dev_cost_multiplier: {checker: 1.0}
     recurring_cost_units: 2
+    scenarios:
+      - id: SC1
+        text: >
+          An implausible output of the doer is detected by the checker.
+        tactics: [Sanity Check]
+      - id: SC2
+        text: >
+          A random hardware fault in the doer's processor does not prevent
+          detection, because the checker runs on another processor.
+        covers: random_hw
+        tactics: [Replication Redundancy]
     tactics: [Sanity Check, Replication Redundancy]
     sdf_compatible: true
 
@@ -105,6 +117,11 @@ patterns:
     voter: folded
     dev_cost_multiplier: {checker: 1.0}
     recurring_cost_units: 1
+    scenarios:
+      - id: SC1
+        text: >
+          An implausible output of the doer is detected by the checker.
+        tactics: [Sanity Check]
     tactics: [Sanity Check]
     sdf_compatible: true
 
@@ -141,7 +158,29 @@ patterns:
     dev_cost_multiplier: {channel_b: 1.0}
     dev_cost_multiplier_diverse: {channel_b: 2.0}
     recurring_cost_units: 2
-    tactics: [Replication Redundancy, Voting, Diverse Redundancy]
+    scenarios:
+      - id: SC1
+        text: >
+          A fault in either channel is detected as a disagreement between
+          the two channels.
+        tactics: [Comparison]
+      - id: SC2
+        text: >
+          A random hardware fault in one channel does not affect the other
+          channel.
+        covers: random_hw
+        tactics: [Replication Redundancy]
+      - id: SC3
+        text: >
+          A systematic fault is not common to both channels.
+        covers: systematic_sw
+        tactics: [Diverse Redundancy]
+      - id: SC4
+        text: >
+          A detected disagreement does not propagate an incorrect result to
+          the consumer.
+        tactics: [Voting]
+    tactics: [Replication Redundancy, Comparison, Voting, Diverse Redundancy]
     sdf_compatible: true
 
   # -------------------------------------------------------------------------
@@ -171,6 +210,18 @@ patterns:
     voter: folded
     dev_cost_multiplier: {checker: 1.0}
     recurring_cost_units: 2
+    scenarios:
+      - id: SC1
+        text: >
+          An implausible output of the doer is detected by the
+          equally-high-SIL checker.
+        tactics: [Sanity Check]
+      - id: SC2
+        text: >
+          A random hardware fault in the doer's fault containment region
+          does not disable the checker.
+        covers: random_hw
+        tactics: [Replication Redundancy]
     tactics: [Sanity Check, Replication Redundancy]
     sdf_compatible: true
 
@@ -206,7 +257,35 @@ patterns:
     voter: folded
     dev_cost_multiplier: {checker_1: 1.0, checker_2: 1.0}
     recurring_cost_units: 3
-    tactics: [Sanity Check, Replication Redundancy, Voting, Diverse Redundancy]
+    scenarios:
+      - id: SC1
+        text: >
+          An implausible output of the low-SIL doer is detected by the
+          high-SIL checkers.
+        tactics: [Sanity Check]
+      - id: SC2
+        text: >
+          A fault in one checker is detected by the other checker's
+          cross-check.
+        tactics: [Comparison]
+      - id: SC3
+        text: >
+          A random hardware fault affects at most one of the doer and the
+          two checkers.
+        covers: random_hw
+        tactics: [Replication Redundancy]
+      - id: SC4
+        text: >
+          A systematic fault in one checker is not reproduced by the other
+          checker.
+        covers: systematic_sw
+        tactics: [Diverse Redundancy]
+      - id: SC5
+        text: >
+          A detected disagreement does not propagate an incorrect result to
+          the consumer.
+        tactics: [Voting]
+    tactics: [Sanity Check, Comparison, Replication Redundancy, Voting, Diverse Redundancy]
     sdf_compatible: true
 
   # -------------------------------------------------------------------------
@@ -245,7 +324,28 @@ patterns:
     voter: folded
     dev_cost_multiplier: {primary_b: 1.0, standby_a: 1.0, standby_b: 1.0}
     recurring_cost_units: 4
-    tactics: [Replication Redundancy, Voting, Recovery]
+    scenarios:
+      - id: SC1
+        text: >
+          A fault in a channel is detected as a disagreement within its
+          pair.
+        tactics: [Comparison]
+      - id: SC2
+        text: >
+          A random hardware fault affects at most one of the four channels.
+        covers: random_hw
+        tactics: [Replication Redundancy]
+      - id: SC3
+        text: >
+          The function remains available after the primary pair has failed
+          silent.
+        tactics: [Repair]
+      - id: SC4
+        text: >
+          The failed pair's result does not reach the consumer once the
+          standby pair has taken over.
+        tactics: [Voting]
+    tactics: [Replication Redundancy, Comparison, Voting, Repair]
     sdf_compatible: true
 
   # -------------------------------------------------------------------------
@@ -272,7 +372,12 @@ patterns:
     voter: folded
     dev_cost_multiplier: {channel_b: 1.0}
     recurring_cost_units: 2
-    tactics: [Replication Redundancy]
+    scenarios:
+      - id: SC1
+        text: >
+          The function remains available after one channel stops.
+        tactics: [Repair]
+    tactics: [Replication Redundancy, Repair]
     sdf_compatible: true
 
   # -------------------------------------------------------------------------
@@ -304,5 +409,22 @@ patterns:
     voter: folded
     dev_cost_multiplier: {checker: 2.0}
     recurring_cost_units: 2
+    scenarios:
+      - id: SC1
+        text: >
+          An implausible output of the doer is detected by the checker.
+        tactics: [Sanity Check]
+      - id: SC2
+        text: >
+          A random hardware fault in the doer's fault containment region
+          does not prevent detection.
+        covers: random_hw
+        tactics: [Replication Redundancy]
+      - id: SC3
+        text: >
+          A systematic fault in the doer's implementation is not reproduced
+          by the checker.
+        covers: systematic_sw
+        tactics: [Diverse Redundancy]
     tactics: [Sanity Check, Diverse Redundancy, Replication Redundancy]
     sdf_compatible: true

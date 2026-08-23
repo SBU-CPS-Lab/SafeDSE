@@ -27,6 +27,27 @@ from golden import mcm, selftimed_period, selftimed_trace  # noqa: E402
 
 
 # --------------------------------------------------------------------------
+# Structured check log (Phase 8).
+#
+# The console output above was written for a human reading a failure.  The GSN
+# generator needs the same information addressably: a Solution node in a safety
+# argument has to say WHICH check discharges it, and be wrong if that check did
+# not actually run.  So every check also appends a record here, and --json-report
+# dumps them.
+#
+# This is deliberately a log of what was CHECKED, not of what is true.  A claim
+# with no matching record is undischarged, and gsn.py treats the absence of a
+# record exactly as it treats a failed one.  That is the point: it makes
+# "nobody looked" and "someone looked and it was fine" distinguishable, which is
+# the distinction a safety argument lives or dies on.
+REPORT: list[dict] = []
+
+
+def _rec(kind: str, ok: bool, detail: str, **extra) -> None:
+    REPORT.append({"kind": kind, "ok": bool(ok), "detail": detail, **extra})
+
+
+# --------------------------------------------------------------------------
 def _components(n: int, edges: list[tuple[int, int, int]]) -> list[set[int]]:
     """Weakly connected components of the MSAG (union-find)."""
     parent = list(range(n))
@@ -175,6 +196,8 @@ def main() -> int:
     ap.add_argument("--dzn", required=True)
     ap.add_argument("--solution", required=True)
     ap.add_argument("--quiet", action="store_true")
+    ap.add_argument("--json-report", help="write the structured check log here "
+                                          "(consumed by tools/gsn.py)")
     a = ap.parse_args()
 
     d = parse_dzn(a.dzn)
@@ -251,6 +274,13 @@ def main() -> int:
             ok = False
             msgs.append(f"component {apps_here}: oracle disagreement -- "
                         f"Karp {k}, simulation {sim}")
+        _rec("period", all(Fraction(mus[z - 1] if z - 1 < len(mus) else mus[0])
+                           == k for z in apps_here)
+             and (sim is None or sim == k),
+             f"apps {apps_here}: solver period matches the MSAG's maximum cycle "
+             f"ratio, computed independently by Karp ({k}) and by max-plus "
+             f"self-timed simulation ({sim})",
+             apps=apps_here, karp=str(k), simulation=str(sim))
         if not a.quiet:
             print(f"  component apps={apps_here}: Karp {k}, simulation {sim}")
 
@@ -316,6 +346,13 @@ def main() -> int:
                 ok = False
                 msgs.append(f"actor {i+1}: SIL {sil_impl[i]} on a core "
                             f"provisioned only to SIL {csil[proc[i]-1]}")
+            _rec("sil_actor",
+                 sil_impl[i] >= need and sil_impl[i] <= csil[proc[i] - 1],
+                 f"node {i+1} requires SIL {need}, is implemented at SIL "
+                 f"{sil_impl[i]}, and runs on core {proc[i]} which is "
+                 f"provisioned to SIL {csil[proc[i]-1]}",
+                 node=i + 1, required=need, implemented=sil_impl[i],
+                 core=proc[i], core_sil=csil[proc[i] - 1])
 
         for p_ in range(len(csil)):
             cap = max_sil[ctype[p_] - 1]
@@ -341,6 +378,17 @@ def main() -> int:
                     ok = False
                     msgs.append(f"core {p_+1}: csil={csil[p_]} but actors are at "
                                 f"{sorted(set(on))}")
+            hosted = sorted({sil_impl[i] for i in range(n)
+                             if proc[i] == p_ + 1 and act[i]
+                             and not (d.get("comm_sil_mode", 0) == 0
+                                      and i < len(comm_flags) and comm_flags[i])})
+            _rec("isolation",
+                 csil[p_] <= cap and (part[p_] or len(hosted) <= 1),
+                 f"core {p_+1} is provisioned to SIL {csil[p_]} (type ceiling "
+                 f"{cap}), hosts SILs {hosted}, certified partitioning "
+                 f"{'available and used' if part[p_] else 'not used'}",
+                 core=p_ + 1, core_sil=csil[p_], type_ceiling=cap,
+                 hosted_sils=hosted, partitioned=bool(part[p_]))
         if not a.quiet:
             live = [(p_ + 1, csil[p_]) for p_ in range(len(csil)) if csil[p_] > 0]
             print(f"  isolation: {len(live)} provisioned cores {live}")
@@ -374,6 +422,14 @@ def main() -> int:
                 (rel == 4 and ctype[pu - 1] == ctype[pv - 1])
             )
             checked += 1
+            _rec("placement", not bad,
+                 f"{RELN[rel]} between nodes {u+1} and {v+1}: cores "
+                 f"{pu}/{pv}, FCRs {fcr[pu-1]}/{fcr[pv-1]}, core types "
+                 f"{ctype[pu-1]}/{ctype[pv-1]}",
+                 relation=RELN[rel], rel_code=rel, u=u + 1, v=v + 1,
+                 owner=pl_owner[c], cores=[pu, pv],
+                 fcrs=[fcr[pu - 1], fcr[pv - 1]],
+                 ctypes=[ctype[pu - 1], ctype[pv - 1]])
             if bad:
                 ok = False
                 msgs.append(
@@ -402,11 +458,20 @@ def main() -> int:
         ok = False
         msgs.append(f"worst period {max(mus)} is below the busiest core's load "
                     f"{worst} -- the processor-availability wrap edge is missing")
+    _rec("load_bound", max(mus) >= worst,
+         f"the reported period {max(mus)} is at least the busiest core's total "
+         f"execution demand {worst}",
+         worst_period=max(mus), busiest_core_load=worst)
     if not a.quiet:
         print(f"  busiest core load = {worst}")
     for m in msgs:
         print(f"  FAIL: {m}")
     print("  VERIFY OK" if ok else "  VERIFY FAILED")
+
+    if a.json_report:
+        Path(a.json_report).write_text(json.dumps(
+            {"ok": ok, "dzn": a.dzn, "solution": a.solution,
+             "messages": msgs, "checks": REPORT}, indent=1))
     return 0 if ok else 1
 
 

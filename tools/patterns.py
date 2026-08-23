@@ -57,6 +57,12 @@ class Pattern:
     dev_cost_multiplier: dict = field(default_factory=dict)
     recurring_cost_units: int = 0
     tactics: list[str] = field(default_factory=list)
+    # Preschern EuroPLoP'15 s4.3: the GSN subgoals are the pattern's general
+    # scenarios, and the tactics achieving a scenario sit under it as
+    # strategies.  Consumed by tools/gsn.py; carried here so a malformed
+    # scenario is caught by check_pattern at build time rather than surfacing
+    # only when someone asks for a safety argument.
+    scenarios: list[dict] = field(default_factory=list)
     sdf_compatible: bool = True
     source: list = field(default_factory=list)
     description: str = ""
@@ -136,6 +142,29 @@ def check_pattern(p: Pattern, n_cores_by_fcr: tuple[int, int, int] | None = None
     if max(p.achieves_sil or [0]) >= 3 and not p.components:
         bad.append(f"{p.id}: claims SIL {max(p.achieves_sil)} with no redundant "
                    f"component")
+
+    # (6) scenario well-formedness (Phase 8).  A scenario is a CLAIM that will
+    #     be emitted into a safety argument, so a malformed one is worse than a
+    #     malformed edge: it does not fail, it just asserts something nobody
+    #     checked.  Two obligations:
+    #       * every tactic a scenario invokes is declared by the pattern, so
+    #         the argument cannot quietly use a mechanism the record does not
+    #         claim to implement;
+    #       * a pattern with redundant components states at least one scenario,
+    #         so silence is never mistaken for "nothing to argue".
+    sids = [s.get("id") for s in p.scenarios]
+    if len(sids) != len(set(sids)):
+        bad.append(f"{p.id}: duplicate scenario ids {sorted(sids)}")
+    for s in p.scenarios:
+        if not s.get("text", "").strip():
+            bad.append(f"{p.id}: scenario {s.get('id')} has no text")
+        for t in s.get("tactics", []):
+            if t not in p.tactics:
+                bad.append(f"{p.id}: scenario {s.get('id')} invokes tactic "
+                           f"{t!r}, which the pattern does not declare")
+    if p.components and not p.scenarios:
+        bad.append(f"{p.id}: has redundant components but states no general "
+                   f"scenario, so no safety argument can be generated for it")
 
     # Phase 4/5 restriction (Q10)
     if p.voter == "explicit":

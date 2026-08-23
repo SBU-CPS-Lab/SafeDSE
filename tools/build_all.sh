@@ -4,6 +4,15 @@
 # fails with "variable X must be defined".
 set -e
 cd "$(dirname "$0")/.."
+
+# Clear out/ first. Without this an instance that is renamed or dropped from
+# this script survives in out/ forever, and because tests/run_tests.py globs
+# out/*.dzn it keeps being solved against a model that has since grown new
+# parameters. That is how out/c_sobel.dzn -- superseded by c_a_sobel.dzn --
+# came to be a standing "NOSOL" failure in the crosscheck group: not a
+# modelling bug, an unswept artefact masquerading as one.
+rm -f out/*.dzn
+
 B="python3 tools/build_dzn.py"
 M="--platform data/platform/mixed.xml --wcets data/WCETs_mixed.xml --constraints data/desConst.xml --cost-model data/cost_model.xml"
 R="--platform data/rosvall/platform.xml --wcets data/rosvall/WCETs.xml --constraints data/rosvall/desConst.xml --cost-model data/cost_model.xml"

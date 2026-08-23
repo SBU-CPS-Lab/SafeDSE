@@ -6,6 +6,7 @@ Groups:
   unfold    -- SDF->HSDF preserves the C.6 properties, incl. multi-rate cases
   model     -- the CP model agrees with the oracles on real instances
   symmetry  -- Rosvall 23/33 change runtime but never the optimum (Q14)
+  gsn       -- the generated safety argument cites evidence that really ran
   crosscheck-- CP-SAT, Gecode and Chuffed agree on small instances
 
 Run:  python3 tests/run_tests.py [group ...]
@@ -18,6 +19,8 @@ import sys
 import time
 from fractions import Fraction
 from pathlib import Path
+
+import yaml
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
@@ -586,21 +589,241 @@ def t_composition() -> None:
     check("a safety pattern is actually applied", len(sel) > 1,
           "only one pattern selected; the composition may be trivial")
 
+    # What the loosening above is hiding, stated as a number.
+    # out/pc_sobel.dzn carries Rosvall's published period bound of 400 for
+    # a_sobel, but it ALSO applies a SIL-3 pattern and TDMA communication. The
+    # bound was measured for neither. So the raw instance is infeasible, and
+    # the interesting quantity is by how much: safety plus communication costs
+    # this application a third of its throughput. Pinned here so that if a
+    # future change makes 400 reachable, someone has to explain why rather than
+    # quietly enjoy it.
+    r2 = run(str(loose), "THROUGHPUT", timeout=200)
+    if r2["status"] != "OPTIMAL":
+        check("pc_sobel: minimum period is attainable", False, r2["status"])
+        return
+    ok2, msg2 = _verify(str(loose), r2["solution"])
+    mn = r2["solution"]["mu"][0]
+    check(f"pc_sobel: minimum period with patterns+TDMA is {mn}, above the "
+          f"published bound of 400", ok2 and mn == 512,
+          msg2 or f"got {mn}, expected 512")
+
+
+def t_gsn() -> None:
+    """Phase 8: the GSN safety-argument generator.
+
+    The thing that makes a generated safety argument dangerous is that it reads
+    exactly as well when it is wrong, so the tests here are mostly about the
+    generator REFUSING things:
+
+      1. every leaf is evidence or an admitted gap -- the self-audit, checked
+         by breaking an argument on purpose and confirming the audit sees it;
+      2. the fault model is recovered from the .dzn rather than trusted to a
+         flag, and a contradicting flag is rejected;
+      3. a solution the verifier rejects yields no argument at all;
+      4. every Solution cites a check that really ran in that verifier
+         invocation, by index, and the cited record really passed;
+      5. widening the fault model moves scenarios from "out of scope" to
+         "supported by evidence" -- the property that makes the argument a
+         function of the design rather than of the catalogue.
+    """
+    print("\n[gsn] safety-argument generation")
+    sys.path.insert(0, str(ROOT / "tools"))
+    import json as _json
+
+    import gsn as G
+    from patterns import load_patterns
+
+    pats = load_patterns(str(ROOT / "data" / "patterns.yaml"))
+    tdoc = yaml.safe_load((ROOT / "data" / "gsn_tactics.yaml").read_text())
+    tactics = {t["name"]: t for t in tdoc["tactics"]}
+
+    # every tactic a pattern names must exist in the tactic table, or the
+    # argument silently loses a strategy
+    missing = sorted({t for p in pats for t in p.tactics if t not in tactics})
+    check("every pattern tactic is in the tactic table", not missing,
+          f"unknown: {missing}")
+    # and every deployment_relations entry must be a relation the model knows
+    known = set(G.RELN.values())
+    badrel = sorted({r for t in tactics.values()
+                     for r in (t.get("deployment_relations") or [])
+                     if r not in known})
+    check("tactic deployment_relations are real placement relations",
+          not badrel, f"unknown: {badrel}")
+
+    def gen(name, dzn, metric="TOTALCOST", bounds=None):
+        r = run(str(dzn), metric, bounds or {}, timeout=200)
+        if "solution" not in r:
+            return None, None, r["status"]
+        sp = Path(f"/tmp/gsn_{name}.json")
+        sp.write_text(_json.dumps(r["solution"]))
+        rp = Path(f"/tmp/gsn_{name}.report.json")
+        subprocess.run([sys.executable, str(ROOT / "tools" / "verify.py"),
+                        "--dzn", str(dzn), "--solution", str(sp), "--quiet",
+                        "--json-report", str(rp)], capture_output=True)
+        rep = _json.loads(rp.read_text())
+        d = G.parse_dzn(str(dzn))
+        fm, _how = G.infer_fault_model(d, pats)
+        arg = G.build(d, r["solution"], rep, pats, tactics, fm, name)
+        return arg, rep, fm
+
+    # ---- 2. fault model inference ---------------------------------------
+    want = {"f_random_hw": "random_hw", "f_sw3": "systematic_sw",
+            "f_both3": "both"}
+    for stem, expect in want.items():
+        f = ROOT / "out" / f"{stem}.dzn"
+        if not f.exists():
+            print(f"  SKIP  {stem}.dzn not built")
+            continue
+        got, how = G.infer_fault_model(G.parse_dzn(str(f)), pats)
+        check(f"{stem}: fault model recovered from the .dzn as {expect}",
+              got == expect, f"got {got} ({how})")
+
+    # ---- 1/4. structure and evidence on a real argument ------------------
+    f = ROOT / "out" / "f_random_hw.dzn"
+    if not f.exists():
+        print("  SKIP  out/f_random_hw.dzn not built")
+    else:
+        arg, rep, fm = gen("frh", f)
+        if arg is None:
+            check("f_random_hw: solved", False, str(fm))
+        else:
+            check("f_random_hw: argument passes its own audit",
+                  not arg.audit(), "; ".join(arg.audit()))
+            sols = [e for e in arg.el.values() if e.kind == "Solution"]
+            check("every Solution cites at least one verifier check",
+                  all(e.evidence for e in sols))
+            check("every cited check exists and passed",
+                  all(0 <= j < len(rep["checks"]) and rep["checks"][j]["ok"]
+                      for e in sols for j in e.evidence))
+            # the honest headline: a DSE cannot discharge most of a safety case
+            und = [g for g in arg.el.values()
+                   if g.kind == "Goal" and g.undeveloped]
+            check("undeveloped goals are present and carry a reason",
+                  bool(und) and all(g.note for g in und))
+            # a value-domain tactic must never acquire mapping evidence
+            for e in arg.el.values():
+                if e.kind == "Strategy" and "Sanity Check tactic" in e.text:
+                    kids = [arg.el[c] for c in e.supported_by]
+                    check("Sanity Check yields only undeveloped goals",
+                          all(k.undeveloped for k in kids
+                              if k.kind == "Goal"))
+                    break
+
+            # ---- 1. the audit must actually catch a broken argument -------
+            probe = arg.add("Goal", "an unsupported claim nobody checked")
+            check("audit catches a leaf goal with no evidence and no marker",
+                  any("unsupported claim" in b for b in arg.audit()))
+            del arg.el[probe]
+            arg.order.remove(probe)
+
+    # ---- 5. widening the fault model widens the argument -----------------
+    fb = ROOT / "out" / "f_both3.dzn"
+    if not (f.exists() and fb.exists()):
+        print("  SKIP  need f_random_hw.dzn and f_both3.dzn")
+    else:
+        a1, r1, _ = gen("frh2", f)
+        a2, r2, _ = gen("fb", fb)
+        if a1 and a2:
+            check("random_hw leaves systematic-fault scenarios out of scope",
+                  len(a1.out_of_scope) > 0,
+                  f"out_of_scope={a1.out_of_scope}")
+            check("both leaves none out of scope",
+                  len(a2.out_of_scope) == 0,
+                  f"out_of_scope={a2.out_of_scope}")
+            d1 = sum(1 for c in r1["checks"]
+                     if c["kind"] == "placement" and c["relation"] == "DIVERSE")
+            d2 = sum(1 for c in r2["checks"]
+                     if c["kind"] == "placement" and c["relation"] == "DIVERSE")
+            check("DIVERSE evidence appears only once diversity is required",
+                  d1 == 0 and d2 > 0, f"random_hw={d1}, both={d2}")
+
+    # ---- 3. refuse to argue over a rejected solution ---------------------
+    if f.exists():
+        r = run(str(f), "TOTALCOST", {}, timeout=200)
+        if "solution" in r:
+            sp = Path("/tmp/gsn_bad.json")
+            bad = dict(r["solution"])
+            # a period below the busiest core's load is exactly the open-chain
+            # bug's signature, and the verifier must reject it
+            bad["mu"] = [1]
+            sp.write_text(_json.dumps(bad))
+            p = subprocess.run(
+                [sys.executable, str(ROOT / "tools" / "gsn.py"),
+                 "--dzn", str(f), "--solution", str(sp),
+                 "--out", "/tmp/gsn_bad_out"],
+                capture_output=True, text=True)
+            check("refuses to generate from a solution the verifier rejects",
+                  p.returncode == 2 and not
+                  Path("/tmp/gsn_bad_out.gsn.md").exists(),
+                  f"rc={p.returncode}")
+
+    # ---- rendering ------------------------------------------------------
+    if Path("/tmp/gsn_frh.json").exists() and f.exists():
+        p = subprocess.run(
+            [sys.executable, str(ROOT / "tools" / "gsn.py"), "--dzn", str(f),
+             "--solution", "/tmp/gsn_frh.json", "--out", "/tmp/gsn_render",
+             "--quiet"], capture_output=True, text=True)
+        ok = all(Path(f"/tmp/gsn_render.gsn.{e}").exists()
+                 for e in ("json", "dot", "md"))
+        check("emits json, dot and md", ok and p.returncode == 0, p.stderr[-200:])
+        if ok:
+            doc = _json.loads(Path("/tmp/gsn_render.gsn.json").read_text())
+            ids = {e["id"] for e in doc["elements"]}
+            dangling = [c for e in doc["elements"]
+                        for c in e["supportedBy"] + e["inContextOf"]
+                        if c not in ids]
+            check("no dangling references in the emitted graph", not dangling,
+                  str(dangling[:3]))
+            dot = Path("/tmp/gsn_render.gsn.dot").read_text()
+            check("undeveloped goals are marked in the diagram",
+                  dot.count("UNDEVELOPED") ==
+                  sum(1 for e in doc["elements"] if e["undeveloped"]))
+
 
 def t_crosscheck(dzns: list[str]) -> None:
+    """Backends must agree. UNSAT is an answer, not a harness failure.
+
+    This group used to demand OPTIMAL from the cp-sat reference and record a
+    failure otherwise, which conflated two different things: a backend falling
+    over, and an instance that is genuinely infeasible under its own declared
+    bounds. out/pc_sobel.dzn is the second -- it carries Rosvall's published
+    period bound of 400 for a_sobel while ALSO applying a SIL-3 pattern and
+    TDMA communication, and the minimum attainable period once both are present
+    is 512 (measured, verified). t_composition already knew this and loosens
+    period_ub before solving; crosscheck globbed the raw file and reported the
+    infeasibility as a defect.
+
+    Agreement on UNSAT is worth as much as agreement on an optimum -- more, in
+    a way, since a backend that finds a solution where another proves there is
+    none is an unambiguous modelling error. So compare the STATUS first and the
+    objective only when both solved.
+    """
     print("\n[crosscheck] backends must agree (disagreement = modelling error)")
     for dzn in dzns:
+        stem = Path(dzn).stem
         ref = run(dzn, "HWCOST", solver="cp-sat", timeout=120)
-        if ref["status"] != "OPTIMAL":
-            check(f"{Path(dzn).stem}: cp-sat reference", False, ref["status"])
+        if ref["status"] not in ("OPTIMAL", "UNSAT"):
+            check(f"{stem}: cp-sat reference", False, ref["status"])
             continue
+        if ref["status"] == "UNSAT":
+            print(f"        {stem}: cp-sat proves UNSAT under the instance's "
+                  f"own bounds")
         for slv in ["gecode", "chuffed"]:
             r = run(dzn, "HWCOST", solver=slv, timeout=120)
-            if r["status"] != "OPTIMAL":
+            if r["status"] not in ("OPTIMAL", "UNSAT"):
                 print(f"        {slv}: {r['status']} (not a failure -- CP-SAT "
                       f"is the only experimental backend)")
                 continue
-            check(f"{Path(dzn).stem}: {slv} agrees with cp-sat",
+            if r["status"] != ref["status"]:
+                check(f"{stem}: {slv} agrees with cp-sat", False,
+                      f"{slv} says {r['status']}, cp-sat says {ref['status']} "
+                      f"-- one of them is wrong")
+                continue
+            if ref["status"] == "UNSAT":
+                check(f"{stem}: {slv} agrees with cp-sat that it is UNSAT",
+                      True)
+                continue
+            check(f"{stem}: {slv} agrees with cp-sat",
                   r["solution"]["hw_cost"] == ref["solution"]["hw_cost"],
                   f"{r['solution']['hw_cost']} vs {ref['solution']['hw_cost']}")
 
@@ -610,7 +833,7 @@ def main() -> int:
     groups = sys.argv[1:] or ["golden", "unfold", "provenance", "model",
                               "symmetry", "latency", "rosvall", "safety",
                               "patterns", "catalogue", "multiapp", "comm",
-                              "commsil", "composition", "crosscheck"]
+                              "commsil", "composition", "gsn", "crosscheck"]
     dzns = sorted(str(p) for p in (ROOT / "out").glob("*.dzn"))
     if not dzns and {"model", "symmetry", "crosscheck"} & set(groups):
         print("no .dzn files in out/ -- run tools/build_dzn.py first")
@@ -644,6 +867,8 @@ def main() -> int:
         t_commsil()
     if "composition" in groups:
         t_composition()
+    if "gsn" in groups:
+        t_gsn()
     if "crosscheck" in groups:
         t_crosscheck(dzns)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed  ({time.time()-t0:.1f}s)")

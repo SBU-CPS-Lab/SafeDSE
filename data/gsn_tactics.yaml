@@ -1,0 +1,236 @@
+# SafeDSE safety-tactic table  (architecture doc C.9, Phase 8)
+#
+# Source: Preschern, Kajtazovic & Kreiner, "Building a Safety Architecture
+# Pattern System", EuroPLoP 2015, Appendix B -- which in turn takes the tactic
+# set from Preschern et al. 2013.  The IEC 61508 method identifiers are quoted
+# from that appendix (IEC 61508-7 annexes A/B/C/E).
+#
+# WHY THIS IS A SEPARATE FILE FROM patterns.yaml
+# The tactic -> IEC 61508 method mapping is a property of the STANDARD, not of
+# any one pattern; several patterns share a tactic and must cite the same
+# methods.  Keeping it here means the citation list is written once and an
+# argument for two different patterns cannot drift apart.
+#
+# WHY `deployment_relations` EXISTS
+# This is the SafeDSE-specific column and the whole reason the generator can
+# discharge anything at all.  Preschern's GSN leaves every tactic as an
+# undeveloped goal for the architect.  Some tactics, though, have a
+# precondition that is purely a property of the DEPLOYMENT -- Replication
+# Redundancy is worthless if the replicas share a fault containment region --
+# and that precondition is exactly what SafeDSE's placement relations decide
+# and tools/verify.py independently re-checks.  So for those tactics the
+# generator can attach a Solution node backed by a verification that actually
+# ran, instead of a diamond.
+#
+# A tactic with `deployment_relations: []` is one whose realisation lives
+# entirely in the value domain (does the checker actually detect the fault?).
+# The DSE has nothing to say about it and the generator MUST leave it
+# undeveloped.  Listing a relation here that the model does not really post
+# would silently upgrade a hand-wave into a claim, so this column is the one
+# to be most suspicious of.
+
+tactics:
+
+  - name: Sanity Check
+    category: Checking
+    aim: Detection of implausible system outputs or states.
+    description: >
+      Checks whether a system state or value remains within a valid range which
+      can be defined in the system specification or which is based on knowledge
+      about the internal structure or nature of the system.
+    iec61508_methods:
+      - "IEC 61508-7 A.1.2 monitoring relay contacts"
+      - "IEC 61508-7 A.2.7 analog signal monitoring"
+      - "IEC 61508-7 A.3.1-A.3.3 self-tests"
+      - "IEC 61508-7 A.4.1-A.4.4 checksums"
+      - "IEC 61508-7 A.5.1-A.5.5 RAM tests"
+      - "IEC 61508-7 A.6.1 test pattern"
+      - "IEC 61508-7 A.9 temporal and logical program monitoring"
+      - "IEC 61508-7 C.3.3 assertion programming"
+      - "IEC 61508-7 C.5.3 interface checking"
+    # A checker's detection power is a property of the checker's algorithm.
+    # Nothing in a mapping establishes it.
+    deployment_relations: []
+
+  - name: Condition Monitoring
+    category: Checking
+    aim: Detect deviations from the intended system outputs or states.
+    description: >
+      Checks whether a system value remains within a reasonable range compared
+      to a more reliable, but usually less accurate, reference value computed at
+      runtime by a redundant part of the implementation.
+    iec61508_methods:
+      - "IEC 61508-7 A.1.1 failure detection by online monitoring"
+      - "IEC 61508-7 A.6.4 monitored outputs"
+      - "IEC 61508-7 A.9 temporal and logical program monitoring"
+      - "IEC 61508-7 A.13.1 monitoring"
+    deployment_relations: []
+
+  - name: Comparison
+    category: Checking
+    aim: Detection of discrepancies of redundant system outputs.
+    description: >
+      Tests whether the outputs of fully redundant subsystems are equal in order
+      to detect failures.  Usually implies the use of a redundancy tactic.
+    iec61508_methods:
+      - "IEC 61508-7 A.1.3 comparator"
+      - "IEC 61508-7 A.6.5 input comparison/voting"
+    deployment_relations: []
+
+  - name: Replication Redundancy
+    category: Redundancy
+    aim: >
+      Introduction of a redundant system which allows detection or masking of
+      random hardware failures (not systematic failures).
+    description: >
+      Introduction of a redundant system of the same implementation.  The
+      redundant systems maintain the same functionality, use identical hardware,
+      and run the same software implementation.
+    iec61508_methods:
+      - "IEC 61508-7 A.2.1 tests by redundant hardware"
+      - "IEC 61508-7 A.2.5 monitored redundancy"
+      - "IEC 61508-7 A.3.5 reciprocal comparison by software"
+      - "IEC 61508-7 A.4.5 block replication"
+      - "IEC 61508-7 A.6.3 multi-channel output"
+      - "IEC 61508-7 A.7.3 complete hardware redundancy"
+      - "IEC 61508-7 A.7.5 transmission redundancy"
+    # Replicating a channel onto the same fault containment region defends
+    # against nothing: one random hardware fault takes out both copies.  The
+    # separation is a deployment property and SafeDSE decides it.
+    deployment_relations: [DIFFERENT_FCR, DIFFERENT]
+    relation_claim: >
+      the replicated components are deployed on hardware that does not share a
+      single point of random hardware failure
+
+  - name: Diverse Redundancy
+    category: Redundancy
+    aim: >
+      Introduction of a redundant system which allows detection or masking of
+      failures in the specification or implementation as well as random hardware
+      failures.
+    description: >
+      Redundant components use different implementations which were developed
+      independently from the same specification.  Applied at specification level
+      it further requires the requirement specifications themselves to be
+      produced by individual teams.
+    iec61508_methods:
+      - "IEC 61508-7 A.7.6 information redundancy"
+      - "IEC 61508-7 A.13.2 cross-monitoring of multiple actuators"
+      - "IEC 61508-7 B.1.4 diverse hardware"
+      - "IEC 61508-7 C.4.4 diverse programming"
+    deployment_relations: [DIVERSE]
+    relation_claim: >
+      the diverse components are deployed on distinct processor types
+    # READ THIS BEFORE BELIEVING THE DIVERSE EVIDENCE NODE.
+    # SafeDSE's DIVERSE relation constrains the two components to distinct core
+    # TYPES.  Distinct core types imply distinct instruction sets and hence
+    # distinct compilers and object code, which is Preschern's B.1.4 "diverse
+    # hardware" and part of C.4.4 "diverse programming".  It does NOT establish
+    # that the two implementations were independently designed, which is the
+    # substance of the tactic.  The generator therefore emits the mapping
+    # evidence AND a standing assumption; it must never present the former as
+    # discharging the latter.
+    relation_caveat: >
+      Distinct core types give distinct toolchains and object code, not
+      independent design.  Design independence remains an undischarged claim.
+
+  - name: Voting
+    category: Masking
+    aim: >
+      Mask the failure of a subsystem so that the failure does not propagate to
+      other systems.
+    description: >
+      Voting makes a failure transparent.  It does not repair the failure, but
+      hides it by choosing a correct result from redundant subsystems, deciding
+      for the majority of the output values.
+    iec61508_methods:
+      - "IEC 61508-7 A.1.4 voter"
+      - "IEC 61508-7 A.6.5 input comparison/voting"
+    deployment_relations: []
+
+  - name: Override
+    category: Masking
+    aim: >
+      Mask the failure of a subsystem so that the failure does not propagate to
+      other systems.
+    description: >
+      Forces the system output to a safe state, or chooses the output of
+      redundant subsystems by preferring one subsystem or output state over
+      another.
+    iec61508_methods:
+      - "IEC 61508 fail-safe principle"
+      - "IEC 61508-7 A.1.3 comparator"
+    deployment_relations: []
+
+  - name: Repair
+    category: Recovery
+    aim: Bring a failed system back to a state of full functionality.
+    description: >
+      The full system functionality is manually or automatically restored if a
+      system failure occurs.
+    iec61508_methods:
+      - "IEC 61508-7 C.3.9 error correction"
+      - "IEC 61508-7 C.3.10 dynamic reconfiguration"
+    deployment_relations: []
+
+  - name: Degradation
+    category: Recovery
+    aim: >
+      Bring a system with an error into a state with reduced functionality in
+      which it still maintains the core safety functions.
+    description: >
+      The system falls back into a degraded mode in which it maintains only the
+      core safety functionality.
+    iec61508_methods:
+      - "IEC 61508-7 A.8 voltage supply error handling"
+      - "IEC 61508-7 C.3.8 degraded function limitation"
+    deployment_relations: []
+
+  - name: Barrier
+    category: Isolation
+    aim: Protect a subsystem from influences or influencing other subsystems.
+    description: >
+      Provides a mechanism to protect from unintentional influences between
+      subsystems.  The interfaces between subsystems are analysed, specified and
+      controlled at runtime by a trustworthy component.
+    iec61508_methods:
+      - "IEC 61508-7 A.11 separation of energy lines from information lines"
+      - "IEC 61508-7 B.1.3 separation of safety functions from non-safety functions"
+      - "IEC 61508-7 B.3.4 modularisation"
+      - "IEC 61508-7 C.2.8 information hiding/encapsulation"
+      - "IEC 61508-7 C.3.11 time-triggered architecture"
+    # Barrier is the tactic behind Koopman's rule 2 and behind SafeDSE's
+    # `partition` decision variable: a core hosting two SILs needs certified
+    # partitioning, which is a Barrier.  The platform declares per core type
+    # whether it can provide one (Q18), and the model may only mix SILs on a
+    # core that does.  That IS a deployment property, checked by the verifier's
+    # isolation pass -- but it is not expressed as a pairwise placement
+    # relation, so it is wired up separately by the generator.
+    deployment_relations: []
+    realised_by: koopman_rule_2
+
+  - name: Simplicity
+    category: Avoidance
+    aim: Avoid failures through keeping the system as simple as possible.
+    description: >
+      Reduces system complexity by structuring, or by cutting unnecessary
+      functionality and reducing elements to their core safety functionality.
+    iec61508_methods:
+      - "IEC 61508-7 B.2.1 structured specification"
+      - "IEC 61508-7 B.3.2 structured design"
+      - "IEC 61508-7 C.2.7 structured programming"
+      - "IEC 61508-7 C.4.2 programming language subset"
+    deployment_relations: []
+
+  - name: Substitution
+    category: Avoidance
+    aim: Avoid failures through usage of more reliable components.
+    description: >
+      Components or methods are replaced by others one has higher confidence in,
+      typically components already well proven in the safety domain.
+    iec61508_methods:
+      - "IEC 61508-7 B.3.3 usage of well-proven components"
+      - "IEC 61508-7 B.5.4 field experience"
+      - "IEC 61508-7 C.2.10 usage of well-proven/verified software elements"
+      - "IEC 61508-7 C.4.3 certified tools and compilers"
+    deployment_relations: []
