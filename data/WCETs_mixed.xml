@@ -182,4 +182,94 @@
     <wcet processor="cortexM" mode="standard" wcet="211"/>
     <wcet processor="cortexM" mode="performance" wcet="158"/>
   </mapping>
+<mapping task_type="voter_Aud">
+    <wcet processor="cortexR" mode="standard" wcet="8"/>
+    <wcet processor="cortexR" mode="eco" wcet="10"/>
+    <wcet processor="cortexM" mode="standard" wcet="12"/>
+    <wcet processor="cortexM" mode="performance" wcet="9"/>
+  </mapping>
+<mapping task_type="voter_BackEnd">
+    <wcet processor="cortexR" mode="standard" wcet="10"/>
+    <wcet processor="cortexR" mode="eco" wcet="13"/>
+    <wcet processor="cortexM" mode="standard" wcet="16"/>
+    <wcet processor="cortexM" mode="performance" wcet="12"/>
+  </mapping>
+<mapping task_type="voter_CC">
+    <wcet processor="cortexR" mode="standard" wcet="82"/>
+    <wcet processor="cortexR" mode="eco" wcet="107"/>
+    <wcet processor="cortexM" mode="standard" wcet="132"/>
+    <wcet processor="cortexM" mode="performance" wcet="99"/>
+  </mapping>
+<mapping task_type="voter_CS">
+    <wcet processor="cortexR" mode="standard" wcet="189"/>
+    <wcet processor="cortexR" mode="eco" wcet="246"/>
+    <wcet processor="cortexM" mode="standard" wcet="302"/>
+    <wcet processor="cortexM" mode="performance" wcet="227"/>
+  </mapping>
+<mapping task_type="voter_DCT">
+    <wcet processor="cortexR" mode="standard" wcet="19"/>
+    <wcet processor="cortexR" mode="eco" wcet="24"/>
+    <wcet processor="cortexM" mode="standard" wcet="30"/>
+    <wcet processor="cortexM" mode="performance" wcet="22"/>
+  </mapping>
+<mapping task_type="voter_FrontEnd">
+    <wcet processor="cortexR" mode="standard" wcet="10"/>
+    <wcet processor="cortexR" mode="eco" wcet="13"/>
+    <wcet processor="cortexM" mode="standard" wcet="16"/>
+    <wcet processor="cortexM" mode="performance" wcet="12"/>
+  </mapping>
+<mapping task_type="voter_GI">
+    <wcet processor="cortexR" mode="standard" wcet="31"/>
+    <wcet processor="cortexR" mode="eco" wcet="40"/>
+    <wcet processor="cortexM" mode="standard" wcet="49"/>
+    <wcet processor="cortexM" mode="performance" wcet="37"/>
+  </mapping>
+<mapping task_type="voter_Huffman">
+    <wcet processor="cortexR" mode="standard" wcet="25"/>
+    <wcet processor="cortexR" mode="eco" wcet="33"/>
+    <wcet processor="cortexM" mode="standard" wcet="40"/>
+    <wcet processor="cortexM" mode="performance" wcet="30"/>
+  </mapping>
+<mapping task_type="voter_PI">
+    <wcet processor="cortexR" mode="standard" wcet="12"/>
+    <wcet processor="cortexR" mode="eco" wcet="16"/>
+    <wcet processor="cortexM" mode="standard" wcet="20"/>
+    <wcet processor="cortexM" mode="performance" wcet="15"/>
+  </mapping>
+<mapping task_type="voter_Pow">
+    <wcet processor="cortexR" mode="standard" wcet="17"/>
+    <wcet processor="cortexR" mode="eco" wcet="22"/>
+    <wcet processor="cortexM" mode="standard" wcet="28"/>
+    <wcet processor="cortexM" mode="performance" wcet="21"/>
+  </mapping>
+<mapping task_type="voter_RFilter">
+    <wcet processor="cortexR" mode="standard" wcet="14"/>
+    <wcet processor="cortexR" mode="eco" wcet="18"/>
+    <wcet processor="cortexM" mode="standard" wcet="23"/>
+    <wcet processor="cortexM" mode="performance" wcet="17"/>
+  </mapping>
+<mapping task_type="voter_Rasta">
+    <wcet processor="cortexR" mode="standard" wcet="2"/>
+    <wcet processor="cortexR" mode="eco" wcet="3"/>
+    <wcet processor="cortexM" mode="standard" wcet="3"/>
+    <wcet processor="cortexM" mode="performance" wcet="2"/>
+  </mapping>
+<mapping task_type="voter_WI">
+    <wcet processor="cortexR" mode="standard" wcet="10"/>
+    <wcet processor="cortexR" mode="eco" wcet="13"/>
+    <wcet processor="cortexM" mode="standard" wcet="16"/>
+    <wcet processor="cortexM" mode="performance" wcet="12"/>
+  </mapping>
+<mapping task_type="voter_getImage">
+    <wcet processor="cortexR" mode="standard" wcet="31"/>
+    <wcet processor="cortexR" mode="eco" wcet="40"/>
+    <wcet processor="cortexM" mode="standard" wcet="49"/>
+    <wcet processor="cortexM" mode="performance" wcet="37"/>
+  </mapping>
+<mapping task_type="voter_writeImage">
+    <wcet processor="cortexR" mode="standard" wcet="10"/>
+    <wcet processor="cortexR" mode="eco" wcet="13"/>
+    <wcet processor="cortexM" mode="standard" wcet="16"/>
+    <wcet processor="cortexM" mode="performance" wcet="12"/>
+  </mapping>
 </WCET_table>

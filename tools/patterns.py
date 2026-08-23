@@ -83,6 +83,11 @@ class Superposition:
     # every other channel -- rather than the expander reimplementing that logic
     # and getting the pairwise correspondence (Q16) subtly wrong.
     chan_guards: dict[str, tuple[str, list[int]]] = field(default_factory=dict)
+    # Optional SECOND condition on a channel, conjoined with chan_guards.
+    # Only explicit-voter rerouting populates this: an input_fanout copy whose
+    # source routes through a voter is selected by the destination's pattern
+    # and by the source's at once.
+    chan_guards2: dict[str, tuple[str, list[int]]] = field(default_factory=dict)
     placements: list[tuple] = field(default_factory=list)   # (u,v,rel,owner,guards)
     notes: list[str] = field(default_factory=list)
 
@@ -235,7 +240,8 @@ def _cycles(adj: dict[str, list[tuple[str, int]]]) -> list[list[tuple[str, int]]
 def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
            fault_model: str, force_none: bool = False,
            platform_fcrs: int = 0, platform_cores: int = 0,
-           platform_ctypes: int = 0) -> Superposition:
+           platform_ctypes: int = 0,
+           platform_ctype_sils: list[int] | None = None) -> Superposition:
     """Build the superposed SDF graph.
 
     Slot sharing: actor `a` receives max(|components(p)|) slots over its
@@ -384,28 +390,29 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
             keep.append(ch)               # no explicit voter in play
             continue
         if gowner is not None and gowner != ch.src:
-            # This channel is an input_fanout copy, already guarded by the
-            # DESTINATION's pattern, and its source now also needs guarding by
-            # the source's pattern. That is a conjunction of two guards over two
-            # different owners, and chan_guards carries exactly one owner --
-            # build_dzn emits (src, dst, tok, owner_par, guard_set), so there is
-            # nowhere to put the second condition.
-            #
-            # Refusing is the only honest option. Dropping the second guard
-            # would leave a copy of the pre-voter result feeding a downstream
-            # checker under patterns that are supposed to route through the
-            # voter, which is exactly the silent bypass this rerouting exists to
-            # prevent. Fixing it properly means giving guarded edges a
-            # conjunctive guard in lib/activation.mzn, which is a model change,
-            # not a front-end one.
-            raise PatternError(
-                f"channel {ch.name!r} is guarded by {gowner!r}'s pattern and "
-                f"its source {ch.src!r} uses an explicit voter, so it needs "
-                f"both guards at once. Guarded edges carry a single owner, so "
-                f"this composition is not expressible yet. It arises when an "
-                f"actor with an explicit-voter pattern feeds an actor whose "
-                f"pattern uses input_fanout; avoid one of the two, or extend "
-                f"lib/activation.mzn to conjunctive edge guards.")
+            # An input_fanout copy belonging to the DESTINATION's pattern whose
+            # source routes through a voter. It needs both actors' patterns to
+            # agree, which is what chan_guards2 carries. Emit two variants: the
+            # existing edge, now additionally conditioned on the source using a
+            # folded voter, and a rerouted copy conditioned on the source using
+            # an explicit one.
+            if folded:
+                keep.append(ch)
+                sup.chan_guards2[ch.name] = (ch.src, folded)
+            for role, pis in voted.items():
+                v = resolve(ch.src, pis[0], role)
+                cn = f"VOT:{ch.src}:{role}:{ch.name}"
+                rerouted.append(Channel(
+                    name=cn, src=v, dst=ch.dst, prod=ch.prod, cons=ch.cons,
+                    initial_tokens=ch.initial_tokens,
+                    token_size=ch.token_size))
+                sup.chan_guards[cn] = sup.chan_guards[ch.name]
+                sup.chan_guards2[cn] = (ch.src, pis)
+                sup.notes.append(
+                    f"fanout copy {ch.name} into {gowner}'s pattern is fed by "
+                    f"{v} under {[ids[pi] for pi in pis]} (explicit voter); "
+                    f"guarded by both actors' pattern choices")
+            continue
         # the original edge survives only under the folded-voter patterns
         if folded:
             keep.append(ch)
@@ -439,17 +446,38 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
                 if rel == RELATIONS["DIVERSE"]:
                     need_diverse.setdefault(owner, set()).update((u, v))
             for owner, members in need_diverse.items():
-                if len(members) > platform_ctypes:
+                # Diversity is realised as distinct core TYPES, so N mutually
+                # diverse components need N types -- but only types that can
+                # legally host them. A type capped at SIL 2 is no help to a
+                # SIL-3 replica however diverse it is, and counting all types
+                # made this check pass on a platform where it should not:
+                # mixed_3type declares three types, of which only two are
+                # certifiable above SIL 2, so three-version programming at SIL 3
+                # is infeasible there and came back as a bare UNSAT anyway.
+                need = sil_req.get(owner, 0)
+                worst = need
+                for m in members:
+                    if "~" in m:
+                        k = int(m.split("~")[1])
+                        for pi in sup.applicable.get(owner, []):
+                            comps = by_id[ids[pi]].components
+                            if k < len(comps):
+                                worst = max(worst, min(4, need + int(
+                                    comps[k].get("sil_offset", 0))))
+                usable = ([s for s in platform_ctype_sils if s >= worst]
+                          if platform_ctype_sils else [0] * platform_ctypes)
+                if len(members) > len(usable):
                     raise PatternError(
                         f"pattern applied to {owner!r} requires {len(members)} "
-                        f"pairwise-DIVERSE components ({sorted(members)}) but "
-                        f"the platform declares only {platform_ctypes} distinct "
-                        f"core type(s). Diversity is realised here as distinct "
-                        f"core types, so N mutually diverse components need N "
-                        f"types. Either add a core type to the platform, or "
-                        f"select a fault model that does not motivate the "
-                        f"DIVERSE relation, or use a pattern with fewer "
-                        f"diverse members.")
+                        f"pairwise-DIVERSE components ({sorted(members)}) at up "
+                        f"to SIL {worst}, but only {len(usable)} of the "
+                        f"platform's {platform_ctypes} core type(s) can be "
+                        f"certified to that level. Diversity is realised here "
+                        f"as distinct core types, so N mutually diverse "
+                        f"components need N types EACH admissible at their SIL. "
+                        f"Add a core type certifiable to SIL {worst}, or select "
+                        f"a fault model that does not motivate DIVERSE, or use "
+                        f"a pattern with fewer diverse members.")
         for u, v, rel, owner, _ in sup.placements:
             if rel in (RELATIONS["DIFFERENT"], RELATIONS["DIFFERENT_FCR"]) \
                     and platform_cores < 2:

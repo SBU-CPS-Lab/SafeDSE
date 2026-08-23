@@ -319,6 +319,79 @@ pe_guard = array2d(1..71, 1..9,
      | false, false, false, false, false, false, false, false, true
      | false, false, false, false, false, false, false, false, true
      | false, false, false, false, false, false, false, false, true |]);
+pe_owner2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
+pe_guard2 = array2d(1..71, 1..9,
+  [| true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true |]);
 nPL = 16;
 pl_u = [1, 1, 1, 5, 1, 6, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4];
 pl_v = [5, 5, 5, 6, 5, 7, 6, 8, 8, 8, 9, 9, 9, 10, 10, 10];

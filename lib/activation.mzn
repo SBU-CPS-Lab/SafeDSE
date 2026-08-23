@@ -68,14 +68,54 @@ array[int] of int: pe_tok;
 array[int] of int: pe_owner;
 array[int, PAT] of bool: pe_guard;   % 1..max(nPE,1); a dummy row when nPE=0
 
+% Second, conjunctive condition (Phase 8, explicit voters).
+%
+% One guard suffices while every edge belongs to exactly one actor's pattern.
+% An explicit voter breaks that: when actor u routes its output through a voter
+% and feeds actor a whose pattern fans the input out to its checkers, the copy
+% u -> a~k is selected by a's pattern AND by u's, and the two are different
+% actors' decisions. Dropping either condition is unsound in a specific and
+% quiet way -- keep only a's and the pre-voter result reaches a's checker under
+% patterns that are supposed to route through the voter.
+%
+% There is no sentinel and no zero index. An edge with only one condition sets
+% pe_owner2 = pe_owner and gets an all-true pe_guard2 row, so the conjunction
+% degenerates to the single-guard case exactly. That avoids `pat[0]`, which
+% would be an out-of-bounds element lookup even inside a disjunction that can
+% never select it.
+array[int] of int: pe_owner2;
+array[int, PAT] of bool: pe_guard2;
+
 array[PE] of var bool: pe_on;
-constraint forall(e in PE)( pe_on[e] <-> pe_guard[e, pat[pe_owner[e]]] );
+constraint forall(e in PE)(
+    pe_on[e] <-> ( pe_guard[e, pat[pe_owner[e]]]
+                /\ pe_guard2[e, pat[pe_owner2[e]]] )
+);
 
 predicate mcm_pattern_edges(
     array[int] of var int: T,
     array[int] of var int: pot,
     array[int] of var int: mu_of
 ) =
+    % MEASURED REDUNDANT (Phase 8). The front-end writes pattern channels into
+    % the `tok` matrix as well as into pe_*, and lib/mcm.mzn posts every
+    % tok[i,j] >= 0 pair UNCONDITIONALLY. So each constraint below is a weaker,
+    % guarded restatement of one already posted outright, and contributes
+    % nothing: setting nPE = 0 on out/v_nvp.dzn returns the identical optimum
+    % (mu=1180, nprocs=6, hw_cost=624, dev_cost=5046) in the same 5.6 s.
+    %
+    % What actually neutralises an unselected pattern's edges is not this
+    % predicate but T[i] = 0 on inactive nodes: the edge stays in the graph and
+    % contributes zero delay. That is the documented design ("inactive nodes are
+    % neutralised, not deleted"), and it is also what tools/verify.py
+    % reconstructs, which is why the two agree.
+    %
+    % Kept rather than deleted because the redundancy is a property of how
+    % build_dzn currently fills `tok`, not of the model: excluding guarded
+    % channels from `tok` -- so that a pattern edge is posted only when its
+    % pattern is selected -- would make this predicate the only thing posting
+    % them, and would need the verifier changed in step. Do not assume deleting
+    % it is free, and do not assume it is doing work.
     forall(e in PE)(
         pe_on[e] -> pot[pe_dst[e]] >= pot[pe_src[e]] + T[pe_src[e]]
                                     - pe_tok[e] * mu_of[pe_src[e]]

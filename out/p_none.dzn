@@ -121,6 +121,9 @@ pe_tok = [0];
 pe_owner = [1];
 pe_guard = array2d(1..1, 1..9,
   [| false, false, false, false, false, false, false, false, false |]);
+pe_owner2 = [1];
+pe_guard2 = array2d(1..1, 1..9,
+  [| true, true, true, true, true, true, true, true, true |]);
 nPL = 0;
 pl_u = [1];
 pl_v = [1];

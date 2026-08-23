@@ -141,6 +141,7 @@ owner_node = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
 node_guard = array2d(1..52, 1..1, [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]);
 nPE = 0;  pe_src = [1];  pe_dst = [1];  pe_tok = [0];  pe_owner = [1];
 pe_guard = array2d(1..1, 1..1, [false]);
+pe_owner2 = [1];  pe_guard2 = array2d(1..1, 1..1, [true]);
 nPL = 0;  pl_u = [1];  pl_v = [1];  pl_rel = [1];  pl_owner = [1];
 pl_guard = array2d(1..1, 1..1, [false]);
 

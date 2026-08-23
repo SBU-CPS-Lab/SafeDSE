@@ -270,7 +270,9 @@ def main() -> int:
                              force_none=args.force_no_patterns,
                              platform_fcrs=len(plat_pre.fcrs),
                              platform_cores=len(plat_pre.slots),
-                             platform_ctypes=len(plat_pre.core_types))
+                             platform_ctypes=len(plat_pre.core_types),
+                             platform_ctype_sils=[ct.max_sil for ct
+                                                  in plat_pre.core_types])
             except PatternError as e:
                 print(f"ERROR: {e}", file=sys.stderr)
                 return 5
@@ -725,11 +727,23 @@ def main() -> int:
                     owner, gs = sup.chan_guards[e.origin]
                     owner_par = next(k + 1 for k, pl in enumerate(parent_names)
                                      if pl == f"{h.name}.{owner}")
+                    # second, conjunctive condition; absent -> repeat the first
+                    # owner with an all-true guard row, so the conjunction
+                    # degenerates to the single-guard case without a sentinel
+                    g2 = sup.chan_guards2.get(e.origin)
+                    if g2 is None:
+                        owner2_par, gs2 = owner_par, None
+                    else:
+                        owner2_par = next(
+                            k + 1 for k, pl in enumerate(parent_names)
+                            if pl == f"{h.name}.{g2[0]}")
+                        gs2 = set(g2[1])
                     pe.append((off + e.src + 1, off + e.dst + 1,
-                               e.initial_tokens, owner_par, set(gs)))
+                               e.initial_tokens, owner_par, set(gs),
+                               owner2_par, gs2))
             off += h.n()
         W(f"nPE = {len(pe)};")
-        pad = [(1, 1, 0, 1, set())]          # never referenced: PE = 1..nPE
+        pad = [(1, 1, 0, 1, set(), 1, None)]  # never referenced: PE = 1..nPE
         pe_e = pe or pad
         W(f"pe_src = {mzn_array([x[0] for x in pe_e])};")
         W(f"pe_dst = {mzn_array([x[1] for x in pe_e])};")
@@ -737,6 +751,11 @@ def main() -> int:
         W(f"pe_owner = {mzn_array([x[3] for x in pe_e])};")
         W(f"pe_guard = array2d(1..{max(len(pe),1)}, 1..{len(pats)},")
         W("  " + mzn_matrix([[("true" if k in x[4] else "false")
+                              for k in range(len(pats))] for x in pe_e]) + ");")
+        W(f"pe_owner2 = {mzn_array([x[5] for x in pe_e])};")
+        W(f"pe_guard2 = array2d(1..{max(len(pe),1)}, 1..{len(pats)},")
+        W("  " + mzn_matrix([[("true" if (x[6] is None or k in x[6])
+                               else "false")
                               for k in range(len(pats))] for x in pe_e]) + ");")
 
         # placement relations, expanded PAIRWISE over HSDF copies (Q16)
@@ -783,6 +802,7 @@ def main() -> int:
         W(f"node_guard = array2d(1..{n}, 1..1, {mzn_array(['true'] * n)});")
         W("nPE = 0;  pe_src = [1];  pe_dst = [1];  pe_tok = [0];  pe_owner = [1];")
         W("pe_guard = array2d(1..1, 1..1, [false]);")
+        W("pe_owner2 = [1];  pe_guard2 = array2d(1..1, 1..1, [true]);")
         W("nPL = 0;  pl_u = [1];  pl_v = [1];  pl_rel = [1];  pl_owner = [1];")
         W("pl_guard = array2d(1..1, 1..1, [false]);")
 
