@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 from fractions import Fraction
@@ -262,24 +263,30 @@ def main() -> int:
             msgs.append(f"component {apps_here}: MSAG deadlocks but a period "
                         f"was returned")
             continue
+        # The model's mu is an INTEGER, so the least period it can report is
+        # ceil(MCR); with integer WCETs and tokens, integer potentials exist
+        # for every integer mu >= MCR. Demanding mu == MCR rejected every
+        # solution whose MCR is fractional (seen in the TCAD paper's S3:
+        # solver 424, MCR 847/2). Equality with the ceiling stays exact.
+        want = Fraction(math.ceil(k))
         for z in apps_here:
             reported = mus[z - 1] if z - 1 < len(mus) else mus[0]
-            if Fraction(reported) != k:
+            if Fraction(reported) != want:
                 ok = False
                 msgs.append(
                     f"app {z}: period mismatch -- solver {reported}, component "
-                    f"MCR {k}. Applications sharing a component must share a "
-                    f"period (Q15).")
+                    f"MCR {k} (least integer period {want}). Applications "
+                    f"sharing a component must share a period (Q15).")
         if sim is not None and sim != k:
             ok = False
             msgs.append(f"component {apps_here}: oracle disagreement -- "
                         f"Karp {k}, simulation {sim}")
         _rec("period", all(Fraction(mus[z - 1] if z - 1 < len(mus) else mus[0])
-                           == k for z in apps_here)
+                           == want for z in apps_here)
              and (sim is None or sim == k),
-             f"apps {apps_here}: solver period matches the MSAG's maximum cycle "
-             f"ratio, computed independently by Karp ({k}) and by max-plus "
-             f"self-timed simulation ({sim})",
+             f"apps {apps_here}: solver period is the least integer at or above "
+             f"the MSAG's maximum cycle ratio, computed independently by Karp "
+             f"({k}) and by max-plus self-timed simulation ({sim})",
              apps=apps_here, karp=str(k), simulation=str(sim))
         if not a.quiet:
             print(f"  component apps={apps_here}: Karp {k}, simulation {sim}")
