@@ -628,9 +628,21 @@ def main() -> int:
                 if wcet[i][t][m] < FORBIDDEN]
         minw.append(min(vals) if vals else 0)
     W(f"min_wcet = {mzn_array(minw)};")
+    # Only nodes that are ALWAYS active count: a pattern slot runs only when
+    # its pattern is selected (T = 0 otherwise), and a communication actor
+    # runs on the bus, not a core. Summing them too overestimated min_procs
+    # on pattern instances, which is unsound under a tight period_ub.
+    def always_on(i: int) -> bool:
+        if node_types[i].startswith("__"):
+            return False
+        sup = sups[app_of[i] - 1] if app_of[i] - 1 < len(sups) else None
+        bare = parent_names[parent_of[i] - 1].split(".", 1)[1]
+        return not (sup and bare in sup.owner_of)
+
     minp = []
     for z in range(len(hgraphs)):
-        s_min = sum(minw[i] for i in range(n) if app_of[i] == z + 1)
+        s_min = sum(minw[i] for i in range(n)
+                    if app_of[i] == z + 1 and always_on(i))
         ub = period_ub[z]
         minp.append(max(1, -(-s_min // ub)) if ub > 0 else 1)
     W(f"min_procs = {mzn_array(minp)};")

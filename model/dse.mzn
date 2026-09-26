@@ -142,10 +142,18 @@ constraint forall(i in A)( active[i] -> T[i] <= period_ub[app[i]] );
 
 % (3) Two actors whose combined minimum WCETs exceed the bound cannot share a
 %     core, and cannot be adjacent in a static order.
+%     Only while BOTH are active: an inactive pattern slot has T = 0 and is
+%     pinned to its owner's core, so posting this unguarded forbade the owner
+%     from sharing a core with its own unselected slot, and a tight period_ub
+%     turned feasible designs into UNSAT (measured on d_random_hw: throughput
+%     optimum 235, verified, yet UNSAT at period_ub 235/258/293). Communication
+%     actors run on the bus, not on the core, and are excluded outright.
 array[A] of int: min_wcet;
 constraint forall(i, j in A where i < j
+                  /\ not comm_actor[i] /\ not comm_actor[j]
                   /\ min_wcet[i] + min_wcet[j] > min(period_ub))(
-    (app[i] = app[j] /\ min_wcet[i] + min_wcet[j] > period_ub[app[i]]) ->
+    (app[i] = app[j] /\ min_wcet[i] + min_wcet[j] > period_ub[app[i]]
+     /\ active[i] /\ active[j]) ->
         (proc[i] != proc[j] /\ succ[i] != j /\ succ[j] != i)
 );
 
