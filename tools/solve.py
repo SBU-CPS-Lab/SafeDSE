@@ -27,6 +27,22 @@ METRICS = ["THROUGHPUT", "LATENCY", "HWCOST", "DEVCOST", "TOTALCOST",
 BIG = 10 ** 9
 
 
+_STAT_RE = re.compile(r"^%%%mzn-stat: (\w+)=(.+)$", re.M)
+
+
+def _mzn_stats(out: str) -> dict:
+    """Parses every `%%%mzn-stat: key=value` line, keeping the LAST value of
+    each key: with --intermediate-solutions the block repeats once per
+    solution, and the last one is the state at proof or at the time limit --
+    exactly what RQ3 (scalability, PAPER_PLAN.md S7) needs to report the
+    objective and bound at timeout, not the first incumbent found.
+    """
+    stats: dict[str, str] = {}
+    for k, v in _STAT_RE.findall(out):
+        stats[k] = v
+    return stats
+
+
 def _last_json(out: str):
     """Extract the final JSON solution block by brace matching.
 
@@ -100,7 +116,8 @@ def run(dzn: str, optimise: str = "HWCOST", bounds: dict[str, int] | None = None
     return {"status": "OPTIMAL" if "==========" in out else "SAT",
             "seconds": wall, "solution": sol,
             "objective": sol.get("metric", [None] * len(METRICS))[METRICS.index(optimise)]
-            if isinstance(sol.get("metric"), list) else None}
+            if isinstance(sol.get("metric"), list) else None,
+            "stats": _mzn_stats(out)}
 
 
 def main() -> int:
