@@ -158,6 +158,11 @@ constraint n_active = sum(i in A)( bool2int(active[i]) );
 
 % Recurring (per-instance) cost of the applied patterns -- the replicated
 % hardware channels they call for, priced independently of the cores.
+% Summed over BASE actors only. Pattern slots are parents too, with pat tied
+% to their owner's, so summing over all of PAR counted an actor's recurring
+% cost 1 + (number of its slots) times; bus-transfer parents take no pattern.
 array[PAT] of int: pat_recurring;
+set of int: BASE_PAR = { a | a in PAR where par_owner[a] = a
+                         /\ forall(i in A where parent[i] = a)(not comm_actor[i]) };
 var int: pattern_cost;
-constraint pattern_cost = sum(a in PAR)( pat_recurring[pat[a]] );
+constraint pattern_cost = sum(a in BASE_PAR)( pat_recurring[pat[a]] );
