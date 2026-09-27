@@ -3,7 +3,7 @@
 % platform     : mixed_costly_hw
 % period mode  : global   (C.7)
 % fault model  : random_hw
-% cost profile : klosterman  [100, 113, 123, 140, 170]
+% cost profile : klosterman  [100, 113, 123, 170, 235]
 
 % ---- applications ----
 nApps = 1;
@@ -75,7 +75,7 @@ mem_req = [2, 4, 6, 5, 4, 7, 5];
 % ---- safety (C.8) ----
 sil_req_parent = [3, 1, 1, 1, 3, 1, 2];
 dev_base = [100, 100, 100, 100, 100, 100, 100];
-dev_k = array1d(0..4, [100, 113, 123, 140, 170]);
+dev_k = array1d(0..4, [100, 113, 123, 170, 235]);
 allow_promotion = true;
 
 % ---- design constraints ----

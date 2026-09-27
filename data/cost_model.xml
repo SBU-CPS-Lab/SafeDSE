@@ -14,7 +14,7 @@
 
      HONESTY NOTES
        * SIL0 and SIL4 are EXTRAPOLATED. The paper covers SIL1-SIL3 only.
-       * klosterman and myklebust2015 disagree by a factor of 3.7 at SIL3.
+       * klosterman and myklebust2015 disagree by a factor of 3.0 at SIL3.
          That is a fact about the state of the literature, not a defect in
          either profile.
        * These are SOFTWARE development costs. The paper also notes that SIL3
@@ -35,13 +35,19 @@
   </profile>
 
   <!-- Table 1 (Klosterman): effort increase over a non-safety baseline of
-       5-20% / 10-36% / 20-60% / 40-100%, midpoints taken. Much flatter. -->
+       5-20% (SIL1/ASIL A), 10-36% (SIL2/ASIL B), 20-60% (SIL3/ASIL C) and
+       40-100% (SIL3/ASIL D), midpoints taken. The table maps BOTH of its
+       upper rows to SIL3; SIL3 takes the ASIL D row, the highest integrity
+       level it is equated with. (An earlier version gave SIL3 the ASIL C row
+       and SIL4 the ASIL D row, which the table does not say.) SIL4 is
+       extrapolated by repeating the SIL2->SIL3 ratio: 170 * 170/123 = 235.
+       Much flatter than the other two profiles. -->
   <profile name="klosterman">
     <sil level="0" multiplier="100"/>
     <sil level="1" multiplier="113"/>
     <sil level="2" multiplier="123"/>
-    <sil level="3" multiplier="140"/>
-    <sil level="4" multiplier="170"/>
+    <sil level="3" multiplier="170"/>
+    <sil level="4" multiplier="235"/>
   </profile>
 
   <!-- Allen / Jaguar Land Rover DO-178B effort ratios E=1, D=3, C=5, B=9,

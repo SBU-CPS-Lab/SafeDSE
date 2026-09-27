@@ -312,20 +312,24 @@ def t_safety() -> None:
         check("allow_promotion=false: 2 cores correctly UNSAT",
               b["status"] == "UNSAT", b["status"])
 
-    # C.8: the cost profile is an experimental variable, and on expensive
-    # hardware the OPTIMAL ARCHITECTURE differs between profiles.
+    # C.8: the cost profile is an experimental variable. On expensive hardware
+    # it once changed the optimal ARCHITECTURE (klosterman: 1 core), but only
+    # while klosterman's SIL 3 took the ASIL C row of Klosterman's table; with
+    # the ASIL D row (cost_model.xml) all three profiles buy 3 cores. What
+    # stays true, and is checked, is that the profile prices consolidation:
+    # the promotion cost of a one-core design differs between profiles.
     got = {}
     for prof in ["myklebust2015", "klosterman", "do178b"]:
         f = ROOT / "out" / f"x_{prof}.dzn"
         if not f.exists():
             continue
-        r = run(str(f), "TOTALCOST", timeout=120)
+        r = run(str(f), "TOTALCOST", {"NPROCS": 1}, timeout=120)
         if r["status"] == "OPTIMAL":
-            got[prof] = r["solution"]["nprocs"]
+            got[prof] = r["solution"]["promotion_cost"]
     if len(got) == 3:
-        check(f"cost profile changes the optimal architecture {got}",
-              len(set(got.values())) > 1,
-              "all profiles agree -- the sensitivity result has gone away")
+        check(f"cost profile changes the price of consolidation {got}",
+              len(set(got.values())) == 3,
+              "two profiles price one-core promotion alike")
 
 
 def t_patterns() -> None:

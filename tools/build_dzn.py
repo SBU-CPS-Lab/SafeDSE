@@ -158,7 +158,7 @@ def load_safety(path: str | None, actor_names: list[str]) -> dict:
 # data/cost_model.xml; these mirror it so the tool still runs standalone.
 COST_PROFILES = {
     "myklebust2015": [100, 113, 225, 518, 906],
-    "klosterman":    [100, 113, 123, 140, 170],
+    "klosterman":    [100, 113, 123, 170, 235],
     "do178b":        [100, 200, 300, 500, 900],
 }
 
@@ -167,7 +167,7 @@ def load_cost_model(path: str | None, profile: str):
     """cost_model.xml -> (per-SIL multipliers x100, per-task baseline, default).
 
     The profile is an experimental variable, not a constant (C.8): the three
-    published profiles disagree by up to 3.7x at SIL3, so the interesting
+    published profiles disagree by up to 3.0x at SIL3, so the interesting
     question is whether the optimal architecture is stable across them.
     """
     if not path:
