@@ -6,8 +6,9 @@ library happens here; the CP model receives a fixed graph plus guards and
 decides only which parts of it are real.
 
 For each SDF actor `a` the expander instantiates every component of every
-applicable pattern, sharing component slots between patterns that need the same
-number, and tags each added node and edge with the SET of patterns that use it.
+applicable pattern, sharing component slots between patterns whose components
+have the same WCET type, and tags each added node and edge with the SET of
+patterns that use it.
 The model then has one variable `pat[a]` per actor and derives
 
     active[v]  <->  pat[owner(v)] in guardset(v)
@@ -272,6 +273,35 @@ def _diverse_placeable(p: Pattern, need: int, faults: set[str],
     return True, ""
 
 
+def slot_layout(pats: list[Pattern]) -> tuple[list[str], list[list[int]]]:
+    """Assign the components of an actor's applicable patterns to slots.
+
+    `pats` are the actor's applicable patterns in catalogue order. Returns the
+    wcet_type of every slot and, per pattern, the slot of each component (in
+    component order). A slot is shared only by components with the SAME
+    wcet_type, first fit: a slot has one WCET row, so sharing it by position
+    alone priced a checker as a full replica (or a replica as a checker)
+    whenever two patterns put different kinds of component at one position.
+    tools/gsn.py calls this too, to name the role a slot fills.
+    """
+    types: list[str] = []
+    layout: list[list[int]] = []
+    for p in pats:
+        used: set[int] = set()
+        ks = []
+        for c in p.components:
+            wt = str(c.get("wcet_type", "<owner>"))
+            k = next((s for s, t in enumerate(types)
+                      if t == wt and s not in used), None)
+            if k is None:
+                k = len(types)
+                types.append(wt)
+            used.add(k)
+            ks.append(k)
+        layout.append(ks)
+    return types, layout
+
+
 def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
            fault_model: str, force_none: bool = False,
            platform_fcrs: int = 0, platform_cores: int = 0,
@@ -279,9 +309,10 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
            platform_ctype_sils: list[int] | None = None) -> Superposition:
     """Build the superposed SDF graph.
 
-    Slot sharing: actor `a` receives max(|components(p)|) slots over its
-    applicable patterns, and a pattern using fewer simply guards fewer of them.
-    So the expansion is O(sum_a max_p |components(p)|), not O(sum_a sum_p ...).
+    Slot sharing: actor `a` receives, per wcet_type, max(|components(p) of
+    that type|) slots over its applicable patterns (see `slot_layout`), and a
+    pattern using fewer simply guards fewer of them. So the expansion is
+    O(sum_a sum_type max_p ...), not O(sum_a sum_p |components(p)|).
     """
     by_id = {p.id: p for p in patterns}
     ids = [p.id for p in patterns]
@@ -333,62 +364,40 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
     # ---- allocate component slots -----------------------------------------
     sup.graph.actors = list(g.actors)
     sup.graph.channels = list(g.channels)
+    slot_of: dict[tuple[str, int], list[int]] = {}   # (actor, pattern) -> slots
     for a in g.actors:
         app = sup.applicable[a.name]
-        nslots = max(len(by_id[ids[pi]].components) for pi in app)
-        for k in range(nslots):
-            guards = [pi for pi in app if len(by_id[ids[pi]].components) > k]
-            # every pattern using slot k must agree on what the slot is for,
-            # otherwise the sharing is unsound
-            roles = {by_id[ids[pi]].components[k]["role"] for pi in guards}
-            comp = by_id[ids[guards[0]]].components[k]
+        stypes, layout = slot_layout([by_id[ids[pi]] for pi in app])
+        for pi, ks in zip(app, layout):
+            slot_of[(a.name, pi)] = ks
+        for k in range(len(stypes)):
+            users = [(pi, ks.index(k)) for pi, ks in zip(app, layout)
+                     if k in ks]
+            guards = [pi for pi, _ in users]
             name = f"{a.name}~{k}"
             # Keep <owner> UNSUBSTITUTED. Which key the WCET table uses for the
             # owner is not knowable here -- Rosvall's table keys on actor names
             # (`get_pixel`), SafeDSE's on task types (`getPixel`) -- so the
             # front-end resolves the owner's key first and substitutes then.
-            wt = str(comp.get("wcet_type", "<owner>"))
+            wt = stypes[k]
             sup.graph.actors.append(Actor(name=name, type=wt,
                                           exec_time=a.exec_time,
                                           state_size=a.state_size))
             sup.owner_of[name] = a.name
             sup.guard_of[name] = guards
-            if len(roles) > 1:
-                # Slot sharing takes the slot's wcet_type from the FIRST pattern
-                # that uses that position, so patterns sharing a slot for
-                # different roles get whichever WCET the earlier record names.
-                # For two checkers that is a warning: they cost roughly alike.
-                # For a voter it is not. A voter is deliberately an order of
-                # magnitude cheaper than the thing it votes on -- that cheapness
-                # is Armoush's whole argument for trusting it -- so pricing one
-                # as a checker inflates it several-fold and moves the optimum,
-                # silently and in the direction that makes the pattern look
-                # worse than it is.
-                voter_roles = {r for pi in guards
-                               for c2 in [by_id[ids[pi]].components[k]]
-                               if by_id[ids[pi]].output_from == c2["role"]
-                               for r in [c2["role"]]}
-                if voter_roles and roles - voter_roles:
-                    raise PatternError(
-                        f"slot {name} is shared between the explicit-voter role "
-                        f"{sorted(voter_roles)} and non-voter role(s) "
-                        f"{sorted(roles - voter_roles)}. Slot sharing assigns "
-                        f"one wcet_type per position, so the voter would be "
-                        f"priced as {comp.get('wcet_type')!r}. Reorder the "
-                        f"components so the voter does not share a position "
-                        f"with a replica or checker.")
-                sup.notes.append(
-                    f"slot {name} is shared by patterns with differing roles "
-                    f"{sorted(roles)}; sharing is by position, so verify the "
-                    f"placement relations still say what you mean")
+            # The patterns using slot k may give it different roles
+            # (channel_b of one, standby_a of another), but never different
+            # wcet_types: slot_layout shares a slot only between components
+            # priced alike. A voter therefore never shares with the replicas
+            # it votes on, which position-based sharing had to reject.
 
     # ---- edges and placements ---------------------------------------------
     def resolve(a_name: str, pi: int, role: str) -> str:
         if role == "owner":
             return a_name
         p = by_id[ids[pi]]
-        k = next(i for i, c in enumerate(p.components) if c["role"] == role)
-        return f"{a_name}~{k}"
+        ci = next(i for i, c in enumerate(p.components) if c["role"] == role)
+        return f"{a_name}~{slot_of[(a_name, pi)][ci]}"
 
     for a in g.actors:
         for pi in sup.applicable[a.name]:

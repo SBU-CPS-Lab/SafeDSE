@@ -55,6 +55,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from patterns import slot_layout  # noqa: E402
 from verify import parse_dzn  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -228,7 +229,19 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
     npat = d.get("nPat", 0)
     pat = _l(sol.get("pat", [])) if npat else []
     pat_name = _l(d.get("pat_name", [])) if npat else []
+    allowed = _grid(d.get("pat_allowed", []), npat) if npat else []
     checks = report["checks"]
+
+    def slots_of(pk: int) -> list[int]:
+        """Parent index of an actor -> slot of each component of its selected
+        pattern, laid out exactly as the front end did (tools/patterns.py)."""
+        if not npat or pk >= len(pat) or pk >= len(allowed):
+            return []
+        app = [pat_name[j] for j in range(npat) if allowed[pk][j]]
+        sel = pat_name[pat[pk] - 1]
+        if sel not in app or any(x not in by_id for x in app):
+            return []
+        return slot_layout([by_id[x] for x in app])[1][app.index(sel)]
 
     # index the verifier's records so a Solution can cite them by position
     def find(kind, **match) -> list[int]:
@@ -254,15 +267,14 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
         appn, bare = nm.split(".", 1) if "." in nm else ("", nm)
         if "~" in bare:
             owner, _, k = bare.partition("~")
+            k = k.split("#", 1)[0]
             pk = next((j for j, lbl in enumerate(parent_name)
                        if lbl == f"{appn}.{owner}"), None)
-            if pk is not None and npat and pk < len(pat):
-                p = by_id.get(pat_name[pat[pk] - 1])
-                try:
-                    role = p.components[int(k)]["role"]
-                    return f"{owner}/{role}"
-                except (AttributeError, IndexError, ValueError):
-                    pass
+            if pk is not None:
+                ks = slots_of(pk)
+                p = by_id.get(pat_name[pat[pk] - 1]) if ks else None
+                if p is not None and k.isdigit() and int(k) in ks:
+                    return f"{owner}/{p.components[ks.index(int(k))]['role']}"
             return f"{owner}/slot {k}"
         return bare
 
@@ -416,9 +428,12 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
         # has no way to tell what it is or whether it was even instantiated.
         if p is not None and p.components:
             parts = []
+            ks = slots_of(k)
             for ci, comp in enumerate(p.components):
+                if ci >= len(ks):
+                    continue
                 pk = next((j for j, lbl in enumerate(parent_name)
-                           if lbl == f"{appn}.{aname}~{ci}"), None)
+                           if lbl == f"{appn}.{aname}~{ks[ci]}"), None)
                 if pk is None:
                     continue
                 cn = [i for i in range(n)

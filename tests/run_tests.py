@@ -629,15 +629,21 @@ def t_composition() -> None:
     # this application a third of its throughput. Pinned here so that if a
     # future change makes 400 reachable, someone has to explain why rather than
     # quietly enjoy it.
-    r2 = run(str(loose), "THROUGHPUT", timeout=200)
+    # Explained change: until slots were shared only by equal WCET type, the
+    # checker of high_sil_isolated_checker sat in a slot typed as a full
+    # replica of get_pixel and was priced at get_pixel's WCET (256-384
+    # instead of 77-115). The minimum period was 512; priced as a checker it
+    # is 333, below the published 400. Four workers: at -p 1 the
+    # FIXED_SEARCH strategy no longer proves this within minutes.
+    r2 = run(str(loose), "THROUGHPUT", timeout=200, threads=4)
     if r2["status"] != "OPTIMAL":
         check("pc_sobel: minimum period is attainable", False, r2["status"])
         return
     ok2, msg2 = _verify(str(loose), r2["solution"])
     mn = r2["solution"]["mu"][0]
-    check(f"pc_sobel: minimum period with patterns+TDMA is {mn}, above the "
-          f"published bound of 400", ok2 and mn == 512,
-          msg2 or f"got {mn}, expected 512")
+    check(f"pc_sobel: minimum period with patterns+TDMA is {mn}, below the "
+          f"published bound of 400", ok2 and mn == 333,
+          msg2 or f"got {mn}, expected 333")
 
 
 def t_gsn() -> None:
@@ -753,12 +759,36 @@ def t_gsn() -> None:
     if not (f.exists() and fb.exists()):
         print("  SKIP  need f_random_hw.dzn and f_both3.dzn")
     else:
+        # Whether the random_hw optimum selects a pattern with a systematic-
+        # fault scenario is a tie-break (high_sil_isolated_checker and
+        # low_sil_doer_checker have none, at the same total cost), so the
+        # out-of-scope check runs on the same inputs with a catalogue in which
+        # every pattern for SIL >= 2 has such a scenario.
+        import yaml as _y
+        keep = [x for x in _y.safe_load(open(ROOT / "data" / "patterns.yaml"))
+                ["patterns"] if x["id"] not in ("high_sil_isolated_checker",
+                                                "low_sil_doer_checker",
+                                                "dual_two_of_two")]
+        cat = Path("/tmp/gsn_sys_catalogue.yaml")
+        cat.write_text(_y.safe_dump({"patterns": keep}, sort_keys=False))
+        fsys = Path("/tmp/gsn_frh_sys.dzn")
+        subprocess.run(
+            [sys.executable, str(ROOT / "tools" / "build_dzn.py"),
+             "--app", str(ROOT / "data" / "apps" / "c_rasta.hsdf.xml"),
+             "--platform", str(ROOT / "data" / "platform" / "mixed_noiso.xml"),
+             "--wcets", str(ROOT / "data" / "WCETs_mixed.xml"),
+             "--constraints", str(ROOT / "data" / "desConst.xml"),
+             "--cost-model", str(ROOT / "data" / "cost_model.xml"),
+             "--safety", str(ROOT / "data" / "safety_fm_random_hw.xml"),
+             "--patterns", str(cat), "-o", str(fsys)],
+            capture_output=True)
+        a0 = gen("frh_sys", fsys)[0] if fsys.exists() else None
         a1, r1, _ = gen("frh2", f)
         a2, r2, _ = gen("fb", fb)
-        if a1 and a2:
+        if a0 and a1 and a2:
             check("random_hw leaves systematic-fault scenarios out of scope",
-                  len(a1.out_of_scope) > 0,
-                  f"out_of_scope={a1.out_of_scope}")
+                  len(a0.out_of_scope) > 0,
+                  f"out_of_scope={a0.out_of_scope}")
             check("both leaves none out of scope",
                   len(a2.out_of_scope) == 0,
                   f"out_of_scope={a2.out_of_scope}")
@@ -789,8 +819,8 @@ def t_gsn() -> None:
                   Path("/tmp/gsn_bad_out.gsn.md").exists(),
                   f"rc={p.returncode}")
 
-    # ---- voter/checker slot sharing must be an error, not a warning -----
-    from patterns import PatternError, expand
+    # ---- a voter must never share a slot (and its WCET) with a replica ---
+    from patterns import expand
     from sdf3 import SDFGraph, Actor, Channel
     demo = ROOT / "data" / "patterns_explicit_voter_demo.yaml"
     clash = ROOT / "data" / "patterns_explicit_voter.yaml"
@@ -809,16 +839,17 @@ def t_gsn() -> None:
                     Actor(name="b", type="tb", exec_time=10)]
         g.channels = [Channel(name="ab", src="a", dst="b", prod=1, cons=1,
                               initial_tokens=0)]
-        caught = False
-        try:
-            expand(g, load_patterns(str(cf)), {"a": 3, "b": 0}, "random_hw",
-                   platform_fcrs=9, platform_cores=9, platform_ctypes=4,
-                   platform_ctype_sils=[4, 4, 4, 4])
-        except PatternError as e:
-            caught = "explicit-voter role" in str(e)
-        check("a voter sharing a slot with a replica is an error, not a "
-              "warning", caught,
-              "the voter would silently be priced as the replica")
+        sup = expand(g, load_patterns(str(cf)), {"a": 3, "b": 0},
+                     "random_hw", platform_fcrs=9, platform_cores=9,
+                     platform_ctypes=4, platform_ctype_sils=[4, 4, 4, 4])
+        slots = {x.name: x.type for x in sup.graph.actors if "~" in x.name}
+        voters = [nm for nm, t in slots.items() if t.startswith("voter_")]
+        ids = [p.id for p in sup.patterns]
+        ok = (len(voters) == 1 and len(slots) == 4 and
+              [ids[pi] for pi in sup.guard_of[voters[0]]]
+              == ["nvp_three_version"])
+        check("a voter gets its own slot, never a replica's (slots by "
+              "wcet_type)", ok, f"slots {slots}")
 
     # ---- rendering ------------------------------------------------------
     if Path("/tmp/gsn_frh.json").exists() and f.exists():
