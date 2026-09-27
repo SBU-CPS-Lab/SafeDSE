@@ -414,9 +414,15 @@ def main() -> int:
         typ = node_types[i]
         if "<owner>" in typ:
             # A pattern component: resolve the OWNER's key, then substitute.
+            # Match the owner in the same application and ignore its HSDF copy
+            # suffix: an owner with repetition count q > 1 exists only as
+            # `name#0`, `name#1`, ..., never under its bare name.
+            appn = node_names[i].split(".", 1)[0]
             owner_bare = bare.split("~", 1)[0]
             owner_typ = next((node_types[j] for j in range(len(node_names))
-                              if node_names[j].split(".", 1)[1] == owner_bare),
+                              if node_names[j].split(".", 1)[0] == appn
+                              and node_names[j].split(".", 1)[1]
+                              .split("#", 1)[0] == owner_bare),
                              owner_bare)
             typ = typ.replace("<owner>", _resolve(owner_bare, owner_typ))
             wkey.append(typ if typ in known else _resolve(bare, typ))

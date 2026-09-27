@@ -422,6 +422,38 @@ def t_patterns() -> None:
         check(f"fault model changes the core count {got}",
               len(set(got.values())) > 1, "both fault models agree")
 
+    # (4) a full-replica component (`<owner>` WCET type) of a multi-rate
+    # owner: the owner exists only as HSDF copies `name#k`, and the WCET table
+    # keys on task types that differ from the actor names
+    import xml.etree.ElementTree as ET
+    src = (ROOT / "data" / "apps" / "jpeg_r3.sdf.xml").read_text()
+    app = Path("/tmp/mr_owner.sdf.xml")
+    app.write_text(re.sub(r'(<actor name="[^"]*" type=")([^"]*)"', r'\1\2_t"',
+                          src))
+    saf = Path("/tmp/mr_owner_safety.xml")
+    saf.write_text('<safety fault_model="random_hw" allow_promotion="true">'
+                   '<default sil="1"/><actor name="CC" sil="3"/></safety>')
+    wc = Path("/tmp/mr_owner_wcets.xml")
+    subprocess.run([sys.executable, str(ROOT / "tools" / "mkwcets.py"),
+                    "--app", str(app), "--platform",
+                    str(ROOT / "data" / "platform" / "mixed_3type.xml"),
+                    "--patterns", str(ROOT / "data" / "patterns.yaml"),
+                    "-o", str(wc)], capture_output=True, check=True)
+    tree = ET.parse(wc)
+    for m in list(tree.getroot()):
+        if m.tag == "mapping" and not m.get("task_type").endswith("_t"):
+            tree.getroot().remove(m)
+    tree.write(wc)
+    p = subprocess.run(
+        [sys.executable, str(ROOT / "tools" / "build_dzn.py"), "--app", str(app),
+         "--platform", str(ROOT / "data" / "platform" / "mixed_3type.xml"),
+         "--wcets", str(wc), "--constraints", str(ROOT / "data" / "desConst.xml"),
+         "--cost-model", str(ROOT / "data" / "cost_model.xml"),
+         "--safety", str(saf), "--patterns", str(ROOT / "data" / "patterns.yaml"),
+         "-o", "/tmp/mr_owner.dzn"], capture_output=True, text=True)
+    check("multi-rate owner: full-replica component resolves the owner's "
+          "WCET type", p.returncode == 0, p.stderr[-300:])
+
 
 def t_catalogue() -> None:
     """Phase 5: the full Koopman catalogue, and what DIVERSE actually forbids."""
