@@ -74,8 +74,12 @@ constraint forall(p in PR)(
 % Default is to allow promotion, because it is the phenomenon under study.
 % Forcing it off is a useful baseline: it answers "how much does allowing
 % promotion save?", which is a sharper question than the absolute cost.
+% Only ACTIVE nodes: an inactive pattern slot has sil_impl = 0 (above) but
+% carries its owner's requirement, so posting this unguarded forced every slot
+% of an actor with SIL >= 1 active, i.e. the owner's largest pattern (measured:
+% every NP solution of the RQ2 study activated 100% of its slots).
 constraint not allow_promotion ->
-    forall(i in A)( sil_impl[i] = sil_req_parent[parent[i]] );
+    forall(i in A)( active[i] -> sil_impl[i] = sil_req_parent[parent[i]] );
 
 % ---- costs ----------------------------------------------------------------
 var 0..sum(i in A)(dev_base[i] * max(dev_k)) div 100: dev_cost;
