@@ -93,6 +93,12 @@ def run(dzn: str, optimise: str = "HWCOST", bounds: dict[str, int] | None = None
            "--statistics", str(model or ROOT / "model" / "dse.mzn"), dzn, "-D", data]
     if threads is not None:
         cmd += ["-p", str(threads)]
+        if threads > 1:
+            # fzn-cp-sat runs 8 workers for ANY -p > 1 (measured: -p 4 and
+            # --threads 4 both log "num_workers: 8"); only the SatParameters
+            # field caps it. At -p 1 it runs FIXED_SEARCH, i.e. follows the
+            # model's search annotation exactly.
+            cmd += ["--fzn-flags", f"--params num_workers:{threads}"]
     if time_limit_ms is not None:
         cmd += ["--time-limit", str(time_limit_ms), "--intermediate-solutions"]
     t0 = time.time()
