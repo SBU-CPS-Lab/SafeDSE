@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Independently verify a solution returned by the CP model.
 
-Rebuilds the mapping-and-schedule-aware graph (MSAG) from the solver's
+Rebuilds the mapping-and-schedule-aware graph (MSAG) of the deployed design
+(inactive pattern slots removed, static orders spliced) from the solver's
 assignment, then computes its iteration period twice -- by Karp's algorithm and
 by max-plus simulation -- and checks both against the mu the solver reported.
 
@@ -131,7 +132,27 @@ def _atom(s: str):
 
 # --------------------------------------------------------------------------
 def build_msag(d: dict, sol: dict):
-    """Reconstruct the MSAG: application edges + serialisation + wrap edges."""
+    """Reconstruct the MSAG of the DEPLOYED design.
+
+    Nodes: the active computation nodes, plus the three communication actors
+    of every channel that turned out remote. Inactive pattern slots are left
+    out and each core's static order is spliced around them (the model keeps
+    them in the order with zero WCET; a token-free cycle through them only has
+    zero weight in the model, but here it would be reported as a deadlock of a
+    design in which those nodes do not exist -- D9 of the TCAD paper plan).
+    Splicing keeps every cycle of the deployed schedule, including the wrap
+    cycle, so the MCR is that of the design as it runs.
+
+    Edges: application and pattern channels between live nodes (tok >= 0);
+    serialisation (no token) and one wrap edge per core (one token); for a
+    channel that the front-end refined (removed from tok, D18), the direct
+    edge with its initial tokens when local, else the path
+    src -> block -> send -> rec -> dst with the initial tokens on the first
+    edge, plus the two buffer back-edges -- as lib/comm.mzn posts them.
+
+    Returns (n, edges, T, live) over the full node index space; nodes not in
+    `live` have no edges.
+    """
     n = d["n"]
     tokflat = d["tok"]
     if tokflat and isinstance(tokflat[0], list):
@@ -142,12 +163,9 @@ def build_msag(d: dict, sol: dict):
     proc = sol["proc"]
     succ = sol["succ"]
     T = sol["T"]
-
-    edges: list[tuple[int, int, int]] = []
-    for i in range(n):
-        for j in range(n):
-            if tok[i][j] >= 0:
-                edges.append((i, j, tok[i][j]))
+    act = sol.get("active", [True] * n)
+    if not isinstance(act, list):
+        act = [act] * n
 
     # Communication actors are scheduled on the bus, not in a processor's
     # static order, so they take no part in the succ/wrap reconstruction.
@@ -156,40 +174,56 @@ def build_msag(d: dict, sol: dict):
         comm = [comm] * n
     comm = [bool(x) for x in comm] + [False] * (n - len(comm))
     cpu = [i for i in range(n) if not comm[i]]
+    on = [bool(act[i]) and not comm[i] for i in range(n)]
+    live = {i for i in range(n) if on[i]}
 
-    # serialisation arcs, token-less
-    for i in cpu:
-        if succ[i] > 0:
-            edges.append((i, succ[i] - 1, 0))
+    edges: list[tuple[int, int, int]] = []
+    for i in range(n):
+        for j in range(n):
+            if tok[i][j] >= 0 and on[i] and on[j]:
+                edges.append((i, j, tok[i][j]))
 
-    # wrap arcs: last -> head on the same core, carrying one token
-    heads = {}
-    for j in cpu:
-        if not any(succ[i] == j + 1 for i in cpu):
-            heads[proc[j]] = j
-    for i in cpu:
-        if succ[i] == 0 and proc[i] in heads:
-            edges.append((i, heads[proc[i]], 1))
+    # static order per core, spliced around inactive nodes: consecutive LIVE
+    # nodes get a token-less serialisation arc, last -> first a one-token wrap
+    succ_of = {i: succ[i] - 1 for i in cpu if succ[i] > 0}
+    has_pred = set(succ_of.values())
+    for h in cpu:
+        if h in has_pred:
+            continue                          # not the head of its core
+        chain, x, seen = [], h, set()
+        while x is not None and x not in seen:
+            seen.add(x)
+            chain.append(x)
+            x = succ_of.get(x)
+        keep = [x for x in chain if on[x]]
+        for u, v in zip(keep, keep[1:]):
+            edges.append((u, v, 0))
+        if keep:
+            edges.append((keep[-1], keep[0], 1))
 
-    # communication path: src -> block -> send -> rec -> dst, plus the two
-    # buffer back-edges, for every channel whose endpoints ended up apart
     nch = d.get("nCh", 0)
     if nch:
         cs = _aslist(d["ch_src"]); cd = _aslist(d["ch_dst"])
         cb = _aslist(d["ch_block"]); csd = _aslist(d["ch_send"])
         cr = _aslist(d["ch_rec"])
+        dtok = _aslist(d.get("ch_direct_tok", [0] * nch))
         sbuf = sol.get("sendbuf", [1] * nch)
         rbuf = sol.get("recbuf", [1] * nch)
         for c in range(nch):
             s_, d_ = cs[c] - 1, cd[c] - 1
+            if not (on[s_] and on[d_]):
+                continue
+            t0 = dtok[c] if c < len(dtok) else 0
             if proc[s_] == proc[d_]:
-                continue                      # local: no communication actors
+                edges.append((s_, d_, t0))    # local: the direct edge
+                continue
             b, sn, r = cb[c] - 1, csd[c] - 1, cr[c] - 1
-            edges += [(s_, b, 0), (b, sn, 0), (sn, r, 0), (r, d_, 0)]
+            live |= {b, sn, r}
+            edges += [(s_, b, t0), (b, sn, 0), (sn, r, 0), (r, d_, 0)]
             edges.append((b, s_, sbuf[c]))    # send-side buffer
             edges.append((r, sn, rbuf[c]))    # receive-side FIFO
 
-    return n, edges, T
+    return n, edges, T, live
 
 
 def main() -> int:
@@ -203,7 +237,7 @@ def main() -> int:
 
     d = parse_dzn(a.dzn)
     sol = json.loads(Path(a.solution).read_text())
-    n, edges, T = build_msag(d, sol)
+    n, edges, T, live = build_msag(d, sol)
 
     mus = sol["mu"] if isinstance(sol["mu"], list) else [sol["mu"]]
     app = d.get("app", [1] * n)
@@ -215,31 +249,11 @@ def main() -> int:
     # application: two applications sharing a processor are in one component and
     # must report the same period. Splitting by application instead would
     # compare an application against a subgraph it does not own.
-    # Only LIVE nodes take part: active application actors, plus communication
-    # actors whose channel actually turned out remote. Inactive pattern slots
-    # and the communication actors of local channels are isolated zero-weight
-    # nodes; including them would split the MSAG into a component per orphan,
-    # each with a cycle mean of zero.
-    live = set()
-    act = sol.get("active", [True] * n)
+    # Only LIVE nodes take part (build_msag): active computation nodes, plus
+    # communication actors whose channel actually turned out remote.
     comm_flags = d.get("comm_actor", [False] * n)
     if not isinstance(comm_flags, list):
         comm_flags = [comm_flags] * n
-    for i in range(n):
-        if i < len(comm_flags) and comm_flags[i]:
-            continue
-        # Inactive pattern slots stay in: the model keeps them in the processor
-        # static order with zero WCET, so the wrap cycle can pass through them.
-        # Dropping them here breaks that cycle and yields a different MCR.
-        live.add(i)
-    nch0 = d.get("nCh", 0)
-    if nch0:
-        cs0 = _aslist(d["ch_src"]); cd0 = _aslist(d["ch_dst"])
-        cb0 = _aslist(d["ch_block"]); cs1 = _aslist(d["ch_send"])
-        cr0 = _aslist(d["ch_rec"])
-        for c in range(nch0):
-            if sol["proc"][cs0[c] - 1] != sol["proc"][cd0[c] - 1]:
-                live |= {cb0[c] - 1, cs1[c] - 1, cr0[c] - 1}
     live_edges = [(u, v, t) for u, v, t in edges if u in live and v in live]
     comp = [c & live for c in _components(n, live_edges) if c & live]
     comp = [c for c in comp if any(not (i < len(comm_flags) and comm_flags[i])
