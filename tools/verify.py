@@ -3,8 +3,9 @@
 
 Rebuilds the mapping-and-schedule-aware graph (MSAG) of the deployed design
 (inactive pattern slots removed, static orders spliced) from the solver's
-assignment, then computes its iteration period twice -- by Karp's algorithm and
-by max-plus simulation -- and checks both against the mu the solver reported.
+assignment, then computes its iteration period twice -- by Lawler's parametric
+maximum-cycle-ratio search (tools/golden.py) and by max-plus simulation -- and
+checks both against the mu the solver reported.
 
 This exists because the failure mode of constraint modelling is silent: a wrong
 encoding returns a plausible number, not an error.  The open-chain bug that
@@ -294,16 +295,17 @@ def main() -> int:
         if sim is not None and sim != k:
             ok = False
             msgs.append(f"component {apps_here}: oracle disagreement -- "
-                        f"Karp {k}, simulation {sim}")
+                        f"Lawler {k}, simulation {sim}")
         _rec("period", all(Fraction(mus[z - 1] if z - 1 < len(mus) else mus[0])
                            == want for z in apps_here)
              and (sim is None or sim == k),
              f"apps {apps_here}: solver period is the least integer at or above "
-             f"the MSAG's maximum cycle ratio, computed independently by Karp "
+             f"the MSAG's maximum cycle ratio, computed independently by Lawler's "
+             f"parametric search "
              f"({k}) and by max-plus self-timed simulation ({sim})",
-             apps=apps_here, karp=str(k), simulation=str(sim))
+             apps=apps_here, lawler=str(k), simulation=str(sim))
         if not a.quiet:
-            print(f"  component apps={apps_here}: Karp {k}, simulation {sim}")
+            print(f"  component apps={apps_here}: Lawler {k}, simulation {sim}")
 
     # ---- exact latency, transient included -----------------------------
     # lib/latency.mzn uses the PERIODIC-PHASE estimate

@@ -164,7 +164,7 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
       - **C45** Context: Iteration period per application: [1180]. Timing is a safety property here because a replica that misses its deadline cannot perform the check the pattern credits it with.
       - (A1, see above)
       - (A2, see above)
-      - **Sn25** Solution: Independent re-check of the solution: the mapping-and-schedule-aware graph was rebuilt from the returned assignment and its period computed twice by disjoint methods -- Karp's maximum cycle ratio and max-plus self-timed simulation -- both agreeing with the period the solver reported.  `[checks 0]`
+      - **Sn25** Solution: Independent re-check of the solution: the mapping-and-schedule-aware graph was rebuilt from the returned assignment and its period computed twice by disjoint methods -- Lawler's parametric maximum-cycle-ratio search and max-plus self-timed simulation -- which agree with each other, and the period the solver reported is the least integer at or above that ratio.  `[checks 0]`
       - **Sn26** Solution: Independent re-check of the solution: the reported period is at least the total execution demand of the busiest core, the bound that a static order left open as a chain silently loses.  `[checks 65]`
     - **G50** **Goal**: Every software component is developed, verified and validated to its allocated safety integrity level in accordance with IEC 61508-3.  ◇ **UNDEVELOPED**
       - **C46** Context: Integrity levels to be discharged by process, as active component counts: SIL 1: 4, SIL 2: 2, SIL 3: 8. Components implemented above their allocated level were promoted to satisfy Koopman's rule 2; the cost of that promotion is what the exploration minimised.

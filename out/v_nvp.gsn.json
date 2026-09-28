@@ -3,7 +3,7 @@
  "meta": {
   "label": "v_nvp",
   "dzn": "out/v_nvp.dzn",
-  "solution": "/tmp/v_nvp.s.json",
+  "solution": "/tmp/v_nvp.sol.json",
   "fault_model": "undetermined",
   "fault_model_how": "ambiguous between ['random_hw', 'systematic_sw', 'both'] (this instance does not distinguish them)",
   "verifier_ok": true
@@ -1786,7 +1786,7 @@
   {
    "id": "Sn25",
    "kind": "Solution",
-   "text": "Independent re-check of the solution: the mapping-and-schedule-aware graph was rebuilt from the returned assignment and its period computed twice by disjoint methods -- Karp's maximum cycle ratio and max-plus self-timed simulation -- both agreeing with the period the solver reported.",
+   "text": "Independent re-check of the solution: the mapping-and-schedule-aware graph was rebuilt from the returned assignment and its period computed twice by disjoint methods -- Lawler's parametric maximum-cycle-ratio search and max-plus self-timed simulation -- which agree with each other, and the period the solver reported is the least integer at or above that ratio.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],

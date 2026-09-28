@@ -2,8 +2,8 @@
 
 The whole risk profile of this project is that a constraint model returns a
 plausible number rather than an error.  These functions are deliberately written
-in a *different style* from the MiniZinc encoding -- Karp's algorithm and a
-direct max-plus simulation, rather than node potentials -- so that agreement
+in a *different style* from the MiniZinc encoding -- Lawler's parametric
+maximum-cycle-ratio search and a direct max-plus simulation, rather than node potentials -- so that agreement
 between them is real evidence and not a shared bug.
 
 Nothing here is imported by the model; it exists to be disagreed with.
@@ -16,13 +16,16 @@ NEG = float("-inf")
 
 
 def mcm_karp(n: int, edges: list[tuple[int, int, int]], wt: list[int]) -> Fraction | None:
-    """Maximum cycle mean via Karp's algorithm, restricted to one SCC at a time.
+    """Maximum cycle ratio per SCC, by Lawler's parametric search (_karp_scc).
+
+    The names mcm_karp/_karp_scc are historical: the method is not Karp's
+    minimum-mean-cycle algorithm but Lawler's (see _karp_scc).
 
     edges: (u, v, tokens).  Cycle mean of a cycle C is
         sum of wt[u] over edges (u,v) in C   /   sum of tokens over C.
     Returns the maximum over all cycles, or None if the graph is acyclic.
 
-    Karp needs a strongly connected graph, so we decompose first.  Cycles with
+    The search runs per strongly connected component, so we decompose first.  Cycles with
     zero total tokens are the deadlock case and are reported as +infinity by
     returning None from the caller's perspective -- see mcm() below, which is
     the function tests should use.
@@ -42,7 +45,7 @@ def mcm_karp(n: int, edges: list[tuple[int, int, int]], wt: list[int]) -> Fracti
 
 def _karp_scc(nodes: list[int], edges: list[tuple[int, int, int]],
               wt: list[int]) -> Fraction | None:
-    """Karp on a strongly connected subgraph.
+    """Lawler's method on a strongly connected subgraph.
 
     Uses the ratio form: the maximum cycle ratio of (weight, tokens) is found by
     parametric search -- find the smallest mu such that no cycle has positive
@@ -197,7 +200,7 @@ def selftimed_period(n: int, edges: list[tuple[int, int, int]], wt: list[int],
     """Max-plus simulation until the schedule becomes periodic.
 
     Returns the steady-state iteration period, or None on deadlock.  This is an
-    entirely different computation from Karp -- it fires actors -- so agreement
+    entirely different computation from the Lawler search -- it fires actors -- so agreement
     with mcm() is meaningful cross-validation.
     """
     if _has_tokenless_cycle(n, edges):

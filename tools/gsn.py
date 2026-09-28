@@ -672,8 +672,9 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
                 "Solution",
                 "Independent re-check of the solution: the mapping-and-"
                 "schedule-aware graph was rebuilt from the returned assignment "
-                "and its period computed twice by disjoint methods -- Karp's "
-                "maximum cycle ratio and max-plus self-timed simulation -- which "
+                "and its period computed twice by disjoint methods -- Lawler's "
+                "parametric maximum-cycle-ratio search and max-plus self-timed "
+                "simulation -- which "
                 "agree with each other, and the period the solver reported is "
                 "the least integer at or above that ratio.",
                 evidence=per)

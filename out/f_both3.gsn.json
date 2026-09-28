@@ -3,7 +3,7 @@
  "meta": {
   "label": "f_both3",
   "dzn": "out/f_both3.dzn",
-  "solution": "/tmp/f_both3.s.json",
+  "solution": "/tmp/f_both3.sol.json",
   "fault_model": "both",
   "fault_model_how": "inferred from pat_allowed",
   "verifier_ok": true
@@ -1650,7 +1650,7 @@
   {
    "id": "Sn15",
    "kind": "Solution",
-   "text": "Independent re-check of the solution: the mapping-and-schedule-aware graph was rebuilt from the returned assignment and its period computed twice by disjoint methods -- Karp's maximum cycle ratio and max-plus self-timed simulation -- both agreeing with the period the solver reported.",
+   "text": "Independent re-check of the solution: the mapping-and-schedule-aware graph was rebuilt from the returned assignment and its period computed twice by disjoint methods -- Lawler's parametric maximum-cycle-ratio search and max-plus self-timed simulation -- which agree with each other, and the period the solver reported is the least integer at or above that ratio.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
