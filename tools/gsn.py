@@ -126,6 +126,9 @@ class Argument:
                            f"{e.text[:70]}")
             if e.undeveloped and e.supported_by:
                 bad.append(f"{e.id} is marked undeveloped but has children")
+            if e.undeveloped and not e.note.strip():
+                bad.append(f"{e.id} is marked undeveloped without a reason: "
+                           f"{e.text[:70]}")
         return bad
 
     def stats(self) -> dict:

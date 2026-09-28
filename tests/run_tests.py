@@ -757,6 +757,12 @@ def t_gsn() -> None:
                   any("unsupported claim" in b for b in arg.audit()))
             del arg.el[probe]
             arg.order.remove(probe)
+            probe = arg.add("Goal", "a gap admitted without saying why",
+                            undeveloped=True)
+            check("audit catches an undeveloped goal without a reason",
+                  any("without a reason" in b for b in arg.audit()))
+            del arg.el[probe]
+            arg.order.remove(probe)
 
     # ---- 5. widening the fault model widens the argument -----------------
     fb = ROOT / "out" / "f_both3.dzn"
