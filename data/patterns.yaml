@@ -20,6 +20,13 @@
 #   * a pattern whose covers_faults omits the selected fault_model is not
 #     applicable, however high its achieves_sil
 #
+# SIL of the parts: a component (checker, replica) carries the actor's
+# required SIL. `sil_offset` says how many levels BELOW it the doer (the
+# owner) could be developed (Koopman: "SIL 1 doer, SIL 2 checker"; Koopman &
+# Wagner 2016: low-ASIL actuator, high-ASIL monitor). It never raises a
+# component above the actor's SIL. The model does not yet use it: the owner
+# stays at the required SIL, which is conservative.
+#
 # Phase 4/5 admit only `voter: folded` patterns (Q10).  Explicit voters, and
 # with them the Armoush NVP / NSCP / M-out-of-N family, arrive in Phase 6.
 # No nesting (Q9): patterns apply to base SDF actors only.

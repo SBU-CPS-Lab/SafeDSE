@@ -103,20 +103,20 @@ nPat = 9;
 pat_name = ["none", "low_sil_doer_checker", "same_cpu_doer_checker", "two_of_two_high_sil", "high_sil_isolated_checker", "mixed_sil_doer_checker", "dual_two_of_two", "one_of_two_failover", "low_sil_diverse_doer_checker"];
 pat_recurring = [0, 2, 1, 2, 2, 3, 4, 2, 2];
 pat_allowed = array2d(1..14, 1..9,
-  [| false, false, true, false, false, false, false, false, false
+  [| false, false, true, false, false, false, false, false, true
      | true, false, true, false, false, false, false, false, true
      | true, false, true, false, false, false, false, false, true
      | true, false, true, false, false, false, false, false, true
-     | false, false, true, false, false, false, false, false, false
+     | false, false, true, false, false, false, false, false, true
      | true, false, true, false, false, false, false, false, true
-     | false, false, true, false, false, false, false, false, false
-     | false, false, true, false, false, false, false, false, false
+     | false, false, true, false, false, false, false, false, true
+     | false, false, true, false, false, false, false, false, true
      | true, false, true, false, false, false, false, false, true
      | true, false, true, false, false, false, false, false, true
      | true, false, true, false, false, false, false, false, true
-     | false, false, true, false, false, false, false, false, false
+     | false, false, true, false, false, false, false, false, true
      | true, false, true, false, false, false, false, false, true
-     | false, false, true, false, false, false, false, false, false |]);
+     | false, false, true, false, false, false, false, false, true |]);
 par_owner = [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7];
 node_owner = [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7];
 owner_node = [1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7];
@@ -128,27 +128,21 @@ node_guard = array2d(1..14, 1..9,
      | true, true, true, true, true, true, true, true, true
      | true, true, true, true, true, true, true, true, true
      | true, true, true, true, true, true, true, true, true
-     | false, false, true, false, false, false, false, false, false
      | false, false, true, false, false, false, false, false, true
      | false, false, true, false, false, false, false, false, true
      | false, false, true, false, false, false, false, false, true
-     | false, false, true, false, false, false, false, false, false
      | false, false, true, false, false, false, false, false, true
-     | false, false, true, false, false, false, false, false, false |]);
-nPE = 47;
-pe_src = [1, 8, 2, 9, 1, 1, 2, 9, 1, 1, 3, 10, 2, 2, 3, 10, 2, 2, 4, 11, 3, 3, 4, 11, 3, 3, 5, 12, 4, 4, 1, 6, 13, 4, 5, 5, 5, 6, 13, 4, 5, 5, 5, 7, 14, 6, 1];
-pe_dst = [8, 1, 9, 2, 9, 9, 9, 2, 9, 9, 10, 3, 10, 10, 10, 3, 10, 10, 11, 4, 11, 11, 11, 4, 11, 11, 12, 5, 12, 12, 12, 13, 6, 13, 13, 13, 13, 13, 6, 13, 13, 13, 13, 14, 7, 14, 14];
-pe_tok = [0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0];
-pe_owner = [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7];
-pe_guard = array2d(1..47, 1..9,
+     | false, false, true, false, false, false, false, false, true
+     | false, false, true, false, false, false, false, false, true
+     | false, false, true, false, false, false, false, false, true |]);
+nPE = 58;
+pe_src = [1, 8, 1, 8, 2, 9, 1, 1, 2, 9, 1, 1, 3, 10, 2, 2, 3, 10, 2, 2, 4, 11, 3, 3, 4, 11, 3, 3, 5, 12, 4, 4, 1, 5, 12, 4, 4, 1, 6, 13, 4, 5, 5, 5, 6, 13, 4, 5, 5, 5, 7, 14, 6, 1, 7, 14, 6, 1];
+pe_dst = [8, 1, 8, 1, 9, 2, 9, 9, 9, 2, 9, 9, 10, 3, 10, 10, 10, 3, 10, 10, 11, 4, 11, 11, 11, 4, 11, 11, 12, 5, 12, 12, 12, 12, 5, 12, 12, 12, 13, 6, 13, 13, 13, 13, 13, 6, 13, 13, 13, 13, 14, 7, 14, 14, 14, 7, 14, 14];
+pe_tok = [0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0];
+pe_owner = [1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7];
+pe_guard = array2d(1..58, 1..9,
   [| false, false, true, false, false, false, false, false, false
      | false, false, true, false, false, false, false, false, false
-     | false, false, true, false, false, false, false, false, false
-     | false, false, true, false, false, false, false, false, false
-     | false, false, true, false, false, false, false, false, false
-     | false, false, true, false, false, false, false, false, false
-     | false, false, false, false, false, false, false, false, true
-     | false, false, false, false, false, false, false, false, true
      | false, false, false, false, false, false, false, false, true
      | false, false, false, false, false, false, false, false, true
      | false, false, true, false, false, false, false, false, false
@@ -171,7 +165,20 @@ pe_guard = array2d(1..47, 1..9,
      | false, false, true, false, false, false, false, false, false
      | false, false, true, false, false, false, false, false, false
      | false, false, true, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
      | false, false, true, false, false, false, false, false, false
+     | false, false, true, false, false, false, false, false, false
+     | false, false, true, false, false, false, false, false, false
+     | false, false, true, false, false, false, false, false, false
+     | false, false, true, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
      | false, false, true, false, false, false, false, false, false
      | false, false, true, false, false, false, false, false, false
      | false, false, true, false, false, false, false, false, false
@@ -187,10 +194,25 @@ pe_guard = array2d(1..47, 1..9,
      | false, false, true, false, false, false, false, false, false
      | false, false, true, false, false, false, false, false, false
      | false, false, true, false, false, false, false, false, false
-     | false, false, true, false, false, false, false, false, false |]);
-pe_owner2 = [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7];
-pe_guard2 = array2d(1..47, 1..9,
+     | false, false, true, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true
+     | false, false, false, false, false, false, false, false, true |]);
+pe_owner2 = [1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7];
+pe_guard2 = array2d(1..58, 1..9,
   [| true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
+     | true, true, true, true, true, true, true, true, true
      | true, true, true, true, true, true, true, true, true
      | true, true, true, true, true, true, true, true, true
      | true, true, true, true, true, true, true, true, true
@@ -237,13 +259,18 @@ pe_guard2 = array2d(1..47, 1..9,
      | true, true, true, true, true, true, true, true, true
      | true, true, true, true, true, true, true, true, true
      | true, true, true, true, true, true, true, true, true |]);
-nPL = 11;
-pl_u = [1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 7];
-pl_v = [8, 9, 9, 10, 10, 11, 11, 12, 13, 13, 14];
-pl_rel = [1, 1, 4, 1, 4, 1, 4, 1, 1, 4, 1];
-pl_owner = [1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 7];
-pl_guard = array2d(1..11, 1..9,
+nPL = 14;
+pl_u = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7];
+pl_v = [8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 14, 14];
+pl_rel = [1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4, 1, 4];
+pl_owner = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7];
+pl_guard = array2d(1..14, 1..9,
   [| false, false, true, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, true, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, false, true
+     | false, false, true, false, false, false, false, false, false
+     | false, false, false, false, false, false, false, false, true
      | false, false, true, false, false, false, false, false, false
      | false, false, false, false, false, false, false, false, true
      | false, false, true, false, false, false, false, false, false
@@ -251,9 +278,7 @@ pl_guard = array2d(1..11, 1..9,
      | false, false, true, false, false, false, false, false, false
      | false, false, false, false, false, false, false, false, true
      | false, false, true, false, false, false, false, false, false
-     | false, false, true, false, false, false, false, false, false
-     | false, false, false, false, false, false, false, false, true
-     | false, false, true, false, false, false, false, false, false |]);
+     | false, false, false, false, false, false, false, false, true |]);
 
 % ---- TDMA communication ----
 nCh = 0;

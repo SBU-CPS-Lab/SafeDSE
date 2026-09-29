@@ -245,6 +245,13 @@ def _diverse_placeable(p: Pattern, need: int, faults: set[str],
     Diversity is realised as distinct core TYPES, so N mutually diverse
     components need N types -- and only types that may legally host them. A
     type capped at SIL 2 is no help to a SIL-3 replica however diverse it is.
+
+    Every member is required at the actor's SIL `need`, as in the model. A
+    component's `sil_offset` never raises it above `need`: the checker carries
+    the function's SIL, and the offset says how far below it the doer (the
+    owner) could be developed (Koopman's doer/checker patterns; Koopman and
+    Wagner 2016, monitor/actuator). The model keeps the owner at `need`,
+    which is conservative.
     """
     if not ctype_sils:
         return True, ""
@@ -257,17 +264,10 @@ def _diverse_placeable(p: Pattern, need: int, faults: set[str],
         groups.append(set(pl["members"]))
     for ms in groups:
         worst = need
-        for role in ms:
-            if role == "owner":
-                continue
-            for c in p.components:
-                if c["role"] == role:
-                    worst = max(worst, min(4, need + int(
-                        c.get("sil_offset", 0))))
         usable = [s for s in ctype_sils if s >= worst]
         if len(ms) > len(usable):
             return False, (f"needs {len(ms)} mutually diverse components "
-                           f"({sorted(ms)}) at up to SIL {worst}, but only "
+                           f"({sorted(ms)}) at SIL {worst}, but only "
                            f"{len(usable)} of the platform's {len(ctype_sils)} "
                            f"core type(s) can be certified to that level")
     return True, ""
