@@ -97,10 +97,29 @@ tactics:
     # Replicating a channel onto the same fault containment region defends
     # against nothing: one random hardware fault takes out both copies.  The
     # separation is a deployment property and SafeDSE decides it.
+    #
+    # The claim is PER RELATION and says exactly what the verifier checked
+    # (review rev1, D9).  DIFFERENT allows two cores on one card, and a card
+    # is the fault containment region (shared power and clock), so a DIFFERENT
+    # record must never be cited for a claim about fault containment regions.
+    # Neither relation separates what the components still share; that is
+    # listed per relation in `residual_common_cause` and becomes an
+    # undeveloped goal next to the deployment goal.
     deployment_relations: [DIFFERENT_FCR, DIFFERENT]
-    relation_claim: >
-      the replicated components are deployed on hardware that does not share a
-      single point of random hardware failure
+    relation_claims:
+      DIFFERENT_FCR: >
+        the replicated components run in different fault containment regions
+      DIFFERENT: >
+        the replicated components run on different cores, possibly in one
+        fault containment region
+    residual_common_cause:
+      DIFFERENT_FCR: >
+        the interconnect and cross-check link, the shared inputs, and the
+        point where the results are compared or voted
+      DIFFERENT: >
+        the fault containment region that may hold both cores, with its power
+        and clock, the interconnect and cross-check link, the shared inputs,
+        and the point where the results are compared or voted
 
   - name: Diverse Redundancy
     category: Redundancy
@@ -119,8 +138,9 @@ tactics:
       - "IEC 61508-7 B.1.4 diverse hardware"
       - "IEC 61508-7 C.4.4 diverse programming"
     deployment_relations: [DIVERSE]
-    relation_claim: >
-      the diverse components are deployed on distinct processor types
+    relation_claims:
+      DIVERSE: >
+        the diverse components run on different core types
     # READ THIS BEFORE BELIEVING THE DIVERSE EVIDENCE NODE.
     # SafeDSE's DIVERSE relation constrains the two components to distinct core
     # TYPES.  Distinct core types imply distinct instruction sets and hence
@@ -130,6 +150,11 @@ tactics:
     # substance of the tactic.  The generator therefore emits the mapping
     # evidence AND a standing assumption; it must never present the former as
     # discharging the latter.
+    # Review rev1, D4: the fault class S that DIVERSE covers is the part of
+    # systematic faults that differs between core types and toolchains
+    # (compiler, instruction set, object code).  Design faults of the
+    # application software reappear in both unless the software itself is
+    # developed diversely, which the caveat keeps undischarged.
     relation_caveat: >
       Distinct core types give distinct toolchains and object code, not
       independent design.  Design independence remains an undischarged claim.

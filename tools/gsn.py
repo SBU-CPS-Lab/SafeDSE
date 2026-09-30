@@ -42,10 +42,20 @@ data/gsn_tactics.yaml, so their goals come out as diamonds.  The generator's
 headline number -- goals discharged versus goals left undeveloped -- is the
 honest statement of how much of a safety case a DSE can actually produce.  It
 is not most of one.
+
+A deployment goal says exactly what the cited check establishes, one claim per
+placement relation (data/gsn_tactics.yaml `relation_claims`), and what the
+relation leaves shared becomes an undeveloped common-cause goal next to it.
+An actor goal claims only that the deployment meets the architectural
+preconditions the catalog states for the required SIL: the catalog's SIL range
+of a pattern is necessary, not sufficient, for a SIL under IEC 61508, which
+also needs failure rates, hardware fault tolerance and diagnostic coverage
+that nothing here computes (review rev1, D1, D9).
 """
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import sys
@@ -212,8 +222,21 @@ def infer_fault_model(d: dict, pats: list) -> tuple[str | None, str]:
 
 
 # ---------------------------------------------------------------------------
+def sha256(path: str | Path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def verdict_tokens(p) -> int:
+    """Initial tokens on the pattern's edges from a component back to the
+    owner (the verdict or result the owner acts on); 0 if there is none."""
+    t = [int(e.get("tokens", 0)) for e in p.edges
+         if e.get("to") == "owner" and e.get("from") != "owner"]
+    return max(t) if t else 0
+
+
 def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
-          fault_model: str | None, label: str) -> Argument:
+          fault_model: str | None, label: str, catalog: str = "",
+          evidence_ids: dict | None = None) -> Argument:
     a = Argument()
     by_id = {p.id: p for p in pats}
     n = d["nActors"] if "nActors" in d else len(_l(d["node_name"]))
@@ -292,8 +315,21 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
 
     # ---- context, assumptions, justification -----------------------------
     c_std = a.add("Context", "IEC 61508 is the governing functional safety "
-                             "standard; integrity is allocated as a Safety "
-                             "Integrity Level per actor (Q1, Q13).")
+                             "standard; integrity is allocated as a required "
+                             "Safety Integrity Level per actor (Q1, Q13). "
+                             "SIL 0 means no safety requirement.")
+    c_haz = a.add("Context", "The required SIL of every actor is an input from "
+                             "a hazard and risk analysis outside this "
+                             "argument.")
+    srcs = sorted({x for p in pats for x in (p.source or [])
+                   if isinstance(x, str) and x.islower() and " " not in x
+                   and x != "baseline"})
+    c_cat = a.add("Context",
+                  f"Pattern catalog {catalog or '(unnamed)'}: structure, "
+                  f"placement relations, SIL range and covered fault classes "
+                  f"of each pattern, after "
+                  f"{', '.join(x.title() for x in srcs) or 'unstated sources'}. Every pattern "
+                  f"choice and placement rule in this argument rests on it.")
     ncores = len(csil) or len(ctype)
     nfcr = len(set(fcr)) if fcr else 0
     c_plat = a.add("Context",
@@ -311,12 +347,20 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
     fm_txt = {"random_hw": "random hardware faults",
               "systematic_sw": "systematic software faults",
               "both": "random hardware faults and systematic software faults"}
+    sys_txt = (" Systematic faults are covered only as far as they differ "
+               "between core types and toolchains, or between a doer and a "
+               "checker with a different algorithm; design faults common to "
+               "diverse implementations need diverse development."
+               if fault_model in ("systematic_sw", "both") else "")
     c_fm = a.add("Context",
                  f"Fault model under consideration: "
                  f"{fm_txt.get(fault_model, 'UNDETERMINED')} (Q2). "
                  f"Patterns not covering this fault class were excluded from "
                  f"the design space, and placement relations motivated only by "
-                 f"an excluded fault class were not posted.")
+                 f"an excluded fault class were not posted.{sys_txt} Not "
+                 f"addressed: transient faults, timing and omission faults, "
+                 f"faults of the interconnect, latent faults, diagnostic "
+                 f"coverage, and degraded modes.")
     j_scope = a.add(
         "Justification",
         "This argument is generated from a design space exploration result. It "
@@ -326,7 +370,10 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
         "and whether the resulting schedule meets its timing requirement. "
         "Claims about implementation correctness, detection coverage and "
         "development process are outside what a mapping can establish and are "
-        "carried below as undeveloped goals.")
+        "carried below as undeveloped goals. The SIL range of a pattern is a "
+        "precondition taken from the catalog, necessary but not sufficient "
+        "for a SIL: this argument computes no failure rates, hardware fault "
+        "tolerance, safe failure fraction or diagnostic coverage.")
     a_wcet = a.add(
         "Assumption",
         "The worst-case execution times supplied to the exploration are sound "
@@ -340,19 +387,37 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
         "The timing argument therefore holds in the degraded mode, at the cost "
         "of being conservative when no fault is present.")
 
+    a_inst = a.add(
+        "Assumption",
+        "The verifier re-checks the solution against the instance produced by "
+        "the front end, not against the original specification. The instance "
+        "represents the platform, execution times, pattern catalog and safety "
+        "requirements correctly; an error in the front end or in the "
+        "specification would be common to the exploration and the verifier.")
+
     top = a.add("Goal",
-                f"The deployed architecture of {label} preserves the allocated "
-                f"safety integrity of every safety-related actor.")
-    a.context(top, c_std, c_app, c_plat, c_fm, j_scope, a_wcet, a_token)
+                f"The deployed architecture of {label} meets, for every "
+                f"safety-related actor, the architectural preconditions that "
+                f"the pattern catalog states for the actor's required SIL.")
+    a.context(top, c_std, c_haz, c_cat, c_app, c_plat, c_fm, j_scope, a_wcet,
+              a_token, a_inst)
+    if evidence_ids:
+        c_ev = a.add("Context",
+                     "Evidence identity (SHA-256): "
+                     + "; ".join(f"{k} {v}" for k, v in evidence_ids.items())
+                     + ". Every Solution cites a record of this check log by "
+                       "index.")
+        a.context(top, c_ev)
 
     if any(comm_flags) and d.get("comm_sil_mode", 0) == 0:
         a_comm = a.add(
             "Assumption",
             "Inter-processor transfers are not safety functions and carry no "
-            "integrity requirement of their own (Q21, --comm-sil exempt). If "
-            "the interconnect can corrupt or lose a token, this assumption "
-            "does not hold and the argument must be regenerated with "
-            "--comm-sil inherit or core.")
+            "integrity requirement of their own (Q21, --comm-sil exempt). "
+            "This holds if the interconnect is used as a black channel: the "
+            "communicating actors detect corruption, loss and delay of a "
+            "token end to end. Otherwise the argument must be regenerated "
+            "with --comm-sil inherit or core.")
         a.context(top, a_comm)
 
     strat = a.add("Strategy",
@@ -381,8 +446,9 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
         p = by_id.get(pid)
 
         g_a = a.add("Goal",
-                    f"Actor {aname} of application {appn}, allocated SIL "
-                    f"{need}, attains SIL {need} in the deployed architecture.")
+                    f"Actor {aname} of application {appn}, required SIL "
+                    f"{need}: the deployment meets the architectural "
+                    f"preconditions that the catalog states for SIL {need}.")
         a.support(strat, g_a)
         c_a = a.add("Context",
                     f"{aname} is unfolded into {len(copies)} concurrent "
@@ -391,21 +457,47 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
                     f"SIL {impl[0] if len(impl) == 1 else impl}.")
         a.context(g_a, c_a)
 
-        # the SIL provisioning of the owner's own copies
-        ev = [j for i in copies if act[i] for j in find("sil_actor", node=i + 1)]
-        if ev:
-            sn = a.add("Solution",
-                       f"Independent re-check of the solution: every active "
-                       f"copy of {aname} is implemented at or above its "
-                       f"allocated SIL and runs on a core provisioned to at "
-                       f"least that level.",
-                       evidence=ev)
+        # the active copies of each component of the selected pattern
+        comp_nodes: list[tuple[str, list[int]]] = []
+        if p is not None and p.components:
+            ks = slots_of(k)
+            for ci, comp in enumerate(p.components):
+                if ci >= len(ks):
+                    continue
+                pk = next((j for j, lb in enumerate(parent_name)
+                           if lb == f"{appn}.{aname}~{ks[ci]}"), None)
+                if pk is None:
+                    continue
+                comp_nodes.append((comp["role"],
+                                   [i for i in range(n)
+                                    if parent[i] == pk + 1 and act[i]]))
+
+        # SIL provisioning of the owner's copies and of every component's
+        # copies (review rev1, D3): a component carries the actor's required
+        # SIL, and the argument must show where it runs, not only the owner.
+        prov = [(aname, [i for i in copies if act[i]])]
+        prov += [(f"{aname}'s {role}", cn) for role, cn in comp_nodes if cn]
+        ev_all = [(who_, [j for i in cn for j in find("sil_actor", node=i + 1)])
+                  for who_, cn in prov]
+        if ev_all[0][1]:
+            roles = [role for role, cn in comp_nodes if cn]
             g_prov = a.add("Goal",
-                           f"Every copy of {aname} is implemented at SIL "
-                           f"{need} or above and is not hosted on a core "
-                           f"provisioned below that level.")
+                           f"Every copy of {aname}"
+                           + (f" and of its {', '.join(roles)}" if roles
+                              else "")
+                           + f" is implemented at SIL {need} or above and runs "
+                             f"on a core provisioned to at least that level.")
             a.support(g_a, g_prov)
-            a.support(g_prov, sn)
+            for who_, ev in ev_all:
+                if not ev:
+                    continue
+                sn = a.add("Solution",
+                           f"Independent re-check of the solution: every "
+                           f"active copy of {who_} is implemented at or above "
+                           f"its required SIL and runs on a core provisioned "
+                           f"to at least that level.",
+                           evidence=ev)
+                a.support(g_prov, sn)
 
         if p is None or pid == "none":
             s_a = a.add("Strategy",
@@ -431,23 +523,14 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
         # has no way to tell what it is or whether it was even instantiated.
         if p is not None and p.components:
             parts = []
-            ks = slots_of(k)
-            for ci, comp in enumerate(p.components):
-                if ci >= len(ks):
-                    continue
-                pk = next((j for j, lbl in enumerate(parent_name)
-                           if lbl == f"{appn}.{aname}~{ks[ci]}"), None)
-                if pk is None:
-                    continue
-                cn = [i for i in range(n)
-                      if parent[i] == pk + 1 and act[i]]
+            for role, cn in comp_nodes:
                 if not cn:
-                    parts.append(f"{comp['role']} (not instantiated)")
+                    parts.append(f"{role} (not instantiated)")
                     continue
                 cc = sorted({proc[i] for i in cn})
                 cs = sorted({sil_impl[i] for i in cn}) if sil_impl else []
                 parts.append(
-                    f"{comp['role']} on core "
+                    f"{role} on core "
                     f"{cc[0] if len(cc) == 1 else cc}"
                     + (f" at SIL {cs[0] if len(cs) == 1 else cs}" if cs else ""))
             if parts:
@@ -523,24 +606,30 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
 
                 # (i) the deployment precondition, where the tactic has one
                 rels = t.get("deployment_relations") or []
+                claims = {r: " ".join(str(c).split())
+                          for r, c in (t.get("relation_claims") or {}).items()}
+                residual = {r: " ".join(str(c).split()) for r, c in
+                            (t.get("residual_common_cause") or {}).items()}
                 if rels:
                     hits = [j for j in range(len(checks))
                             if checks[j]["kind"] == "placement"
                             and checks[j].get("owner") == k + 1
                             and checks[j].get("relation") in rels]
-                    if hits:
-                        consumed.update(hits)
-                        g_dep = a.add(
-                            "Goal",
-                            f"In the deployed mapping, "
-                            f"{' '.join(str(t['relation_claim']).split())}.")
+                    consumed.update(hits)
+                    # one deployment goal per relation, claiming exactly what
+                    # the cited records establish (review rev1, D9)
+                    for rel in rels:
+                        hr = [j for j in hits if checks[j]["relation"] == rel]
+                        if not hr:
+                            continue
+                        g_dep = a.add("Goal", f"In the deployed mapping, "
+                                              f"{claims[rel]}.")
                         a.support(s_t, g_dep)
-                        for j in hits:
-                            c = checks[j]
+                        for j in hr:
                             sn = a.add(
                                 "Solution",
                                 f"Independent re-check of the solution: "
-                                f"{evidence_text(c)}.",
+                                f"{evidence_text(checks[j])}.",
                                 evidence=[j])
                             a.support(g_dep, sn)
                         if t.get("relation_caveat"):
@@ -550,7 +639,18 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
                                 f"The mapping evidence below establishes the "
                                 f"deployment property only.")
                             a.context(g_dep, a_cav)
-                    else:
+                        if rel in residual:
+                            g_cc = a.add(
+                                "Goal",
+                                f"Common-cause failures of these components "
+                                f"through what the placement does not "
+                                f"separate ({residual[rel]}) are identified "
+                                f"and controlled.",
+                                undeveloped=True,
+                                note="common-cause analysis; the placement "
+                                     "does not establish it")
+                            a.support(s_t, g_cc)
+                    if not hits:
                         # The tactic claims a deployment precondition and the
                         # instance posts none.  Usually this means the relation
                         # was dropped at build time because its `for:` names a
@@ -564,7 +664,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
                             f"tactic is not realised in this deployment")
                         g_dep = a.add(
                             "Goal",
-                            f"{' '.join(str(t['relation_claim']).split())} "
+                            f"{' or '.join(claims[r] for r in rels)} "
                             f"-- NOT ESTABLISHED: no such placement relation is "
                             f"posted for {aname} under fault model "
                             f"{fault_model}.",
@@ -630,6 +730,15 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
             "present on it. Whether a core type can provide such partitioning "
             "is declared per core type by the platform (Q18).")
         a.context(g_iso, c_iso)
+        a_mc = a.add(
+            "Assumption",
+            "Software on different cores does not interfere except through the "
+            "interconnect; shared memory, caches and input/output are not "
+            "modelled, so applying the rule per core assumes freedom from "
+            "interference between cores. Certified partitioning, where used, "
+            "separates software of different SIL on one core in space and "
+            "time.")
+        a.context(g_iso, a_mc)
         s_iso = a.add(
             "Strategy",
             "Achieved through the Barrier tactic (Isolation): protect a "
@@ -673,8 +782,8 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
         if per:
             sn_p = a.add(
                 "Solution",
-                "Independent re-check of the solution: the mapping-and-"
-                "schedule-aware graph was rebuilt from the returned assignment "
+                "Independent re-check of the solution: the mapping- and "
+                "scheduling-aware graph was rebuilt from the returned assignment "
                 "and its period computed twice by disjoint methods -- Lawler's "
                 "parametric maximum-cycle-ratio search and max-plus self-timed "
                 "simulation -- which "
@@ -692,11 +801,38 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
                 evidence=lb)
             a.support(g_t, sn_l)
 
+    # ---- platform-wide: fault reaction (review rev1, D7) ------------------
+    # A doer/checker is a safety mechanism only if a detected fault leads to a
+    # safe state in time. The dataflow model fixes when a verdict reaches the
+    # owner (the initial tokens on the verdict edge), and nothing else.
+    g_fr = a.add(
+        "Goal",
+        "Every detected fault brings the function to its safe state within "
+        "the process safety time.",
+        undeveloped=True,
+        note="fault reaction and process safety time are not modelled")
+    a.support(strat, g_fr)
+    used = sorted({pat_name[pat[k] - 1] for k, _ in base
+                   if npat and k < len(pat) and sreq[k] >= 1})
+    vt = {pid: verdict_tokens(by_id[pid]) for pid in used if pid in by_id}
+    vt = {pid: t for pid, t in vt.items() if t > 0}
+    if vt:
+        c_fr = a.add(
+            "Context",
+            "In the dataflow model, a component's verdict on iteration k "
+            "reaches the owner over an edge with t initial tokens, i.e. in the "
+            "owner's firing t iterations later ("
+            + ", ".join(f"{pid}: t = {t}" for pid, t in vt.items())
+            + "). The reaction itself and the process safety time are not "
+              "modelled.")
+        a.context(g_fr, c_fr)
+    a.context(g_fr, a_token)
+
     # ---- platform-wide: process ------------------------------------------
     g_dev = a.add(
         "Goal",
         "Every software component is developed, verified and validated to its "
-        "allocated safety integrity level in accordance with IEC 61508-3.",
+        "required safety integrity level in accordance with IEC 61508-3.",
         undeveloped=True,
         note="process evidence; the DSE prices this effort but cannot supply it")
     a.support(strat, g_dev)
@@ -710,7 +846,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
             "Integrity levels to be discharged by process, as active component "
             "counts: "
             + ", ".join(f"SIL {s}: {c}" for s, c in sorted(dist.items()))
-            + ". Components implemented above their allocated level were "
+            + ". Components implemented above their required level were "
               "promoted to satisfy Koopman's rule 2; the cost of that "
               "promotion is what the exploration minimised.")
         a.context(g_dev, c_dev)
@@ -806,8 +942,9 @@ def to_md(a: Argument, meta: dict, report: dict) -> str:
             f"are discharged by evidence from an independent re-check of the "
             f"solution. The remaining {st['goals_undeveloped']} are marked "
             f"undeveloped and are the architect's to discharge: they concern "
-            f"detection power, implementation correctness, certification of "
-            f"separation mechanisms, and development process. A design space "
+            f"detection power, implementation correctness, common-cause "
+            f"analysis, fault reaction, certification of separation "
+            f"mechanisms, and development process. A design space "
             f"exploration can decide where components go; it cannot decide "
             f"whether a checker checks.", ""]
     if a.out_of_scope:
@@ -935,7 +1072,10 @@ def main() -> int:
         fm, how = a.fault_model, "supplied on the command line"
 
     label = Path(a.dzn).stem
-    arg = build(d, sol, report, pats, tactics, fm, label)
+    ids = {"instance": sha256(a.dzn), "solution": sha256(a.solution),
+           "check log": sha256(a.report or f"{a.out}.verify.json")}
+    arg = build(d, sol, report, pats, tactics, fm, label,
+                catalog=Path(a.patterns).name, evidence_ids=ids)
 
     bad = arg.audit()
     if bad:

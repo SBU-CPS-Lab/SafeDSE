@@ -691,6 +691,18 @@ def t_gsn() -> None:
                      if r not in known})
     check("tactic deployment_relations are real placement relations",
           not badrel, f"unknown: {badrel}")
+    # a deployment goal states what its records establish, one claim per
+    # relation; DIFFERENT allows one card, so it must not claim FCR separation
+    noclaim = sorted({(t["name"], r) for t in tactics.values()
+                      for r in (t.get("deployment_relations") or [])
+                      if r not in (t.get("relation_claims") or {})})
+    check("every deployment relation has its own claim", not noclaim,
+          f"missing: {noclaim}")
+    rr = tactics.get("Replication Redundancy", {})
+    check("a DIFFERENT record is never claimed as FCR separation",
+          "different fault containment regions" not in
+          " ".join(str(rr.get("relation_claims", {}).get("DIFFERENT", ""))
+                   .split()))
 
     def gen(name, dzn, metric="TOTALCOST", bounds=None):
         r = run(str(dzn), metric, bounds or {}, timeout=200)
@@ -750,6 +762,46 @@ def t_gsn() -> None:
                           all(k.undeveloped for k in kids
                               if k.kind == "Goal"))
                     break
+
+            # ---- claims match their evidence (review rev1, D1, D3, D7, D9)
+            goals = [e for e in arg.el.values() if e.kind == "Goal"]
+            check("no goal claims that a SIL is attained",
+                  not any("attains SIL" in g.text for g in goals))
+            rel_of = {f"In the deployed mapping, {' '.join(str(c).split())}.": r
+                      for t in tactics.values()
+                      for r, c in (t.get("relation_claims") or {}).items()}
+            deps = [g for g in goals if g.text in rel_of]
+            wrong = [g.id for g in deps
+                     for c in g.supported_by
+                     for j in arg.el[c].evidence
+                     if rep["checks"][j].get("relation") != rel_of[g.text]]
+            check("every deployment goal cites only records of the relation "
+                  "it claims", bool(deps) and not wrong, f"{wrong}")
+            resid = {r for t in tactics.values()
+                     for r in (t.get("residual_common_cause") or {})}
+            lone = [g.id for g in deps if rel_of[g.text] in resid
+                    and not any(arg.el[s].kind == "Goal"
+                                and arg.el[s].undeveloped
+                                and arg.el[s].text.startswith("Common-cause")
+                                for p_ in arg.el.values()
+                                if g.id in p_.supported_by
+                                for s in p_.supported_by)]
+            check("a separation claim comes with an undeveloped "
+                  "common-cause goal", not lone, f"{lone}")
+            d = G.parse_dzn(str(f))
+            act = _json.loads(Path("/tmp/gsn_frh.json").read_text())["active"]
+            comp = [i + 1 for i, nm in enumerate(G._l(d["node_name"]))
+                    if "~" in nm and not nm.startswith("__comm") and act[i]]
+            cited = {rep["checks"][j].get("node") for e in sols
+                     for j in e.evidence
+                     if rep["checks"][j]["kind"] == "sil_actor"}
+            check("every active pattern component has cited SIL "
+                  "provisioning", bool(comp) and set(comp) <= cited,
+                  f"uncited nodes {sorted(set(comp) - cited)}")
+            fr = [g for g in goals if g.undeveloped
+                  and "process safety time" in g.text]
+            check("the argument carries one undeveloped fault-reaction goal",
+                  len(fr) == 1, f"{len(fr)}")
 
             # ---- 1. the audit must actually catch a broken argument -------
             probe = arg.add("Goal", "an unsupported claim nobody checked")

@@ -49,6 +49,8 @@ patterns:
     edges: []
     placement: []
     achieves_sil: [0, 1]
+    # not a coverage claim: `none` takes no measure, and listing both classes
+    # only makes it admissible under every fault model (review rev1, D14)
     covers_faults: [random_hw, systematic_sw]
     failure_mode: none
     voter: folded
@@ -106,6 +108,9 @@ patterns:
       of two -- but it tolerates no hardware fault in that processor, and under
       Koopman's rule 2 the shared core is provisioned to the checker's SIL, so
       the doer is promoted unless certified partitioning is available.
+      It covers systematic faults only through the checker's different
+      algorithm, a value-domain property that no placement establishes; the
+      other patterns that cover them do so through DIVERSE core types.
       This record exists to demonstrate that a pattern is a graph rewrite PLUS
       a placement relation; drop the placement field and the two patterns
       become indistinguishable.
@@ -136,11 +141,15 @@ patterns:
   - id: two_of_two_high_sil
     source: [koopman, "Two Channel (2-of-2)"]
     description: >
-      Two independent channels, both at high SIL, whose outputs must agree.
-      Disagreement shuts the pair down, so it fails silent.  No explicit voter:
-      2-of-2 requires agreement rather than a majority, so the comparison folds
-      into the consuming actor -- which is why this pattern is reachable in
-      Phase 4 while NVP is not.
+      Two channels, both at high SIL, compute the same function and must agree.
+      Channel b receives the owner's result, compares it with its own, and
+      returns the verdict to the owner over an edge with one initial token; on
+      a disagreement the owner marks its output invalid and the pair goes to
+      its safe state (fails silent), so the fault reaction starts within one
+      iteration.  No explicit voter: 2-of-2 requires agreement rather than a
+      majority, so the comparison folds into channel b and the owner -- which
+      is why this pattern is reachable in Phase 4 while NVP is not.  The name
+      is Koopman's; it is not IEC 61508 MooN notation.
       Both channels always fire and always produce, per the token-preservation
       obligation.  A detected disagreement marks the token invalid; it never
       withholds it.  So the timing guarantee holds in the degraded mode too
