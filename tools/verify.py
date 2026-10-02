@@ -14,6 +14,16 @@ well-formed output for weeks of prototyping.  Nothing in this file shares code
 with the MiniZinc model.
 
     verify.py --dzn out/rasta.dzn --solution out/rasta.json
+
+No field that the model derives is taken from the solution on trust (a
+mutation analysis found solutions that an earlier version accepted although
+the model rejects them). Checked, each with a check-log record: required
+fields present; every WCET equals the table entry of the bound core type and
+mode (0 when inactive) and no forbidden binding; one static order per core
+over exactly the nodes bound to it; activation follows the selected pattern,
+the pattern is admissible and shared by an actor's slots; partitioning only
+on a type that provides it; memory; and the reported costs recomputed from
+the instance tables.
 """
 from __future__ import annotations
 
@@ -227,6 +237,199 @@ def build_msag(d: dict, sol: dict):
     return n, edges, T, live
 
 
+FORBIDDEN = 1_000_000      # build_dzn.py's wcet entry for a forbidden binding
+
+
+def _grid(flat, ncol):
+    flat = _aslist(flat)
+    if flat and isinstance(flat[0], list):
+        return flat
+    return [flat[r * ncol:(r + 1) * ncol] for r in range(len(flat) // ncol)]
+
+
+def required_fields(d: dict, sol: dict) -> list[str]:
+    """A missing field must not switch a family of checks off silently."""
+    need = ["proc", "succ", "T", "mu", "active", "pmode"]
+    if "sil_req_parent" in d:
+        need += ["sil_impl", "csil", "partition"]
+    if d.get("nPat", 0) > 1:
+        need += ["pat"]
+    return [k for k in need if k not in sol]
+
+
+def consistency(d: dict, sol: dict) -> tuple[bool, list[str]]:
+    """Fields the model derives, re-derived from the instance (S12g)."""
+    n = d["n"]
+    proc, succ, T = sol["proc"], sol["succ"], sol["T"]
+    act = _aslist(sol["active"])
+    pmode = _aslist(sol["pmode"])
+    comm = _aslist(d.get("comm_actor", [False] * n))
+    comm = [bool(x) for x in comm] + [False] * (n - len(comm))
+    ctype = _aslist(d["ctype"])
+    nct, nmd = d["nCoreTypes"], d["nModes"]
+    wcet = _aslist(d["wcet"])
+    ok, msgs = True, []
+
+    # ---- WCET follows the binding ---------------------------------------
+    bad = []
+    for i in range(n):
+        if comm[i]:
+            continue
+        p = proc[i]
+        w = wcet[(i * nct + ctype[p - 1] - 1) * nmd + pmode[p - 1] - 1]
+        if act[i] and w >= FORBIDDEN:
+            bad.append(f"node {i+1} is bound to core {p}, whose type it "
+                       f"cannot run on")
+        elif T[i] != (w if act[i] else 0):
+            bad.append(f"node {i+1}: WCET {T[i]} but the table gives "
+                       f"{w if act[i] else 0} for core {p}")
+    nch = d.get("nCh", 0)
+    if nch:
+        cs, cd = _aslist(d["ch_src"]), _aslist(d["ch_dst"])
+        for c in range(nch):
+            if proc[cs[c] - 1] == proc[cd[c] - 1]:
+                for k in ("ch_block", "ch_send", "ch_rec"):
+                    x = _aslist(d[k])[c] - 1
+                    if T[x] != 0:
+                        bad.append(f"communication actor {x+1} of a local "
+                                   f"channel has WCET {T[x]}")
+    _rec("wcet", not bad, "every active node's WCET is the table entry of the "
+         "core type and mode it is bound to, inactive nodes and the "
+         "communication actors of local channels have none"
+         + (f" ({len(bad)} violations)" if bad else ""))
+    ok &= not bad
+    msgs += bad
+
+    # ---- one static order per used core ---------------------------------
+    bad = []
+    cpu = [i for i in range(n) if not comm[i]]
+    for i in range(n):
+        if comm[i] and succ[i] != 0:
+            bad.append(f"communication actor {i+1} has a static-order successor")
+    indeg: dict[int, int] = {}
+    for i in cpu:
+        if succ[i] > 0:
+            j = succ[i] - 1
+            indeg[j] = indeg.get(j, 0) + 1
+            if comm[j] or proc[j] != proc[i]:
+                bad.append(f"static order links node {i+1} (core {proc[i]}) to "
+                           f"node {j+1} (core {proc[j]})")
+    bad += [f"node {j+1} has {k} predecessors in the static order"
+            for j, k in indeg.items() if k > 1]
+    for p in sorted({proc[i] for i in cpu}):
+        on = {i for i in cpu if proc[i] == p}
+        heads = [i for i in on if i not in indeg]
+        if len(heads) != 1:
+            bad.append(f"core {p} has {len(heads)} static orders")
+            continue
+        seen, x = [], heads[0]
+        while x is not None and x not in seen and x in on:
+            seen.append(x)
+            x = succ[x] - 1 if succ[x] > 0 else None
+        if set(seen) != on:
+            bad.append(f"the static order of core {p} covers {len(seen)} of "
+                       f"its {len(on)} nodes")
+    _rec("order", not bad, "every core that hosts nodes has exactly one "
+         "static order, and it covers exactly the nodes bound to the core"
+         + (f" ({len(bad)} violations)" if bad else ""))
+    ok &= not bad
+    msgs += bad
+
+    # ---- activation follows the selected pattern -------------------------
+    npat = d.get("nPat", 0)
+    if npat > 1:
+        bad = []
+        pat = _aslist(sol["pat"])
+        allowed = _grid(d["pat_allowed"], npat)
+        owner = _aslist(d["par_owner"])
+        guard = _grid(d["node_guard"], npat)
+        nown = _aslist(d["node_owner"])
+        pname = _aslist(d["parent_name"])
+        for a in range(len(pat)):
+            if not allowed[a][pat[a] - 1]:
+                bad.append(f"{pname[a]}: pattern {d['pat_name'][pat[a]-1]} is "
+                           f"not admissible for its SIL and fault model")
+            if pat[a] != pat[owner[a] - 1]:
+                bad.append(f"{pname[a]}: pattern differs from its owner's")
+        for i in range(n):
+            want = bool(guard[i][pat[nown[i] - 1] - 1])
+            if bool(act[i]) != want:
+                bad.append(f"node {i+1} is {'active' if act[i] else 'inactive'}"
+                           f" but the selected pattern "
+                           f"{'excludes' if act[i] else 'requires'} it")
+        _rec("activation", not bad, "every selected pattern is admissible for "
+             "its actor, and exactly the nodes it requires are active"
+             + (f" ({len(bad)} violations)" if bad else ""))
+        ok &= not bad
+        msgs += bad
+    elif not all(act[i] for i in range(n) if not comm[i]):
+        ok = False
+        msgs.append("an inactive node in an instance without patterns")
+
+    # ---- memory ----------------------------------------------------------
+    if "mem_req" in d and "core_mem" in d:
+        mem, cap = _aslist(d["mem_req"]), _aslist(d["core_mem"])
+        use: dict[int, int] = {}
+        for i in range(n):
+            if act[i]:
+                use[proc[i]] = use.get(proc[i], 0) + mem[i]
+        bad = [f"core {p} needs memory {u} of {cap[ctype[p - 1] - 1]}"
+               for p, u in sorted(use.items()) if u > cap[ctype[p - 1] - 1]]
+        _rec("memory", not bad, "no core holds more than its memory")
+        ok &= not bad
+        msgs += bad
+
+    # ---- reported costs --------------------------------------------------
+    if "total_cost" in sol and "fcr_price" in d:
+        P = d["P"]
+        used = [any(proc[i] == p + 1 and act[i] for i in range(n))
+                for p in range(P)]
+        fu = _aslist(sol.get("fcr_used", []))
+        fcr = _aslist(d["fcr"])
+        cprice = _grid(d["core_price"], nmd)
+        hw = sum(_aslist(d["fcr_price"])[f] for f in range(len(fu)) if fu[f]) \
+            + sum(cprice[ctype[p] - 1][pmode[p] - 1] for p in range(P)
+                  if used[p])
+        bad = [f"core {p+1} is used but its fault containment region is not"
+               for p in range(P) if used[p] and fu and not fu[fcr[p] - 1]]
+        cost = {"hw_cost": hw}
+        if "sil_impl" in sol:
+            dk = d["dev_k"]
+            if isinstance(dk, str):           # array1d(0..4, [...])
+                dk = [int(x) for x in dk[dk.index("[") + 1:dk.rindex("]")]
+                      .split(",")]
+            base = _aslist(d["dev_base"])
+            sil = sol["sil_impl"]
+            cost["dev_cost"] = sum(base[i] * dk[sil[i]] for i in range(n)
+                                   if act[i]) // 100
+            part = _aslist(sol.get("partition", [False] * P))
+            pc = _aslist(d["partition_cost"])
+            cost["partition_total"] = sum(pc[ctype[p] - 1] for p in range(P)
+                                          if part[p])
+        if npat > 1:
+            par = _aslist(d["parent"])
+            owner = _aslist(d["par_owner"])
+            base_par = [a for a in range(len(owner)) if owner[a] == a + 1
+                        and not any(par[i] == a + 1 and comm[i]
+                                    for i in range(n))]
+            rec_ = _aslist(d["pat_recurring"])
+            cost["pattern_cost"] = sum(rec_[_aslist(sol["pat"])[a] - 1]
+                                       for a in base_par)
+        else:
+            cost["pattern_cost"] = 0
+        cost["total_cost"] = sum(cost.get(k, 0) for k in
+                                 ("hw_cost", "dev_cost", "partition_total",
+                                  "pattern_cost"))
+        bad += [f"{k}: reported {sol[k]}, recomputed {v}"
+                for k, v in cost.items() if k in sol and sol[k] != v]
+        _rec("cost", not bad, "the reported costs equal the costs recomputed "
+             "from the instance tables (" + ", ".join(
+                 f"{k} {v}" for k, v in cost.items()) + ")", **cost)
+        ok &= not bad
+        msgs += bad
+    return ok, msgs
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dzn", required=True)
@@ -238,12 +441,23 @@ def main() -> int:
 
     d = parse_dzn(a.dzn)
     sol = json.loads(Path(a.solution).read_text())
+    missing = required_fields(d, sol)
+    if missing:
+        _rec("input", False, f"solution lacks {missing}")
+        print(f"  FAIL: solution lacks {missing}")
+        print("  VERIFY FAILED")
+        if a.json_report:
+            Path(a.json_report).write_text(json.dumps(
+                {"ok": False, "dzn": a.dzn, "solution": a.solution,
+                 "messages": [f"solution lacks {missing}"], "checks": REPORT},
+                indent=1))
+        return 1
+    ok, msgs = consistency(d, sol)
     n, edges, T, live = build_msag(d, sol)
 
     mus = sol["mu"] if isinstance(sol["mu"], list) else [sol["mu"]]
     app = d.get("app", [1] * n)
     nApps = d.get("nApps", 1)
-    ok, msgs = True, []
 
     # Rosvall computes period[z] as the MCR of the MSAG's CONNECTED COMPONENT
     # containing application z, so the check must be per component, not per
@@ -383,6 +597,11 @@ def main() -> int:
                 ok = False
                 msgs.append(f"core {p_+1}: provisioned to SIL {csil[p_]} but its "
                             f"type can only be certified to SIL {cap}")
+            pcap = _aslist(d.get("partitionable", [True]))[ctype[p_] - 1]
+            if part[p_] and not pcap:
+                ok = False
+                msgs.append(f"core {p_+1}: partitioning claimed, but its type "
+                            f"provides none")
             # Koopman rule 2: without partitioning, one SIL per core
             # In exempt mode (Q21) communication actors are not application
             # software and Koopman rule 2 does not reach them, so the model
@@ -406,10 +625,11 @@ def main() -> int:
                              and not (d.get("comm_sil_mode", 0) == 0
                                       and i < len(comm_flags) and comm_flags[i])})
             _rec("isolation",
-                 csil[p_] <= cap and (part[p_] or len(hosted) <= 1),
+                 csil[p_] <= cap and (part[p_] or len(hosted) <= 1)
+                 and (pcap or not part[p_]),
                  f"core {p_+1} is provisioned to SIL {csil[p_]} (type ceiling "
                  f"{cap}), hosts SILs {hosted}, certified partitioning "
-                 f"{'available and used' if part[p_] else 'not used'}",
+                 f"{('available and used' if pcap else 'used but not available') if part[p_] else 'not used'}",
                  core=p_ + 1, core_sil=csil[p_], type_ceiling=cap,
                  hosted_sils=hosted, partitioned=bool(part[p_]))
         if not a.quiet:

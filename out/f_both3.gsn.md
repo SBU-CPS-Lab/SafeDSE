@@ -8,7 +8,7 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
 | instance | `out/f_both3.dzn` |
 | fault model | both (inferred from pat_allowed) |
 | verifier verdict | **PASS** |
-| verifier checks cited | 19 solutions over 46 recorded checks |
+| verifier checks cited | 19 solutions over 51 recorded checks |
 | goals | 54 |
 | of which undeveloped | **20** |
 
@@ -29,14 +29,14 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
   - **A1** Assumption: The worst-case execution times supplied to the exploration are sound upper bounds for every actor on every core type it may be bound to. The exploration consumes these figures; it does not establish them.
   - **A2** Assumption: Token preservation (Q4): every replica fires on every iteration and produces on all of its outputs, in the fault-free and in the degraded case alike. Detection marks a token invalid; it never withholds one. The timing argument therefore holds in the degraded mode, at the cost of being conservative when no fault is present.
   - **A3** Assumption: The verifier re-checks the solution against the instance produced by the front end, not against the original specification. The instance represents the platform, execution times, pattern catalog and safety requirements correctly; an error in the front end or in the specification would be common to the exploration and the verifier.
-  - **C7** Context: Evidence identity (SHA-256): instance 22352a3f0f4a3db86683fa9c2e34ff46ab82633cb2687c933fa99619bea3caf6; solution fc270494ae525d25cbcbc73cb6e9d54af4c4b9d75b6dd8daf4249ed357f284b7; check log f7d997ed48478bb86115efa43137874ee69ed28ddc3beb351fc00c44a4644884. Every Solution cites a record of this check log by index.
+  - **C7** Context: Evidence identity (SHA-256): instance 22352a3f0f4a3db86683fa9c2e34ff46ab82633cb2687c933fa99619bea3caf6; solution fc270494ae525d25cbcbc73cb6e9d54af4c4b9d75b6dd8daf4249ed357f284b7; check log 35816c337b2c16d23d2693c729e921c9c8b907af106f5aa2f2994a799d170d7b. Every Solution cites a record of this check log by index.
   - **S1** *Strategy*: Argument over each safety-related actor in turn, followed by the platform-wide properties on which those per-actor arguments depend.
     - **G2** **Goal**: Actor frontEnd of application c_rasta, required SIL 3: the deployment meets the architectural preconditions that the catalog states for SIL 3.
       - **C8** Context: frontEnd is unfolded into 1 concurrent copy, bound to core 1, implemented at SIL 3.
       - **C9** Context: Components introduced by two_of_two_high_sil for frontEnd: channel_b on core 7 at SIL 3.
       - **G3** **Goal**: Every copy of frontEnd and of its channel_b is implemented at SIL 3 or above and runs on a core provisioned to at least that level.
-        - **Sn1** Solution: Independent re-check of the solution: every active copy of frontEnd is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 1]`
-        - **Sn2** Solution: Independent re-check of the solution: every active copy of frontEnd's channel_b is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 8]`
+        - **Sn1** Solution: Independent re-check of the solution: every active copy of frontEnd is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 6]`
+        - **Sn2** Solution: Independent re-check of the solution: every active copy of frontEnd's channel_b is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 13]`
       - **S2** *Strategy*: Argument by application of the two_of_two_high_sil safety architecture pattern, over each of its general scenarios.
         - **C10** Context: Pattern two_of_two_high_sil [koopman, Two Channel (2-of-2)]: Two channels, both at high SIL, compute the same function and must agree. Channel b receives the owner's result, compares it with its own, and returns the verdict to the owner over an edge with one initial token; on a disagreement the owner marks its output invalid and the pair goes to its safe state (fails silent), so the fault reaction starts within one iteration. No explicit voter: 2-of-2 requires agreement rather than a majority, so the comparison folds into channel b and the owner -- which is why this pattern is reachable in Phase 4 while NVP is not. The name is Koopman's; it is not IEC 61508 MooN notation. Both channels always fire and always produce, per the token-preservation obligation. A detected disagreement marks the token invalid; it never withholds it. So the timing guarantee holds in the degraded mode too (Q4), at the price of being conservative in the fault-free case. Attainable SIL [3, 4]; covers random_hw, systematic_sw; fails silent; voter folded.
         - **G4** **Goal**: A fault in either channel is detected as a disagreement between the two channels. [two_of_two_high_sil/SC1]
@@ -48,7 +48,7 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
           - **S4** *Strategy*: Achieved through the Replication Redundancy tactic (Redundancy): Introduction of a redundant system which allows detection or masking of random hardware failures (not systematic failures).
             - **C13** Context: Replication Redundancy: Introduction of a redundant system of the same implementation. The redundant systems maintain the same functionality, use identical hardware, and run the same software implementation.
             - **G7** **Goal**: In the deployed mapping, the replicated components run in different fault containment regions.
-              - **Sn3** Solution: Independent re-check of the solution: DIFFERENT_FCR between frontEnd and frontEnd/channel_b: cores 1/7, fault containment regions 1/4, core types cortexR/ppcE200.  `[checks 39]`
+              - **Sn3** Solution: Independent re-check of the solution: DIFFERENT_FCR between frontEnd and frontEnd/channel_b: cores 1/7, fault containment regions 1/4, core types cortexR/ppcE200.  `[checks 44]`
             - **G8** **Goal**: Common-cause failures of these components through what the placement does not separate (the interconnect and cross-check link, the shared inputs, and the point where the results are compared or voted) are identified and controlled.  ◇ **UNDEVELOPED**
             - **G9** **Goal**: An IEC 61508 method realising Replication Redundancy is implemented in frontEnd, and its effectiveness for the faults of concern is demonstrated.  ◇ **UNDEVELOPED**
               - **C14** Context: Candidate methods from the standard: IEC 61508-7 A.2.1 tests by redundant hardware; IEC 61508-7 A.2.5 monitored redundancy; IEC 61508-7 A.3.5 reciprocal comparison by software; IEC 61508-7 A.4.5 block replication; IEC 61508-7 A.6.3 multi-channel output; IEC 61508-7 A.7.3 complete hardware redundancy; IEC 61508-7 A.7.5 transmission redundancy
@@ -57,7 +57,7 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
             - **C15** Context: Diverse Redundancy: Redundant components use different implementations which were developed independently from the same specification. Applied at specification level it further requires the requirement specifications themselves to be produced by individual teams.
             - **G11** **Goal**: In the deployed mapping, the diverse components run on different core types.
               - **A4** Assumption: Distinct core types give distinct toolchains and object code, not independent design. Design independence remains an undischarged claim. The mapping evidence below establishes the deployment property only.
-              - **Sn4** Solution: Independent re-check of the solution: DIVERSE between frontEnd and frontEnd/channel_b: cores 1/7, fault containment regions 1/4, core types cortexR/ppcE200.  `[checks 40]`
+              - **Sn4** Solution: Independent re-check of the solution: DIVERSE between frontEnd and frontEnd/channel_b: cores 1/7, fault containment regions 1/4, core types cortexR/ppcE200.  `[checks 45]`
             - **G12** **Goal**: An IEC 61508 method realising Diverse Redundancy is implemented in frontEnd, and its effectiveness for the faults of concern is demonstrated.  ◇ **UNDEVELOPED**
               - **C16** Context: Candidate methods from the standard: IEC 61508-7 A.7.6 information redundancy; IEC 61508-7 A.13.2 cross-monitoring of multiple actuators; IEC 61508-7 B.1.4 diverse hardware; IEC 61508-7 C.4.4 diverse programming
         - **G13** **Goal**: A detected disagreement does not propagate an incorrect result to the consumer. [two_of_two_high_sil/SC4]
@@ -68,21 +68,21 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
     - **G15** **Goal**: Actor rasta of application c_rasta, required SIL 1: the deployment meets the architectural preconditions that the catalog states for SIL 1.
       - **C19** Context: rasta is unfolded into 1 concurrent copy, bound to core 13, implemented at SIL 1.
       - **G16** **Goal**: Every copy of rasta is implemented at SIL 1 or above and runs on a core provisioned to at least that level.
-        - **Sn5** Solution: Independent re-check of the solution: every active copy of rasta is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 2]`
+        - **Sn5** Solution: Independent re-check of the solution: every active copy of rasta is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 7]`
       - **S7** *Strategy*: Argument by development process alone: no structural safety pattern is applied.
         - **C20** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.
         - **G17** **Goal**: rasta is developed and verified to SIL 1 in accordance with IEC 61508-3.  ◇ **UNDEVELOPED**
     - **G18** **Goal**: Actor powspec of application c_rasta, required SIL 1: the deployment meets the architectural preconditions that the catalog states for SIL 1.
       - **C21** Context: powspec is unfolded into 1 concurrent copy, bound to core 13, implemented at SIL 1.
       - **G19** **Goal**: Every copy of powspec is implemented at SIL 1 or above and runs on a core provisioned to at least that level.
-        - **Sn6** Solution: Independent re-check of the solution: every active copy of powspec is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 3]`
+        - **Sn6** Solution: Independent re-check of the solution: every active copy of powspec is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 8]`
       - **S8** *Strategy*: Argument by development process alone: no structural safety pattern is applied.
         - **C22** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.
         - **G20** **Goal**: powspec is developed and verified to SIL 1 in accordance with IEC 61508-3.  ◇ **UNDEVELOPED**
     - **G21** **Goal**: Actor audspec of application c_rasta, required SIL 1: the deployment meets the architectural preconditions that the catalog states for SIL 1.
       - **C23** Context: audspec is unfolded into 1 concurrent copy, bound to core 13, implemented at SIL 1.
       - **G22** **Goal**: Every copy of audspec is implemented at SIL 1 or above and runs on a core provisioned to at least that level.
-        - **Sn7** Solution: Independent re-check of the solution: every active copy of audspec is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 4]`
+        - **Sn7** Solution: Independent re-check of the solution: every active copy of audspec is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 9]`
       - **S9** *Strategy*: Argument by development process alone: no structural safety pattern is applied.
         - **C24** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.
         - **G23** **Goal**: audspec is developed and verified to SIL 1 in accordance with IEC 61508-3.  ◇ **UNDEVELOPED**
@@ -90,8 +90,8 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
       - **C25** Context: compJah is unfolded into 1 concurrent copy, bound to core 1, implemented at SIL 3.
       - **C26** Context: Components introduced by two_of_two_high_sil for compJah: channel_b on core 7 at SIL 3.
       - **G25** **Goal**: Every copy of compJah and of its channel_b is implemented at SIL 3 or above and runs on a core provisioned to at least that level.
-        - **Sn8** Solution: Independent re-check of the solution: every active copy of compJah is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 5]`
-        - **Sn9** Solution: Independent re-check of the solution: every active copy of compJah's channel_b is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 9]`
+        - **Sn8** Solution: Independent re-check of the solution: every active copy of compJah is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 10]`
+        - **Sn9** Solution: Independent re-check of the solution: every active copy of compJah's channel_b is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 14]`
       - **S10** *Strategy*: Argument by application of the two_of_two_high_sil safety architecture pattern, over each of its general scenarios.
         - **C27** Context: Pattern two_of_two_high_sil [koopman, Two Channel (2-of-2)]: Two channels, both at high SIL, compute the same function and must agree. Channel b receives the owner's result, compares it with its own, and returns the verdict to the owner over an edge with one initial token; on a disagreement the owner marks its output invalid and the pair goes to its safe state (fails silent), so the fault reaction starts within one iteration. No explicit voter: 2-of-2 requires agreement rather than a majority, so the comparison folds into channel b and the owner -- which is why this pattern is reachable in Phase 4 while NVP is not. The name is Koopman's; it is not IEC 61508 MooN notation. Both channels always fire and always produce, per the token-preservation obligation. A detected disagreement marks the token invalid; it never withholds it. So the timing guarantee holds in the degraded mode too (Q4), at the price of being conservative in the fault-free case. Attainable SIL [3, 4]; covers random_hw, systematic_sw; fails silent; voter folded.
         - **G26** **Goal**: A fault in either channel is detected as a disagreement between the two channels. [two_of_two_high_sil/SC1]
@@ -103,7 +103,7 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
           - **S12** *Strategy*: Achieved through the Replication Redundancy tactic (Redundancy): Introduction of a redundant system which allows detection or masking of random hardware failures (not systematic failures).
             - **C30** Context: Replication Redundancy: Introduction of a redundant system of the same implementation. The redundant systems maintain the same functionality, use identical hardware, and run the same software implementation.
             - **G29** **Goal**: In the deployed mapping, the replicated components run in different fault containment regions.
-              - **Sn10** Solution: Independent re-check of the solution: DIFFERENT_FCR between compJah and compJah/channel_b: cores 1/7, fault containment regions 1/4, core types cortexR/ppcE200.  `[checks 41]`
+              - **Sn10** Solution: Independent re-check of the solution: DIFFERENT_FCR between compJah and compJah/channel_b: cores 1/7, fault containment regions 1/4, core types cortexR/ppcE200.  `[checks 46]`
             - **G30** **Goal**: Common-cause failures of these components through what the placement does not separate (the interconnect and cross-check link, the shared inputs, and the point where the results are compared or voted) are identified and controlled.  ◇ **UNDEVELOPED**
             - **G31** **Goal**: An IEC 61508 method realising Replication Redundancy is implemented in compJah, and its effectiveness for the faults of concern is demonstrated.  ◇ **UNDEVELOPED**
               - **C31** Context: Candidate methods from the standard: IEC 61508-7 A.2.1 tests by redundant hardware; IEC 61508-7 A.2.5 monitored redundancy; IEC 61508-7 A.3.5 reciprocal comparison by software; IEC 61508-7 A.4.5 block replication; IEC 61508-7 A.6.3 multi-channel output; IEC 61508-7 A.7.3 complete hardware redundancy; IEC 61508-7 A.7.5 transmission redundancy
@@ -112,7 +112,7 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
             - **C32** Context: Diverse Redundancy: Redundant components use different implementations which were developed independently from the same specification. Applied at specification level it further requires the requirement specifications themselves to be produced by individual teams.
             - **G33** **Goal**: In the deployed mapping, the diverse components run on different core types.
               - **A5** Assumption: Distinct core types give distinct toolchains and object code, not independent design. Design independence remains an undischarged claim. The mapping evidence below establishes the deployment property only.
-              - **Sn11** Solution: Independent re-check of the solution: DIVERSE between compJah and compJah/channel_b: cores 1/7, fault containment regions 1/4, core types cortexR/ppcE200.  `[checks 42]`
+              - **Sn11** Solution: Independent re-check of the solution: DIVERSE between compJah and compJah/channel_b: cores 1/7, fault containment regions 1/4, core types cortexR/ppcE200.  `[checks 47]`
             - **G34** **Goal**: An IEC 61508 method realising Diverse Redundancy is implemented in compJah, and its effectiveness for the faults of concern is demonstrated.  ◇ **UNDEVELOPED**
               - **C33** Context: Candidate methods from the standard: IEC 61508-7 A.7.6 information redundancy; IEC 61508-7 A.13.2 cross-monitoring of multiple actuators; IEC 61508-7 B.1.4 diverse hardware; IEC 61508-7 C.4.4 diverse programming
         - **G35** **Goal**: A detected disagreement does not propagate an incorrect result to the consumer. [two_of_two_high_sil/SC4]
@@ -123,7 +123,7 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
     - **G37** **Goal**: Actor rastaFilter of application c_rasta, required SIL 1: the deployment meets the architectural preconditions that the catalog states for SIL 1.
       - **C36** Context: rastaFilter is unfolded into 1 concurrent copy, bound to core 13, implemented at SIL 1.
       - **G38** **Goal**: Every copy of rastaFilter is implemented at SIL 1 or above and runs on a core provisioned to at least that level.
-        - **Sn12** Solution: Independent re-check of the solution: every active copy of rastaFilter is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 6]`
+        - **Sn12** Solution: Independent re-check of the solution: every active copy of rastaFilter is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 11]`
       - **S15** *Strategy*: Argument by development process alone: no structural safety pattern is applied.
         - **C37** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.
         - **G39** **Goal**: rastaFilter is developed and verified to SIL 1 in accordance with IEC 61508-3.  ◇ **UNDEVELOPED**
@@ -131,8 +131,8 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
       - **C38** Context: backEnd is unfolded into 1 concurrent copy, bound to core 2, implemented at SIL 2.
       - **C39** Context: Components introduced by low_sil_diverse_doer_checker for backEnd: checker on core 14 at SIL 2.
       - **G41** **Goal**: Every copy of backEnd and of its checker is implemented at SIL 2 or above and runs on a core provisioned to at least that level.
-        - **Sn13** Solution: Independent re-check of the solution: every active copy of backEnd is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 7]`
-        - **Sn14** Solution: Independent re-check of the solution: every active copy of backEnd's checker is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 10]`
+        - **Sn13** Solution: Independent re-check of the solution: every active copy of backEnd is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 12]`
+        - **Sn14** Solution: Independent re-check of the solution: every active copy of backEnd's checker is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 15]`
       - **S16** *Strategy*: Argument by application of the low_sil_diverse_doer_checker safety architecture pattern, over each of its general scenarios.
         - **C40** Context: Pattern low_sil_diverse_doer_checker [koopman, Low SIL Doer/Checker Pair, armoush, HtD]: low_sil_doer_checker with the checker additionally required to be a DIVERSE implementation on a different processor type. Added because the encoded Koopman catalogue has a hole: at SIL 2 the separated pair defends against random hardware faults and the co-located pair against systematic software faults, but nothing covers BOTH. Separation alone does not help against a systematic fault, since an identical checker on another core reproduces the same mistake. The cost is Armoush's heterogeneous-duplex figure: two independent developments, roughly 200% of one, against ~100% for an identical copy. Attainable SIL [1, 2]; covers random_hw, systematic_sw; fails active; voter folded.
         - **G42** **Goal**: An implausible output of the doer is detected by the checker. [low_sil_diverse_doer_checker/SC1]
@@ -144,7 +144,7 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
           - **S18** *Strategy*: Achieved through the Replication Redundancy tactic (Redundancy): Introduction of a redundant system which allows detection or masking of random hardware failures (not systematic failures).
             - **C43** Context: Replication Redundancy: Introduction of a redundant system of the same implementation. The redundant systems maintain the same functionality, use identical hardware, and run the same software implementation.
             - **G45** **Goal**: In the deployed mapping, the replicated components run in different fault containment regions.
-              - **Sn15** Solution: Independent re-check of the solution: DIFFERENT_FCR between backEnd and backEnd/checker: cores 2/14, fault containment regions 1/7, core types cortexR/cortexM.  `[checks 43]`
+              - **Sn15** Solution: Independent re-check of the solution: DIFFERENT_FCR between backEnd and backEnd/checker: cores 2/14, fault containment regions 1/7, core types cortexR/cortexM.  `[checks 48]`
             - **G46** **Goal**: Common-cause failures of these components through what the placement does not separate (the interconnect and cross-check link, the shared inputs, and the point where the results are compared or voted) are identified and controlled.  ◇ **UNDEVELOPED**
             - **G47** **Goal**: An IEC 61508 method realising Replication Redundancy is implemented in backEnd, and its effectiveness for the faults of concern is demonstrated.  ◇ **UNDEVELOPED**
               - **C44** Context: Candidate methods from the standard: IEC 61508-7 A.2.1 tests by redundant hardware; IEC 61508-7 A.2.5 monitored redundancy; IEC 61508-7 A.3.5 reciprocal comparison by software; IEC 61508-7 A.4.5 block replication; IEC 61508-7 A.6.3 multi-channel output; IEC 61508-7 A.7.3 complete hardware redundancy; IEC 61508-7 A.7.5 transmission redundancy
@@ -153,20 +153,20 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
             - **C45** Context: Diverse Redundancy: Redundant components use different implementations which were developed independently from the same specification. Applied at specification level it further requires the requirement specifications themselves to be produced by individual teams.
             - **G49** **Goal**: In the deployed mapping, the diverse components run on different core types.
               - **A6** Assumption: Distinct core types give distinct toolchains and object code, not independent design. Design independence remains an undischarged claim. The mapping evidence below establishes the deployment property only.
-              - **Sn16** Solution: Independent re-check of the solution: DIVERSE between backEnd and backEnd/checker: cores 2/14, fault containment regions 1/7, core types cortexR/cortexM.  `[checks 44]`
+              - **Sn16** Solution: Independent re-check of the solution: DIVERSE between backEnd and backEnd/checker: cores 2/14, fault containment regions 1/7, core types cortexR/cortexM.  `[checks 49]`
             - **G50** **Goal**: An IEC 61508 method realising Diverse Redundancy is implemented in backEnd, and its effectiveness for the faults of concern is demonstrated.  ◇ **UNDEVELOPED**
               - **C46** Context: Candidate methods from the standard: IEC 61508-7 A.7.6 information redundancy; IEC 61508-7 A.13.2 cross-monitoring of multiple actuators; IEC 61508-7 B.1.4 diverse hardware; IEC 61508-7 C.4.4 diverse programming
     - **G51** **Goal**: No core hosts software of differing integrity without certified partitioning, and every core is provisioned to at least the highest integrity level it hosts.
       - **C47** Context: Koopman's rule 2: absent certified partitioning, all software on a processor must be developed to the highest integrity level present on it. Whether a core type can provide such partitioning is declared per core type by the platform (Q18).
       - **A7** Assumption: Software on different cores does not interfere except through the interconnect; shared memory, caches and input/output are not modelled, so applying the rule per core assumes freedom from interference between cores. Certified partitioning, where used, separates software of different SIL on one core in space and time.
       - **S20** *Strategy*: Achieved through the Barrier tactic (Isolation): protect a subsystem from influences of other subsystems.
-        - **Sn17** Solution: Independent re-check of the solution: all 28 core slots re-examined against their type ceiling and against the set of integrity levels actually hosted.  `[checks 11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38]`
+        - **Sn17** Solution: Independent re-check of the solution: all 28 core slots re-examined against their type ceiling and against the set of integrity levels actually hosted.  `[checks 16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43]`
     - **G52** **Goal**: The deployed mapping and static order meet the declared timing requirements, in the fault-free and in the degraded case alike.
       - **C48** Context: Iteration period per application: [1130]. Timing is a safety property here because a replica that misses its deadline cannot perform the check the pattern credits it with.
       - (A1, see above)
       - (A2, see above)
-      - **Sn18** Solution: Independent re-check of the solution: the mapping- and scheduling-aware graph was rebuilt from the returned assignment and its period computed twice by disjoint methods -- Lawler's parametric maximum-cycle-ratio search and max-plus self-timed simulation -- which agree with each other, and the period the solver reported is the least integer at or above that ratio.  `[checks 0]`
-      - **Sn19** Solution: Independent re-check of the solution: the reported period is at least the total execution demand of the busiest core, the bound that a static order left open as a chain silently loses.  `[checks 45]`
+      - **Sn18** Solution: Independent re-check of the solution: the mapping- and scheduling-aware graph was rebuilt from the returned assignment and its period computed twice by disjoint methods -- Lawler's parametric maximum-cycle-ratio search and max-plus self-timed simulation -- which agree with each other, and the period the solver reported is the least integer at or above that ratio.  `[checks 5]`
+      - **Sn19** Solution: Independent re-check of the solution: the reported period is at least the total execution demand of the busiest core, the bound that a static order left open as a chain silently loses.  `[checks 50]`
     - **G53** **Goal**: Every detected fault brings the function to its safe state within the process safety time.  ◇ **UNDEVELOPED**
       - **C49** Context: In the dataflow model, a component's verdict on iteration k reaches the owner over an edge with t initial tokens, i.e. in the owner's firing t iterations later (low_sil_diverse_doer_checker: t = 1, two_of_two_high_sil: t = 1). The reaction itself and the process safety time are not modelled.
       - (A2, see above)

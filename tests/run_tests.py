@@ -815,6 +815,50 @@ def t_gsn() -> None:
                   any("without a reason" in b for b in arg.audit()))
             del arg.el[probe]
             arg.order.remove(probe)
+            keep = list(sols[0].evidence)
+            sols[0].evidence = [len(rep["checks"]) + 7]
+            check("audit with the check log catches a citation past its end",
+                  any("not a passed record" in b
+                      for b in arg.audit(rep["checks"])))
+            sols[0].evidence = keep
+
+            # ---- the verifier re-derives what the model derives -----------
+            s0 = _json.loads(Path("/tmp/gsn_frh.json").read_text())
+            comm = [bool(x) for x in G._l(d.get("comm_actor", []))]
+            comm += [False] * (d["n"] - len(comm))
+
+            def rejects_by(kind, mutate):
+                s = _json.loads(_json.dumps(s0))
+                mutate(s)
+                sp = Path("/tmp/gsn_frh_mut.json")
+                sp.write_text(_json.dumps(s))
+                rp = Path("/tmp/gsn_frh_mut.report.json")
+                rp.unlink(missing_ok=True)
+                subprocess.run([sys.executable,
+                                str(ROOT / "tools" / "verify.py"),
+                                "--dzn", str(f), "--solution", str(sp),
+                                "--quiet", "--json-report", str(rp)],
+                               capture_output=True)
+                if not rp.exists():
+                    return False
+                r = _json.loads(rp.read_text())
+                return not r["ok"] and any(c["kind"] == kind and not c["ok"]
+                                           for c in r["checks"])
+
+            def lower_wcet(s):
+                i = next(i for i in range(d["n"])
+                         if act[i] and not comm[i] and s["T"][i] > 0)
+                s["T"][i] -= 1
+
+            def deactivate(s):
+                s["active"][comp[0] - 1] = False
+                s["T"][comp[0] - 1] = 0
+            check("verifier rejects a lowered WCET by its wcet record",
+                  rejects_by("wcet", lower_wcet))
+            check("verifier rejects a deactivated pattern component by its "
+                  "activation record", rejects_by("activation", deactivate))
+            check("verifier rejects a solution without the pat field",
+                  rejects_by("input", lambda s: s.pop("pat")))
 
     # ---- 5. widening the fault model widens the argument -----------------
     fb = ROOT / "out" / "f_both3.dzn"

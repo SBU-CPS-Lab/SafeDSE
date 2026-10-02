@@ -3,7 +3,7 @@
  "meta": {
   "label": "f_random_hw",
   "dzn": "out/f_random_hw.dzn",
-  "solution": "/tmp/f_random_hw.sol.json",
+  "solution": "/home/shaniaki/Documents/Papers/safedse/experiments/results/gsn/f_random_hw.sol.json",
   "fault_model": "random_hw",
   "fault_model_how": "inferred from pat_allowed",
   "verifier_ok": true
@@ -145,7 +145,7 @@
   {
    "id": "C7",
    "kind": "Context",
-   "text": "Evidence identity (SHA-256): instance fbf8228d08709ce05a632eaa1499a05382aa9d2a50016a35a79126a7b6c47983; solution ada655151f7f8c7cb828495372a93370b8770f4ded11d80e82b455066a890fcb; check log 3fae2bc18e2e2b76d069e7718980d3ff06e15c3eea5628b1035ae438c5f55619. Every Solution cites a record of this check log by index.",
+   "text": "Evidence identity (SHA-256): instance fbf8228d08709ce05a632eaa1499a05382aa9d2a50016a35a79126a7b6c47983; solution ada655151f7f8c7cb828495372a93370b8770f4ded11d80e82b455066a890fcb; check log c570c7b0595f721d8d0410527a9b551e0b9c2b5562aa55da48c74e1467a7f264. Every Solution cites a record of this check log by index.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -221,7 +221,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    1
+    6
    ],
    "note": ""
   },
@@ -233,7 +233,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    8
+    13
    ],
    "note": ""
   },
@@ -388,7 +388,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    33
+    38
    ],
    "note": ""
   },
@@ -469,7 +469,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    2
+    7
    ],
    "note": ""
   },
@@ -552,7 +552,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    3
+    8
    ],
    "note": ""
   },
@@ -635,7 +635,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    4
+    9
    ],
    "note": ""
   },
@@ -720,7 +720,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    5
+    10
    ],
    "note": ""
   },
@@ -732,7 +732,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    9
+    14
    ],
    "note": ""
   },
@@ -887,7 +887,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    34
+    39
    ],
    "note": ""
   },
@@ -968,7 +968,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    6
+    11
    ],
    "note": ""
   },
@@ -1053,7 +1053,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    7
+    12
    ],
    "note": ""
   },
@@ -1065,7 +1065,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    10
+    15
    ],
    "note": ""
   },
@@ -1220,7 +1220,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    35
+    40
    ],
    "note": ""
   },
@@ -1311,11 +1311,6 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    11,
-    12,
-    13,
-    14,
-    15,
     16,
     17,
     18,
@@ -1332,7 +1327,12 @@
     29,
     30,
     31,
-    32
+    32,
+    33,
+    34,
+    35,
+    36,
+    37
    ],
    "note": ""
   },
@@ -1371,7 +1371,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    0
+    5
    ],
    "note": ""
   },
@@ -1383,7 +1383,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    36
+    41
    ],
    "note": ""
   },

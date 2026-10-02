@@ -3,7 +3,7 @@
  "meta": {
   "label": "f_both3",
   "dzn": "out/f_both3.dzn",
-  "solution": "/tmp/f_both3.sol.json",
+  "solution": "/home/shaniaki/Documents/Papers/safedse/experiments/results/gsn/f_both3.sol.json",
   "fault_model": "both",
   "fault_model_how": "inferred from pat_allowed",
   "verifier_ok": true
@@ -145,7 +145,7 @@
   {
    "id": "C7",
    "kind": "Context",
-   "text": "Evidence identity (SHA-256): instance 22352a3f0f4a3db86683fa9c2e34ff46ab82633cb2687c933fa99619bea3caf6; solution fc270494ae525d25cbcbc73cb6e9d54af4c4b9d75b6dd8daf4249ed357f284b7; check log f7d997ed48478bb86115efa43137874ee69ed28ddc3beb351fc00c44a4644884. Every Solution cites a record of this check log by index.",
+   "text": "Evidence identity (SHA-256): instance 22352a3f0f4a3db86683fa9c2e34ff46ab82633cb2687c933fa99619bea3caf6; solution fc270494ae525d25cbcbc73cb6e9d54af4c4b9d75b6dd8daf4249ed357f284b7; check log 35816c337b2c16d23d2693c729e921c9c8b907af106f5aa2f2994a799d170d7b. Every Solution cites a record of this check log by index.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -221,7 +221,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    1
+    6
    ],
    "note": ""
   },
@@ -233,7 +233,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    8
+    13
    ],
    "note": ""
   },
@@ -390,7 +390,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    39
+    44
    ],
    "note": ""
   },
@@ -485,7 +485,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    40
+    45
    ],
    "note": ""
   },
@@ -624,7 +624,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    2
+    7
    ],
    "note": ""
   },
@@ -707,7 +707,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    3
+    8
    ],
    "note": ""
   },
@@ -790,7 +790,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    4
+    9
    ],
    "note": ""
   },
@@ -875,7 +875,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    5
+    10
    ],
    "note": ""
   },
@@ -887,7 +887,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    9
+    14
    ],
    "note": ""
   },
@@ -1044,7 +1044,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    41
+    46
    ],
    "note": ""
   },
@@ -1139,7 +1139,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    42
+    47
    ],
    "note": ""
   },
@@ -1278,7 +1278,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    6
+    11
    ],
    "note": ""
   },
@@ -1363,7 +1363,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    7
+    12
    ],
    "note": ""
   },
@@ -1375,7 +1375,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    10
+    15
    ],
    "note": ""
   },
@@ -1531,7 +1531,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    43
+    48
    ],
    "note": ""
   },
@@ -1626,7 +1626,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    44
+    49
    ],
    "note": ""
   },
@@ -1717,11 +1717,6 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    11,
-    12,
-    13,
-    14,
-    15,
     16,
     17,
     18,
@@ -1744,7 +1739,12 @@
     35,
     36,
     37,
-    38
+    38,
+    39,
+    40,
+    41,
+    42,
+    43
    ],
    "note": ""
   },
@@ -1783,7 +1783,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    0
+    5
    ],
    "note": ""
   },
@@ -1795,7 +1795,7 @@
    "supportedBy": [],
    "inContextOf": [],
    "evidence": [
-    45
+    50
    ],
    "note": ""
   },

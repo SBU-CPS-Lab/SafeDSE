@@ -122,9 +122,19 @@ class Argument:
                 self.el[parent].in_context_of.append(c)
 
     # -- the self-audit ----------------------------------------------------
-    def audit(self) -> list[str]:
-        """Every leaf is evidence or an admitted gap.  Nothing else."""
+    def audit(self, checks: list[dict] | None = None) -> list[str]:
+        """Every leaf is evidence or an admitted gap.  Nothing else.
+
+        With the check log, a cited index must also name a record that exists
+        and passed: an index past the end of the log satisfied the old test
+        (mutation analysis, TCAD paper S12g)."""
         bad: list[str] = []
+        for e in self.el.values():
+            if checks is not None and e.kind == "Solution":
+                for j in e.evidence:
+                    if not (0 <= j < len(checks)) or not checks[j].get("ok"):
+                        bad.append(f"{e.id} cites record {j}, which is not a "
+                                   f"passed record of the check log")
         for e in self.el.values():
             if e.kind == "Goal" and not e.supported_by and not e.undeveloped:
                 bad.append(f"{e.id} is a leaf Goal with neither supporting "
@@ -1077,7 +1087,7 @@ def main() -> int:
     arg = build(d, sol, report, pats, tactics, fm, label,
                 catalog=Path(a.patterns).name, evidence_ids=ids)
 
-    bad = arg.audit()
+    bad = arg.audit(report["checks"])
     if bad:
         print("REFUSING to generate: the argument contains leaves that are "
               "neither evidence nor admitted gaps.", file=sys.stderr)
