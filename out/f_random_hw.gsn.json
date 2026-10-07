@@ -3,7 +3,7 @@
  "meta": {
   "label": "f_random_hw",
   "dzn": "out/f_random_hw.dzn",
-  "solution": "/home/shaniaki/Documents/Papers/safedse/experiments/results/gsn/f_random_hw.sol.json",
+  "solution": "out/f_random_hw.sol.json",
   "fault_model": "random_hw",
   "fault_model_how": "inferred from pat_allowed",
   "verifier_ok": true
@@ -21,7 +21,7 @@
   {
    "id": "C1",
    "kind": "Context",
-   "text": "IEC 61508 is the governing functional safety standard; integrity is allocated as a required Safety Integrity Level per actor (Q1, Q13). SIL 0 means no safety requirement.",
+   "text": "IEC 61508 is the governing functional safety standard; integrity is allocated as a required Safety Integrity Level per actor. SIL 0 means no safety requirement.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -71,7 +71,7 @@
   {
    "id": "C6",
    "kind": "Context",
-   "text": "Fault model under consideration: random hardware faults (Q2). Patterns not covering this fault class were excluded from the design space, and placement relations motivated only by an excluded fault class were not posted. Not addressed: transient faults, timing and omission faults, faults of the interconnect, latent faults, diagnostic coverage, and degraded modes.",
+   "text": "Fault model under consideration: random hardware faults. Patterns not covering this fault class were excluded from the design space, and placement relations motivated only by an excluded fault class were not posted. Not addressed: transient faults, timing and omission faults, faults of the interconnect, latent faults, diagnostic coverage, and degraded modes.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -101,7 +101,7 @@
   {
    "id": "A2",
    "kind": "Assumption",
-   "text": "Token preservation (Q4): every replica fires on every iteration and produces on all of its outputs, in the fault-free and in the degraded case alike. Detection marks a token invalid; it never withholds one. The timing argument therefore holds in the degraded mode, at the cost of being conservative when no fault is present.",
+   "text": "Token preservation: every replica fires on every iteration and produces on all of its outputs, in the fault-free and in the degraded case alike. Detection marks a token invalid; it never withholds one. The timing argument therefore holds in the degraded mode, at the cost of being conservative when no fault is present.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -145,7 +145,7 @@
   {
    "id": "C7",
    "kind": "Context",
-   "text": "Evidence identity (SHA-256): instance fbf8228d08709ce05a632eaa1499a05382aa9d2a50016a35a79126a7b6c47983; solution ada655151f7f8c7cb828495372a93370b8770f4ded11d80e82b455066a890fcb; check log c570c7b0595f721d8d0410527a9b551e0b9c2b5562aa55da48c74e1467a7f264. Every Solution cites a record of this check log by index.",
+   "text": "Evidence identity (SHA-256): instance bffd119e84d5e80da4cbbd965c8df9fad5a1f09ca6f26c77cd67613e707074a3; solution ada655151f7f8c7cb828495372a93370b8770f4ded11d80e82b455066a890fcb; check log 5b4faab85e2b90ed9ab4abd9583aafac2261a239695d8bfcd40f0ade68aa4b72. Every Solution cites a record of this check log by index.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -265,7 +265,7 @@
   {
    "id": "C10",
    "kind": "Context",
-   "text": "Pattern high_sil_isolated_checker [koopman, High SIL Doer/Checker with isolated checker]: A high-SIL doer with an equally high-SIL checker on a separate processor. Distinct from the SIL 1-2 Doer/Checker family in that both sides are developed to the high level, and from 2-of-2 in that the checker verifies rather than recomputes -- so its WCET is a fraction of the doer's, which is what makes it competitive on throughput. Koopman's \"Attempted High SIL Doer/Checker\" is the same structure WITHOUT the isolation, and is an anti-pattern; the C.4 check rejects any record that claims to fail silent while co-locating its channels. Attainable SIL [3]; covers random_hw; fails silent; voter folded.",
+   "text": "Pattern high_sil_isolated_checker [koopman, High SIL Doer/Checker with isolated checker]: A high-SIL doer with an equally high-SIL checker on a separate processor. Distinct from the SIL 1-2 Doer/Checker family in that both sides are developed to the high level, and from 2-of-2 in that the checker verifies rather than recomputes -- so its WCET is a fraction of the doer's, which is what makes it competitive on throughput. Koopman's \"Attempted High SIL Doer/Checker\" is the same structure WITHOUT the isolation, and is an anti-pattern; the catalogue check rejects any record that claims to fail silent while co-locating its channels. Attainable SIL [3]; covers random_hw; fails silent; voter folded.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -490,7 +490,7 @@
   {
    "id": "C16",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -573,7 +573,7 @@
   {
    "id": "C18",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -656,7 +656,7 @@
   {
    "id": "C20",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -764,7 +764,7 @@
   {
    "id": "C23",
    "kind": "Context",
-   "text": "Pattern high_sil_isolated_checker [koopman, High SIL Doer/Checker with isolated checker]: A high-SIL doer with an equally high-SIL checker on a separate processor. Distinct from the SIL 1-2 Doer/Checker family in that both sides are developed to the high level, and from 2-of-2 in that the checker verifies rather than recomputes -- so its WCET is a fraction of the doer's, which is what makes it competitive on throughput. Koopman's \"Attempted High SIL Doer/Checker\" is the same structure WITHOUT the isolation, and is an anti-pattern; the C.4 check rejects any record that claims to fail silent while co-locating its channels. Attainable SIL [3]; covers random_hw; fails silent; voter folded.",
+   "text": "Pattern high_sil_isolated_checker [koopman, High SIL Doer/Checker with isolated checker]: A high-SIL doer with an equally high-SIL checker on a separate processor. Distinct from the SIL 1-2 Doer/Checker family in that both sides are developed to the high level, and from 2-of-2 in that the checker verifies rather than recomputes -- so its WCET is a fraction of the doer's, which is what makes it competitive on throughput. Koopman's \"Attempted High SIL Doer/Checker\" is the same structure WITHOUT the isolation, and is an anti-pattern; the catalogue check rejects any record that claims to fail silent while co-locating its channels. Attainable SIL [3]; covers random_hw; fails silent; voter folded.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -989,7 +989,7 @@
   {
    "id": "C29",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -1274,7 +1274,7 @@
   {
    "id": "C37",
    "kind": "Context",
-   "text": "Koopman's rule 2: absent certified partitioning, all software on a processor must be developed to the highest integrity level present on it. Whether a core type can provide such partitioning is declared per core type by the platform (Q18).",
+   "text": "Koopman's rule 2: absent certified partitioning, all software on a processor must be developed to the highest integrity level present on it. Whether a core type can provide such partitioning is declared per core type by the platform.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],

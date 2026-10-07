@@ -19,17 +19,17 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
 ## Argument
 
 - **G1** **Goal**: The deployed architecture of v_nvp meets, for every safety-related actor, the architectural preconditions that the pattern catalog states for the actor's required SIL.
-  - **C1** Context: IEC 61508 is the governing functional safety standard; integrity is allocated as a required Safety Integrity Level per actor (Q1, Q13). SIL 0 means no safety requirement.
+  - **C1** Context: IEC 61508 is the governing functional safety standard; integrity is allocated as a required Safety Integrity Level per actor. SIL 0 means no safety requirement.
   - **C2** Context: The required SIL of every actor is an input from a hazard and risk analysis outside this argument.
   - **C3** Context: Pattern catalog patterns_explicit_voter_demo.yaml: structure, placement relations, SIL range and covered fault classes of each pattern, after Armoush, Koopman. Every pattern choice and placement rule in this argument rests on it.
   - **C5** Context: Applications: c_rasta, modelled as synchronous dataflow graphs and unfolded to an equivalent homogeneous graph before mapping.
   - **C4** Context: Platform: 34 core slots across 13 fault containment regions, core types cortexM, cortexR, ppcE200, sparcLEON. Cores actually instantiated in this solution: [1, 2, 7, 13, 14, 29].
-  - **C6** Context: Fault model under consideration: UNDETERMINED (Q2). Patterns not covering this fault class were excluded from the design space, and placement relations motivated only by an excluded fault class were not posted. Not addressed: transient faults, timing and omission faults, faults of the interconnect, latent faults, diagnostic coverage, and degraded modes.
+  - **C6** Context: Fault model under consideration: UNDETERMINED. Patterns not covering this fault class were excluded from the design space, and placement relations motivated only by an excluded fault class were not posted. Not addressed: transient faults, timing and omission faults, faults of the interconnect, latent faults, diagnostic coverage, and degraded modes.
   - **J1** Justification: This argument is generated from a design space exploration result. It argues only over properties of the ARCHITECTURE and its DEPLOYMENT: which pattern is applied to which actor, where components are placed relative to each other, how integrity levels are provisioned per core, and whether the resulting schedule meets its timing requirement. Claims about implementation correctness, detection coverage and development process are outside what a mapping can establish and are carried below as undeveloped goals. The SIL range of a pattern is a precondition taken from the catalog, necessary but not sufficient for a SIL: this argument computes no failure rates, hardware fault tolerance, safe failure fraction or diagnostic coverage.
   - **A1** Assumption: The worst-case execution times supplied to the exploration are sound upper bounds for every actor on every core type it may be bound to. The exploration consumes these figures; it does not establish them.
-  - **A2** Assumption: Token preservation (Q4): every replica fires on every iteration and produces on all of its outputs, in the fault-free and in the degraded case alike. Detection marks a token invalid; it never withholds one. The timing argument therefore holds in the degraded mode, at the cost of being conservative when no fault is present.
+  - **A2** Assumption: Token preservation: every replica fires on every iteration and produces on all of its outputs, in the fault-free and in the degraded case alike. Detection marks a token invalid; it never withholds one. The timing argument therefore holds in the degraded mode, at the cost of being conservative when no fault is present.
   - **A3** Assumption: The verifier re-checks the solution against the instance produced by the front end, not against the original specification. The instance represents the platform, execution times, pattern catalog and safety requirements correctly; an error in the front end or in the specification would be common to the exploration and the verifier.
-  - **C7** Context: Evidence identity (SHA-256): instance 47de23a01447bd7b06c2dc3c5d232284fd8c031ee32d811581e566591b875632; solution fe58a34d5438f5788b6a2ca9ebf55bf5edef0c5c0178039a9f4430a2cfcffd34; check log 6ee6905fd3f127691a85ce46b9f687934ad8de8b881d1e9f360a20e9dd0a790c. Every Solution cites a record of this check log by index.
+  - **C7** Context: Evidence identity (SHA-256): instance a3499f6e20ab9cb75ca6e8f106002df7d67ae925a946f303d75aace969961d6d; solution fe58a34d5438f5788b6a2ca9ebf55bf5edef0c5c0178039a9f4430a2cfcffd34; check log f2049686967c1ed437b8469e1cece773cc21d7f3f32bde2200add99fef364e2e. Every Solution cites a record of this check log by index.
   - **S1** *Strategy*: Argument over each safety-related actor in turn, followed by the platform-wide properties on which those per-actor arguments depend.
     - **G2** **Goal**: Actor frontEnd of application c_rasta, required SIL 3: the deployment meets the architectural preconditions that the catalog states for SIL 3.
       - **C8** Context: frontEnd is unfolded into 1 concurrent copy, bound to core 1, implemented at SIL 3.
@@ -77,21 +77,21 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
       - **G16** **Goal**: Every copy of rasta is implemented at SIL 1 or above and runs on a core provisioned to at least that level.
         - **Sn12** Solution: Independent re-check of the solution: every active copy of rasta is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 7]`
       - **S7** *Strategy*: Argument by development process alone: no structural safety pattern is applied.
-        - **C20** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.
+        - **C20** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.
         - **G17** **Goal**: rasta is developed and verified to SIL 1 in accordance with IEC 61508-3.  ◇ **UNDEVELOPED**
     - **G18** **Goal**: Actor powspec of application c_rasta, required SIL 1: the deployment meets the architectural preconditions that the catalog states for SIL 1.
       - **C21** Context: powspec is unfolded into 1 concurrent copy, bound to core 13, implemented at SIL 1.
       - **G19** **Goal**: Every copy of powspec is implemented at SIL 1 or above and runs on a core provisioned to at least that level.
         - **Sn13** Solution: Independent re-check of the solution: every active copy of powspec is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 8]`
       - **S8** *Strategy*: Argument by development process alone: no structural safety pattern is applied.
-        - **C22** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.
+        - **C22** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.
         - **G20** **Goal**: powspec is developed and verified to SIL 1 in accordance with IEC 61508-3.  ◇ **UNDEVELOPED**
     - **G21** **Goal**: Actor audspec of application c_rasta, required SIL 1: the deployment meets the architectural preconditions that the catalog states for SIL 1.
       - **C23** Context: audspec is unfolded into 1 concurrent copy, bound to core 13, implemented at SIL 1.
       - **G22** **Goal**: Every copy of audspec is implemented at SIL 1 or above and runs on a core provisioned to at least that level.
         - **Sn14** Solution: Independent re-check of the solution: every active copy of audspec is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 9]`
       - **S9** *Strategy*: Argument by development process alone: no structural safety pattern is applied.
-        - **C24** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.
+        - **C24** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.
         - **G23** **Goal**: audspec is developed and verified to SIL 1 in accordance with IEC 61508-3.  ◇ **UNDEVELOPED**
     - **G24** **Goal**: Actor compJah of application c_rasta, required SIL 3: the deployment meets the architectural preconditions that the catalog states for SIL 3.
       - **C25** Context: compJah is unfolded into 1 concurrent copy, bound to core 1, implemented at SIL 3.
@@ -139,7 +139,7 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
       - **G38** **Goal**: Every copy of rastaFilter is implemented at SIL 1 or above and runs on a core provisioned to at least that level.
         - **Sn26** Solution: Independent re-check of the solution: every active copy of rastaFilter is implemented at or above its required SIL and runs on a core provisioned to at least that level.  `[checks 11]`
       - **S15** *Strategy*: Argument by development process alone: no structural safety pattern is applied.
-        - **C37** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.
+        - **C37** Context: IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.
         - **G39** **Goal**: rastaFilter is developed and verified to SIL 1 in accordance with IEC 61508-3.  ◇ **UNDEVELOPED**
     - **G40** **Goal**: Actor backEnd of application c_rasta, required SIL 2: the deployment meets the architectural preconditions that the catalog states for SIL 2.
       - **C38** Context: backEnd is unfolded into 1 concurrent copy, bound to core 2, implemented at SIL 2.
@@ -171,7 +171,7 @@ Structure follows Preschern, Kajtazovic & Kreiner, *Building a Safety Architectu
             - **G50** **Goal**: An IEC 61508 method realising Diverse Redundancy is implemented in backEnd, and its effectiveness for the faults of concern is demonstrated.  ◇ **UNDEVELOPED**
               - **C46** Context: Candidate methods from the standard: IEC 61508-7 A.7.6 information redundancy; IEC 61508-7 A.13.2 cross-monitoring of multiple actuators; IEC 61508-7 B.1.4 diverse hardware; IEC 61508-7 C.4.4 diverse programming
     - **G51** **Goal**: No core hosts software of differing integrity without certified partitioning, and every core is provisioned to at least the highest integrity level it hosts.
-      - **C47** Context: Koopman's rule 2: absent certified partitioning, all software on a processor must be developed to the highest integrity level present on it. Whether a core type can provide such partitioning is declared per core type by the platform (Q18).
+      - **C47** Context: Koopman's rule 2: absent certified partitioning, all software on a processor must be developed to the highest integrity level present on it. Whether a core type can provide such partitioning is declared per core type by the platform.
       - **A7** Assumption: Software on different cores does not interfere except through the interconnect; shared memory, caches and input/output are not modelled, so applying the rule per core assumes freedom from interference between cores. Certified partitioning, where used, separates software of different SIL on one core in space and time.
       - **S20** *Strategy*: Achieved through the Barrier tactic (Isolation): protect a subsystem from influences of other subsystems.
         - **Sn31** Solution: Independent re-check of the solution: all 34 core slots re-examined against their type ceiling and against the set of integrity levels actually hosted.  `[checks 20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53]`

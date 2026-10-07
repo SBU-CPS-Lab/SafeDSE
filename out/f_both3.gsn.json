@@ -3,7 +3,7 @@
  "meta": {
   "label": "f_both3",
   "dzn": "out/f_both3.dzn",
-  "solution": "/home/shaniaki/Documents/Papers/safedse/experiments/results/gsn/f_both3.sol.json",
+  "solution": "out/f_both3.sol.json",
   "fault_model": "both",
   "fault_model_how": "inferred from pat_allowed",
   "verifier_ok": true
@@ -21,7 +21,7 @@
   {
    "id": "C1",
    "kind": "Context",
-   "text": "IEC 61508 is the governing functional safety standard; integrity is allocated as a required Safety Integrity Level per actor (Q1, Q13). SIL 0 means no safety requirement.",
+   "text": "IEC 61508 is the governing functional safety standard; integrity is allocated as a required Safety Integrity Level per actor. SIL 0 means no safety requirement.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -71,7 +71,7 @@
   {
    "id": "C6",
    "kind": "Context",
-   "text": "Fault model under consideration: random hardware faults and systematic software faults (Q2). Patterns not covering this fault class were excluded from the design space, and placement relations motivated only by an excluded fault class were not posted. Systematic faults are covered only as far as they differ between core types and toolchains, or between a doer and a checker with a different algorithm; design faults common to diverse implementations need diverse development. Not addressed: transient faults, timing and omission faults, faults of the interconnect, latent faults, diagnostic coverage, and degraded modes.",
+   "text": "Fault model under consideration: random hardware faults and systematic software faults. Patterns not covering this fault class were excluded from the design space, and placement relations motivated only by an excluded fault class were not posted. Systematic faults are covered only as far as they differ between core types and toolchains, or between a doer and a checker with a different algorithm; design faults common to diverse implementations need diverse development. Not addressed: transient faults, timing and omission faults, faults of the interconnect, latent faults, diagnostic coverage, and degraded modes.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -101,7 +101,7 @@
   {
    "id": "A2",
    "kind": "Assumption",
-   "text": "Token preservation (Q4): every replica fires on every iteration and produces on all of its outputs, in the fault-free and in the degraded case alike. Detection marks a token invalid; it never withholds one. The timing argument therefore holds in the degraded mode, at the cost of being conservative when no fault is present.",
+   "text": "Token preservation: every replica fires on every iteration and produces on all of its outputs, in the fault-free and in the degraded case alike. Detection marks a token invalid; it never withholds one. The timing argument therefore holds in the degraded mode, at the cost of being conservative when no fault is present.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -145,7 +145,7 @@
   {
    "id": "C7",
    "kind": "Context",
-   "text": "Evidence identity (SHA-256): instance 22352a3f0f4a3db86683fa9c2e34ff46ab82633cb2687c933fa99619bea3caf6; solution fc270494ae525d25cbcbc73cb6e9d54af4c4b9d75b6dd8daf4249ed357f284b7; check log 35816c337b2c16d23d2693c729e921c9c8b907af106f5aa2f2994a799d170d7b. Every Solution cites a record of this check log by index.",
+   "text": "Evidence identity (SHA-256): instance d75b34053808d9a92c8390a10fff5bed76afa844e4a5ddf1f1bc7451ffdb3f32; solution fc270494ae525d25cbcbc73cb6e9d54af4c4b9d75b6dd8daf4249ed357f284b7; check log f87ecfe692fa72feab5ebd59e12b387108a3b04c232f761c6a02429b19b23f2a. Every Solution cites a record of this check log by index.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -267,7 +267,7 @@
   {
    "id": "C10",
    "kind": "Context",
-   "text": "Pattern two_of_two_high_sil [koopman, Two Channel (2-of-2)]: Two channels, both at high SIL, compute the same function and must agree. Channel b receives the owner's result, compares it with its own, and returns the verdict to the owner over an edge with one initial token; on a disagreement the owner marks its output invalid and the pair goes to its safe state (fails silent), so the fault reaction starts within one iteration. No explicit voter: 2-of-2 requires agreement rather than a majority, so the comparison folds into channel b and the owner -- which is why this pattern is reachable in Phase 4 while NVP is not. The name is Koopman's; it is not IEC 61508 MooN notation. Both channels always fire and always produce, per the token-preservation obligation. A detected disagreement marks the token invalid; it never withholds it. So the timing guarantee holds in the degraded mode too (Q4), at the price of being conservative in the fault-free case. Attainable SIL [3, 4]; covers random_hw, systematic_sw; fails silent; voter folded.",
+   "text": "Pattern two_of_two_high_sil [koopman, Two Channel (2-of-2)]: Two channels, both at high SIL, compute the same function and must agree. Channel b receives the owner's result, compares it with its own, and returns the verdict to the owner over an edge with one initial token; on a disagreement the owner marks its output invalid and the pair goes to its safe state (fails silent), so the fault reaction starts within one iteration. No explicit voter: 2-of-2 requires agreement rather than a majority, so the comparison folds into channel b and the owner, and no explicit voter is needed. The name is Koopman's; it is not IEC 61508 MooN notation. Both channels always fire and always produce, per the token-preservation obligation. A detected disagreement marks the token invalid; it never withholds it. So the timing guarantee holds in the degraded mode too, at the price of being conservative in the fault-free case. Attainable SIL [3, 4]; covers random_hw, systematic_sw; fails silent; voter folded.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -645,7 +645,7 @@
   {
    "id": "C20",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -728,7 +728,7 @@
   {
    "id": "C22",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -811,7 +811,7 @@
   {
    "id": "C24",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -921,7 +921,7 @@
   {
    "id": "C27",
    "kind": "Context",
-   "text": "Pattern two_of_two_high_sil [koopman, Two Channel (2-of-2)]: Two channels, both at high SIL, compute the same function and must agree. Channel b receives the owner's result, compares it with its own, and returns the verdict to the owner over an edge with one initial token; on a disagreement the owner marks its output invalid and the pair goes to its safe state (fails silent), so the fault reaction starts within one iteration. No explicit voter: 2-of-2 requires agreement rather than a majority, so the comparison folds into channel b and the owner -- which is why this pattern is reachable in Phase 4 while NVP is not. The name is Koopman's; it is not IEC 61508 MooN notation. Both channels always fire and always produce, per the token-preservation obligation. A detected disagreement marks the token invalid; it never withholds it. So the timing guarantee holds in the degraded mode too (Q4), at the price of being conservative in the fault-free case. Attainable SIL [3, 4]; covers random_hw, systematic_sw; fails silent; voter folded.",
+   "text": "Pattern two_of_two_high_sil [koopman, Two Channel (2-of-2)]: Two channels, both at high SIL, compute the same function and must agree. Channel b receives the owner's result, compares it with its own, and returns the verdict to the owner over an edge with one initial token; on a disagreement the owner marks its output invalid and the pair goes to its safe state (fails silent), so the fault reaction starts within one iteration. No explicit voter: 2-of-2 requires agreement rather than a majority, so the comparison folds into channel b and the owner, and no explicit voter is needed. The name is Koopman's; it is not IEC 61508 MooN notation. Both channels always fire and always produce, per the token-preservation obligation. A detected disagreement marks the token invalid; it never withholds it. So the timing guarantee holds in the degraded mode too, at the price of being conservative in the fault-free case. Attainable SIL [3, 4]; covers random_hw, systematic_sw; fails silent; voter folded.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -1299,7 +1299,7 @@
   {
    "id": "C37",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -1680,7 +1680,7 @@
   {
    "id": "C47",
    "kind": "Context",
-   "text": "Koopman's rule 2: absent certified partitioning, all software on a processor must be developed to the highest integrity level present on it. Whether a core type can provide such partitioning is declared per core type by the platform (Q18).",
+   "text": "Koopman's rule 2: absent certified partitioning, all software on a processor must be developed to the highest integrity level present on it. Whether a core type can provide such partitioning is declared per core type by the platform.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],

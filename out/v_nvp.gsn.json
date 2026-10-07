@@ -3,7 +3,7 @@
  "meta": {
   "label": "v_nvp",
   "dzn": "out/v_nvp.dzn",
-  "solution": "/home/shaniaki/Documents/Papers/safedse/experiments/results/gsn/v_nvp.sol.json",
+  "solution": "out/v_nvp.sol.json",
   "fault_model": "undetermined",
   "fault_model_how": "ambiguous between ['random_hw', 'systematic_sw', 'both'] (this instance does not distinguish them)",
   "verifier_ok": true
@@ -21,7 +21,7 @@
   {
    "id": "C1",
    "kind": "Context",
-   "text": "IEC 61508 is the governing functional safety standard; integrity is allocated as a required Safety Integrity Level per actor (Q1, Q13). SIL 0 means no safety requirement.",
+   "text": "IEC 61508 is the governing functional safety standard; integrity is allocated as a required Safety Integrity Level per actor. SIL 0 means no safety requirement.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -71,7 +71,7 @@
   {
    "id": "C6",
    "kind": "Context",
-   "text": "Fault model under consideration: UNDETERMINED (Q2). Patterns not covering this fault class were excluded from the design space, and placement relations motivated only by an excluded fault class were not posted. Not addressed: transient faults, timing and omission faults, faults of the interconnect, latent faults, diagnostic coverage, and degraded modes.",
+   "text": "Fault model under consideration: UNDETERMINED. Patterns not covering this fault class were excluded from the design space, and placement relations motivated only by an excluded fault class were not posted. Not addressed: transient faults, timing and omission faults, faults of the interconnect, latent faults, diagnostic coverage, and degraded modes.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -101,7 +101,7 @@
   {
    "id": "A2",
    "kind": "Assumption",
-   "text": "Token preservation (Q4): every replica fires on every iteration and produces on all of its outputs, in the fault-free and in the degraded case alike. Detection marks a token invalid; it never withholds one. The timing argument therefore holds in the degraded mode, at the cost of being conservative when no fault is present.",
+   "text": "Token preservation: every replica fires on every iteration and produces on all of its outputs, in the fault-free and in the degraded case alike. Detection marks a token invalid; it never withholds one. The timing argument therefore holds in the degraded mode, at the cost of being conservative when no fault is present.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -145,7 +145,7 @@
   {
    "id": "C7",
    "kind": "Context",
-   "text": "Evidence identity (SHA-256): instance 47de23a01447bd7b06c2dc3c5d232284fd8c031ee32d811581e566591b875632; solution fe58a34d5438f5788b6a2ca9ebf55bf5edef0c5c0178039a9f4430a2cfcffd34; check log 6ee6905fd3f127691a85ce46b9f687934ad8de8b881d1e9f360a20e9dd0a790c. Every Solution cites a record of this check log by index.",
+   "text": "Evidence identity (SHA-256): instance a3499f6e20ab9cb75ca6e8f106002df7d67ae925a946f303d75aace969961d6d; solution fe58a34d5438f5788b6a2ca9ebf55bf5edef0c5c0178039a9f4430a2cfcffd34; check log f2049686967c1ed437b8469e1cece773cc21d7f3f32bde2200add99fef364e2e. Every Solution cites a record of this check log by index.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -736,7 +736,7 @@
   {
    "id": "C20",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -819,7 +819,7 @@
   {
    "id": "C22",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -902,7 +902,7 @@
   {
    "id": "C24",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -1481,7 +1481,7 @@
   {
    "id": "C37",
    "kind": "Context",
-   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1 (Q20). The exploration enforced this ceiling when choosing the pattern.",
+   "text": "IEC 61508 expects diagnostic coverage from SIL 2 upward, so process alone is admissible only to SIL 1. The exploration enforced this ceiling when choosing the pattern.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
@@ -1862,7 +1862,7 @@
   {
    "id": "C47",
    "kind": "Context",
-   "text": "Koopman's rule 2: absent certified partitioning, all software on a processor must be developed to the highest integrity level present on it. Whether a core type can provide such partitioning is declared per core type by the platform (Q18).",
+   "text": "Koopman's rule 2: absent certified partitioning, all software on a processor must be developed to the highest integrity level present on it. Whether a core type can provide such partitioning is declared per core type by the platform.",
    "undeveloped": false,
    "supportedBy": [],
    "inContextOf": [],
