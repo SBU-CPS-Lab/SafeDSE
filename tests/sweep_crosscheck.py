@@ -2,7 +2,7 @@
 """Finish a crosscheck sweep over instances a previous run did not reach.
 
 The full `crosscheck` group takes ~25 minutes because Gecode times out by
-design on most instances, and a container that suspends between polls will not
+design on most instances, and a machine that suspends between polls will not
 let it finish. This runs the remainder with a shorter backend timeout.
 
 That is a weakening of COVERAGE, not of correctness: a backend that would have

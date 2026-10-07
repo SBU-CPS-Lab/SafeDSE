@@ -1,4 +1,4 @@
-# SafeDSE safety-tactic table  (architecture doc C.9, Phase 8)
+# SafeDSE safety-tactic table  (docs/design.md#safety-argument-generation)
 #
 # Source: Preschern, Kajtazovic & Kreiner, "Building a Safety Architecture
 # Pattern System", EuroPLoP 2015, Appendix B -- which in turn takes the tactic
@@ -98,8 +98,8 @@ tactics:
     # against nothing: one random hardware fault takes out both copies.  The
     # separation is a deployment property and SafeDSE decides it.
     #
-    # The claim is PER RELATION and says exactly what the verifier checked
-    # (review rev1, D9).  DIFFERENT allows two cores on one card, and a card
+    # The claim is PER RELATION and says exactly what the verifier checked.
+    # DIFFERENT allows two cores on one card, and a card
     # is the fault containment region (shared power and clock), so a DIFFERENT
     # record must never be cited for a claim about fault containment regions.
     # Neither relation separates what the components still share; that is
@@ -150,7 +150,7 @@ tactics:
     # substance of the tactic.  The generator therefore emits the mapping
     # evidence AND a standing assumption; it must never present the former as
     # discharging the latter.
-    # Review rev1, D4: the fault class S that DIVERSE covers is the part of
+    # The fault class S that DIVERSE covers is the part of
     # systematic faults that differs between core types and toolchains
     # (compiler, instruction set, object code).  Design faults of the
     # application software reappear in both unless the software itself is
@@ -227,7 +227,7 @@ tactics:
     # Barrier is the tactic behind Koopman's rule 2 and behind SafeDSE's
     # `partition` decision variable: a core hosting two SILs needs certified
     # partitioning, which is a Barrier.  The platform declares per core type
-    # whether it can provide one (Q18), and the model may only mix SILs on a
+    # whether it can provide one, and the model may only mix SILs on a
     # core that does.  That IS a deployment property, checked by the verifier's
     # isolation pass -- but it is not expressed as a pairwise placement
     # relation, so it is wired up separately by the generator.

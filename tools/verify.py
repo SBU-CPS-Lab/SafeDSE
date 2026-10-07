@@ -40,7 +40,7 @@ from golden import mcm, selftimed_period, selftimed_trace  # noqa: E402
 
 
 # --------------------------------------------------------------------------
-# Structured check log (Phase 8).
+# Structured check log (docs/inputs.md#check-log).
 #
 # The console output above was written for a human reading a failure.  The GSN
 # generator needs the same information addressably: a Solution node in a safety
@@ -150,13 +150,13 @@ def build_msag(d: dict, sol: dict):
     out and each core's static order is spliced around them (the model keeps
     them in the order with zero WCET; a token-free cycle through them only has
     zero weight in the model, but here it would be reported as a deadlock of a
-    design in which those nodes do not exist -- D9 of the TCAD paper plan).
+    design in which those nodes do not exist).
     Splicing keeps every cycle of the deployed schedule, including the wrap
     cycle, so the MCR is that of the design as it runs.
 
     Edges: application and pattern channels between live nodes (tok >= 0);
     serialisation (no token) and one wrap edge per core (one token); for a
-    channel that the front-end refined (removed from tok, D18), the direct
+    channel that the front-end refined (removed from tok), the direct
     edge with its initial tokens when local, else the path
     src -> block -> send -> rec -> dst with the initial tokens on the first
     edge, plus the two buffer back-edges -- as lib/comm.mzn posts them.
@@ -258,7 +258,7 @@ def required_fields(d: dict, sol: dict) -> list[str]:
 
 
 def consistency(d: dict, sol: dict) -> tuple[bool, list[str]]:
-    """Fields the model derives, re-derived from the instance (S12g)."""
+    """Fields the model derives, re-derived from the instance."""
     n = d["n"]
     proc, succ, T = sol["proc"], sol["succ"], sol["T"]
     act = _aslist(sol["active"])
@@ -495,8 +495,8 @@ def main() -> int:
         # The model's mu is an INTEGER, so the least period it can report is
         # ceil(MCR); with integer WCETs and tokens, integer potentials exist
         # for every integer mu >= MCR. Demanding mu == MCR rejected every
-        # solution whose MCR is fractional (seen in the TCAD paper's S3:
-        # solver 424, MCR 847/2). Equality with the ceiling stays exact.
+        # solution whose MCR is fractional (observed: solver 424, MCR 847/2).
+        # Equality with the ceiling stays exact.
         want = Fraction(math.ceil(k))
         for z in apps_here:
             reported = mus[z - 1] if z - 1 < len(mus) else mus[0]
@@ -505,7 +505,7 @@ def main() -> int:
                 msgs.append(
                     f"app {z}: period mismatch -- solver {reported}, component "
                     f"MCR {k} (least integer period {want}). Applications "
-                    f"sharing a component must share a period (Q15).")
+                    f"sharing a component must share a period.")
         if sim is not None and sim != k:
             ok = False
             msgs.append(f"component {apps_here}: oracle disagreement -- "
@@ -551,7 +551,7 @@ def main() -> int:
                         f"-- expected (see lib/latency.mzn), but do not report "
                         f"the estimate as a worst-case bound")
 
-    # ---- safety invariants (Phase 3) ------------------------------------
+    # ---- safety invariants ----------------------------------------------
     # These are the claims the framework exists to make, so they are checked
     # externally rather than trusted to hold because a constraint was written.
     if "sil_impl" in sol and "csil" in sol:
@@ -603,9 +603,9 @@ def main() -> int:
                 msgs.append(f"core {p_+1}: partitioning claimed, but its type "
                             f"provides none")
             # Koopman rule 2: without partitioning, one SIL per core
-            # In exempt mode (Q21) communication actors are not application
-            # software and Koopman rule 2 does not reach them, so the model
-            # leaves them at SIL 0 and the check must skip them too.
+            # In exempt mode (--comm-sil exempt) communication actors are not
+            # application software and Koopman rule 2 does not reach them, so
+            # the model leaves them at SIL 0 and the check must skip them too.
             exempt = d.get("comm_sil_mode", 0) == 0
             if not part[p_]:
                 on = [sil_impl[i] for i in range(n)
@@ -636,7 +636,7 @@ def main() -> int:
             live = [(p_ + 1, csil[p_]) for p_ in range(len(csil)) if csil[p_] > 0]
             print(f"  isolation: {len(live)} provisioned cores {live}")
 
-    # ---- placement relations (Phase 5) -----------------------------------
+    # ---- placement relations ---------------------------------------------
     # The safety argument rests on these: a 2-of-2 pair in the same fault
     # containment region tolerates nothing.  Checked externally against the
     # returned mapping rather than trusted to the constraint that posted them.

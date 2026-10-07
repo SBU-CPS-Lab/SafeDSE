@@ -1,20 +1,22 @@
 % ===========================================================================
-% symmetry.mzn -- symmetry breaking for the heterogeneous platform (C.5)
+% symmetry.mzn -- symmetry breaking for the heterogeneous platform
+% (docs/design.md#symmetry-breaking)
 %
 % Must be included AFTER order.mzn: these constraints reference `proc`.
 %
-% In the homogeneous prototype a single `seq_precede_chain(proc)` sufficed
-% because every core was interchangeable. That is no longer true, and applying
-% it globally here would be unsound -- it would exclude optimal solutions.
+% On a homogeneous platform a single `seq_precede_chain(proc)` suffices
+% because every core is interchangeable. With core types and FCRs that is no
+% longer true, and applying it globally would be unsound -- it would exclude
+% optimal solutions.
 % ===========================================================================
 include "globals.mzn";
 
-% ---- symmetry breaking (C.5) ----------------------------------------------
+% ---- symmetry breaking ----------------------------------------------------
 % Cores are no longer globally interchangeable, so `seq_precede_chain(proc)`
 % over all of PR is unsound.  Break symmetry within equivalence classes only:
 %   (1) cores of the same type inside the same card;
 %   (2) whole cards built from the same template.
-% Getting this split wrong is the main modelling risk flagged in C.5.
+% Getting this split wrong is the main modelling risk of this layer.
 % (1) Cores of the same type inside the SAME card are fully interchangeable, so
 %     value precedence over them is sound: slot k+1 may only carry an actor if
 %     slot k already carries an earlier one.  This is much stronger than a bare
@@ -24,9 +26,9 @@ constraint forall(c in 1..nSymClasses)(
 );
 
 % (2) Whole cards built from the same template are interchangeable, but cores
-%     in DIFFERENT cards are not once FCR constraints exist (Phase 4): swapping
-%     two cores across cards changes their fault containment region, so it is
-%     not a symmetry on its own. Only whole-card swaps are. Hence two weaker
+%     in DIFFERENT cards are not, because placement relations constrain FCRs:
+%     swapping two cores across cards changes their fault containment region,
+%     so it is not a symmetry on its own. Only whole-card swaps are. Hence two weaker
 %     constraints rather than one global chain:
 %       (2a) buy a prefix of the cards;
 constraint forall(g in 1..nTmplGroups, k in 1..tmplGroupSize[g]-1)(

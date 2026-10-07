@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Bootstrap MiniZinc + Gecode + Chuffed + OR-Tools CP-SAT.
-# Run once per session (the container filesystem resets between sessions).
+# Run once per machine (see docs/usage.md).
 set -euo pipefail
 MZN_VERSION="${MZN_VERSION:-2.10.0}"
 PREFIX="${PREFIX:-/opt/mzn210}"

@@ -50,7 +50,7 @@ An actor goal claims only that the deployment meets the architectural
 preconditions the catalog states for the required SIL: the catalog's SIL range
 of a pattern is necessary, not sufficient, for a SIL under IEC 61508, which
 also needs failure rates, hardware fault tolerance and diagnostic coverage
-that nothing here computes (review rev1, D1, D9).
+that nothing here computes (docs/design.md#safety-argument-generation).
 """
 from __future__ import annotations
 
@@ -126,8 +126,8 @@ class Argument:
         """Every leaf is evidence or an admitted gap.  Nothing else.
 
         With the check log, a cited index must also name a record that exists
-        and passed: an index past the end of the log satisfied the old test
-        (mutation analysis, TCAD paper S12g)."""
+        and passed: an index past the end of the log satisfied an earlier,
+        weaker test (found by mutation analysis)."""
         bad: list[str] = []
         for e in self.el.values():
             if checks is not None and e.kind == "Solution":
@@ -326,7 +326,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
     # ---- context, assumptions, justification -----------------------------
     c_std = a.add("Context", "IEC 61508 is the governing functional safety "
                              "standard; integrity is allocated as a required "
-                             "Safety Integrity Level per actor (Q1, Q13). "
+                             "Safety Integrity Level per actor. "
                              "SIL 0 means no safety requirement.")
     c_haz = a.add("Context", "The required SIL of every actor is an input from "
                              "a hazard and risk analysis outside this "
@@ -364,7 +364,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
                if fault_model in ("systematic_sw", "both") else "")
     c_fm = a.add("Context",
                  f"Fault model under consideration: "
-                 f"{fm_txt.get(fault_model, 'UNDETERMINED')} (Q2). "
+                 f"{fm_txt.get(fault_model, 'UNDETERMINED')}. "
                  f"Patterns not covering this fault class were excluded from "
                  f"the design space, and placement relations motivated only by "
                  f"an excluded fault class were not posted.{sys_txt} Not "
@@ -391,7 +391,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
         "The exploration consumes these figures; it does not establish them.")
     a_token = a.add(
         "Assumption",
-        "Token preservation (Q4): every replica fires on every iteration and "
+        "Token preservation: every replica fires on every iteration and "
         "produces on all of its outputs, in the fault-free and in the degraded "
         "case alike. Detection marks a token invalid; it never withholds one. "
         "The timing argument therefore holds in the degraded mode, at the cost "
@@ -423,7 +423,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
         a_comm = a.add(
             "Assumption",
             "Inter-processor transfers are not safety functions and carry no "
-            "integrity requirement of their own (Q21, --comm-sil exempt). "
+            "integrity requirement of their own (--comm-sil exempt). "
             "This holds if the interconnect is used as a black channel: the "
             "communicating actors detect corruption, loss and delay of a "
             "token end to end. Otherwise the argument must be regenerated "
@@ -483,7 +483,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
                                     if parent[i] == pk + 1 and act[i]]))
 
         # SIL provisioning of the owner's copies and of every component's
-        # copies (review rev1, D3): a component carries the actor's required
+        # copies: a component carries the actor's required
         # SIL, and the argument must show where it runs, not only the owner.
         prov = [(aname, [i for i in copies if act[i]])]
         prov += [(f"{aname}'s {role}", cn) for role, cn in comp_nodes if cn]
@@ -517,7 +517,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
             c_none = a.add(
                 "Context",
                 "IEC 61508 expects diagnostic coverage from SIL 2 upward, so "
-                "process alone is admissible only to SIL 1 (Q20). The "
+                "process alone is admissible only to SIL 1. The "
                 "exploration enforced this ceiling when choosing the pattern.")
             a.context(s_a, c_none)
             g_proc = a.add("Goal",
@@ -627,7 +627,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
                             and checks[j].get("relation") in rels]
                     consumed.update(hits)
                     # one deployment goal per relation, claiming exactly what
-                    # the cited records establish (review rev1, D9)
+                    # the cited records establish
                     for rel in rels:
                         hr = [j for j in hits if checks[j]["relation"] == rel]
                         if not hr:
@@ -738,7 +738,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
             "Koopman's rule 2: absent certified partitioning, all software on "
             "a processor must be developed to the highest integrity level "
             "present on it. Whether a core type can provide such partitioning "
-            "is declared per core type by the platform (Q18).")
+            "is declared per core type by the platform.")
         a.context(g_iso, c_iso)
         a_mc = a.add(
             "Assumption",
@@ -811,7 +811,7 @@ def build(d: dict, sol: dict, report: dict, pats: list, tactics: dict,
                 evidence=lb)
             a.support(g_t, sn_l)
 
-    # ---- platform-wide: fault reaction (review rev1, D7) ------------------
+    # ---- platform-wide: fault reaction ------------------------------------
     # A doer/checker is a safety mechanism only if a detected fault leads to a
     # safe state in time. The dataflow model fixes when a verdict reaches the
     # owner (the initial tokens on the verdict edge), and nothing else.

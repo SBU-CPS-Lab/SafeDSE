@@ -3,9 +3,9 @@
 
 Groups:
   golden    -- the Python oracles agree with hand-computed values
-  unfold    -- SDF->HSDF preserves the C.6 properties, incl. multi-rate cases
+  unfold    -- SDF->HSDF unfolding properties, incl. multi-rate cases
   model     -- the CP model agrees with the oracles on real instances
-  symmetry  -- Rosvall 23/33 change runtime but never the optimum (Q14)
+  symmetry  -- Rosvall 23/33 change runtime but never the optimum
   gsn       -- the generated safety argument cites evidence that really ran
   crosscheck-- CP-SAT, Gecode and Chuffed agree on small instances
 
@@ -80,7 +80,7 @@ def _multirate() -> SDFGraph:
 
 
 def t_unfold() -> None:
-    print("\n[unfold] SDF -> HSDF properties (C.6)")
+    print("\n[unfold] SDF -> HSDF properties")
     g = _multirate()
     q = g.repetition_vector()
     check("repetition vector of the 2:3 multi-rate graph", q == [3, 2, 2],
@@ -131,7 +131,7 @@ def _verify(dzn: str, sol: dict) -> tuple[bool, str]:
 
 
 def t_provenance() -> None:
-    """Records the Phase-1 finding that SDF-level provenance is load-bearing.
+    """Records the finding that SDF-level provenance is load-bearing.
 
     d_jpegEnc1 gets its parallelism from six identical DCT/Huffman branches.
     Shipped as a pre-unfolded .hsdf.xml those are six DISTINCT SDF actors, so
@@ -140,9 +140,9 @@ def t_provenance() -> None:
     .sdf.xml the unfolder produces the same 16-node HSDF but retains parent[],
     and the instance becomes tractable.
 
-    This is why patterns are applied at SDF level (Q5) and why parent[] is
-    emitted (Q14) -- both were argued on semantics and turn out to decide
-    tractability too.
+    This is why patterns are applied at SDF level and why parent[] is
+    emitted -- both were argued on semantics and turn out to decide
+    tractability too (docs/design.md#patterns-at-sdf-level).
     """
     print("\n[provenance] multi-rate input must beat pre-unfolded input")
     pre = ROOT / "out" / "jpeg.dzn"
@@ -193,7 +193,7 @@ def t_symmetry(dzns: list[str]) -> None:
     Only instances with real parent multiplicity exercise this; a pre-unfolded
     .hsdf.xml has all-distinct parents and the constraints are inert.
     """
-    print("\n[symmetry] Rosvall 23/33 must not move the optimum (Q14)")
+    print("\n[symmetry] Rosvall 23/33 must not move the optimum")
     dzns = [d for d in dzns if _has_multiplicity(d)]
     if not dzns:
         print("  SKIP  no instance with parent multiplicity -- build one from a "
@@ -275,11 +275,11 @@ def t_rosvall() -> None:
 
 
 def t_safety() -> None:
-    """Phase 3: SIL isolation, promotion pricing, and cost-profile sensitivity."""
+    """SIL isolation, promotion pricing, and cost-profile sensitivity."""
     print("\n[safety] isolation, promotion, and cost-profile sensitivity")
     noiso = ROOT / "out" / "s_myklebust2015.dzn"
     if not noiso.exists():
-        print("  SKIP  build the Phase-3 instances first")
+        print("  SKIP  build the safety instances first (tools/build_all.sh)")
         return
 
     # Koopman rule 2 must hold in the returned solution, checked externally.
@@ -312,7 +312,7 @@ def t_safety() -> None:
         check("allow_promotion=false: 2 cores correctly UNSAT",
               b["status"] == "UNSAT", b["status"])
 
-    # C.8: the cost profile is an experimental variable. On expensive hardware
+    # The cost profile is an experimental variable. On expensive hardware
     # it once changed the optimal ARCHITECTURE (klosterman: 1 core), but only
     # while klosterman's SIL 3 took the ASIL C row of Klosterman's table; with
     # the ASIL D row (cost_model.xml) all three profiles buy 3 cores. What
@@ -333,12 +333,13 @@ def t_safety() -> None:
 
 
 def t_patterns() -> None:
-    """Phase 4: the guarded-superposition mechanism.
+    """The guarded-superposition mechanism.
 
     Three claims, each checked rather than asserted:
-      1. the library is well formed under the C.4 obligations;
-      2. with every pattern forced to `none` the model reproduces the Phase-3
-         numbers EXACTLY -- the machinery must be neutral when disabled;
+      1. the library is well formed under the well-formedness obligations;
+      2. with every pattern forced to `none` the model reproduces the
+         pattern-free numbers EXACTLY -- the machinery must be neutral when
+         disabled;
       3. two structurally identical patterns differing only in placement yield
          different mappings, which is what proves a pattern is a rewrite PLUS a
          placement relation rather than topology alone.
@@ -353,7 +354,7 @@ def t_patterns() -> None:
             continue
         pats = load_patterns(f)
         bad = [m for p in pats for m in check_pattern(p)]
-        check(f"{lib}: {len(pats)} records well formed (C.4)", not bad,
+        check(f"{lib}: {len(pats)} records well formed", not bad,
               "; ".join(bad))
 
     # (2) neutrality regression
@@ -368,8 +369,8 @@ def t_patterns() -> None:
                       f"{a['status']}/{b['status']}")
                 continue
             ma, mb = a["solution"]["metric"], b["solution"]["metric"]
-            check(f"forced-none reproduces Phase 3 at {k} cores", ma == mb,
-                  f"{ma} vs {mb}")
+            check(f"forced-none reproduces the pattern-free result at {k} "
+                  f"cores", ma == mb, f"{ma} vs {mb}")
 
     # anti-patterns and malformed records must be REJECTED, not merely absent
     from patterns import Pattern
@@ -388,13 +389,13 @@ def t_patterns() -> None:
             achieves_sil=[3], covers_faults=["random_hw"])),
         ("SIL 3 claimed with no redundancy", Pattern(
             id="bare", achieves_sil=[3], covers_faults=["random_hw"])),
-        ("an explicit voter before Phase 6", Pattern(
+        ("an explicit voter that does not produce the output", Pattern(
             id="nvp", components=[{"role": "v", "wcet_type": "x"}],
             edges=[{"from": "owner", "to": "v", "tokens": 0}],
             voter="explicit", achieves_sil=[3], covers_faults=["random_hw"])),
     ]
     for label, p in rejects:
-        check(f"C.4 rejects {label}", bool(check_pattern(p)))
+        check(f"check_pattern rejects {label}", bool(check_pattern(p)))
 
     # (3) placement, not topology, distinguishes the two Doer/Checker patterns
     got = {}
@@ -460,7 +461,7 @@ def t_patterns() -> None:
 
 
 def t_catalogue() -> None:
-    """Phase 5: the full Koopman catalogue, and what DIVERSE actually forbids."""
+    """The full Koopman catalogue, and what DIVERSE actually forbids."""
     print("\n[catalogue] full Koopman set")
     sys.path.insert(0, str(ROOT / "tools"))
     from patterns import load_patterns
@@ -487,14 +488,14 @@ def t_catalogue() -> None:
 
 
 def t_multiapp() -> None:
-    """Q15: per-application periods couple exactly when applications share a core.
+    """Per-application periods couple exactly when applications share a core.
 
     Rosvall computes period[z] as the MCR of the MSAG's connected component
     containing z, so sharing a processing element forces a common period -- and
     therefore forces every application on that core down to the TIGHTEST bound
     among them. Verified by squeezing the core count until sharing is unavoidable.
     """
-    print("\n[multiapp] period coupling under core sharing (Q15)")
+    print("\n[multiapp] period coupling under core sharing")
     dzn = ROOT / "out" / "r_2app.dzn"
     if not dzn.exists():
         print("  SKIP  build out/r_2app.dzn first")
@@ -525,7 +526,7 @@ def t_multiapp() -> None:
 
 
 def t_comm() -> None:
-    """Phase 6: TDMA communication as guarded superposition."""
+    """TDMA communication as guarded superposition."""
     print("\n[comm] TDMA block/send/rec superposition")
     for a in ["a_sobel", "b_susan", "c_rasta"]:
         ideal = ROOT / "out" / f"r_{a}.dzn"
@@ -559,9 +560,9 @@ def t_comm() -> None:
 
 
 def t_commsil() -> None:
-    """Q21: whether bus transfers count against their core's SIL is a designer
+    """Whether bus transfers count against their core's SIL is a designer
     setting, and the three modes must all be expressible and self-consistent."""
-    print("\n[commsil] Q21 communication-SIL modes")
+    print("\n[commsil] communication-SIL modes")
     import subprocess as sp
     outs = {}
     for mode in ["exempt", "inherit", "core"]:
@@ -599,7 +600,7 @@ def t_commsil() -> None:
 def t_composition() -> None:
     """Safety patterns and TDMA communication active at once.
 
-    Both are guarded superposition (architecture doc A.5) and each works alone,
+    Both are guarded superposition and each works alone,
     but composing them was the one thing that did not work: the model grew to
     265 nodes and found no solution in 100 s. The cause was that communication
     actors were being folded into the PROCESSOR static order, whose machinery is
@@ -651,7 +652,7 @@ def t_composition() -> None:
 
 
 def t_gsn() -> None:
-    """Phase 8: the GSN safety-argument generator.
+    """The GSN safety-argument generator.
 
     The thing that makes a generated safety argument dangerous is that it reads
     exactly as well when it is wrong, so the tests here are mostly about the
@@ -763,7 +764,7 @@ def t_gsn() -> None:
                               if k.kind == "Goal"))
                     break
 
-            # ---- claims match their evidence (review rev1, D1, D3, D7, D9)
+            # ---- claims match their evidence
             goals = [e for e in arg.el.values() if e.kind == "Goal"]
             check("no goal claims that a SIL is attained",
                   not any("attains SIL" in g.text for g in goals))

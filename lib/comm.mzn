@@ -1,13 +1,13 @@
 % ===========================================================================
-% comm.mzn -- TDMA bus communication (architecture doc B.5 level 2)
+% comm.mzn -- TDMA bus communication (docs/design.md#communication)
 %
 % Communication refinement uses the SAME mechanism as safety patterns: a channel
 % whose endpoints land on different processors gets three extra MSAG actors --
 % block, send, receive -- activated by the guard `proc[src] != proc[dst]`. The
 % front-end instantiates all three per channel statically; the model decides
-% which are real. This is the observation from architecture doc A.5: conditional
-% structural expansion of the dataflow graph, guarded by a decision variable, is
-% one operation, and communication and safety patterns are two instances of it.
+% which are real. Conditional structural expansion of the dataflow graph,
+% guarded by a decision variable, is one operation, and communication and
+% safety patterns are two instances of it (docs/design.md#guarded-superposition).
 %
 % The WCCT model follows DeSyDe's src/cp_model/wcct.constraints:
 %
@@ -31,8 +31,8 @@
 %   the send/receive orderings on each node, as for computation
 %
 % BUFFER SIZES ARE VARIABLES, so the back-edge terms are tok * mu with BOTH
-% factors variable -- the non-linearity flagged in B.2. CP-SAT has a native
-% int_times and handles it directly; see README_PHASE6.md for the measurement.
+% factors variable, a non-linear term. CP-SAT has a native int_times and
+% handles it directly (docs/design.md#throughput-by-node-potentials).
 % ===========================================================================
 include "globals.mzn";
 
@@ -172,7 +172,7 @@ predicate comm_msag_edges(
                                           - recbuf[c] * mu_of[ch_src[c]])
     );
 
-% ---- safety-aware channel separation (B.5 level 3) ------------------------
+% ---- safety-aware channel separation (docs/design.md#channel-separation) -
 % Replicated channels must not share a failure region. On a TDMA bus the shared
 % resource is the bus itself; what can be separated is the SLOT, so two channels
 % carrying replica traffic are required to originate from processors with
@@ -183,7 +183,7 @@ predicate comm_msag_edges(
 % has a single point of failure no slot discipline can remove. The honest
 % statement is that the model enforces what the platform can offer and records
 % what it cannot. A replicated bus or a NoC with disjoint routes is what the
-% argument actually needs, and that is Phase 7.
+% argument actually needs; this model does not provide one.
 int: nSep;  set of int: SEP = 1..nSep;
 array[int] of int: sep_a;      % channel indices that must stay separated
 array[int] of int: sep_b;      % (padded to one row; nSep controls the index set)
@@ -193,7 +193,8 @@ constraint forall(k in SEP)(
         proc[ch_src[sep_a[k]]] != proc[ch_src[sep_b[k]]]
 );
 
-% ---- Q21: does bus traffic count against its core's SIL? ------------------
+% ---- does bus traffic count against its core's SIL? -----------------------
+% (docs/design.md#communication-sil)
 % A designer setting, because the answer depends on the platform, not on the
 % model. If the transfer is DMA driven by dedicated hardware, the block/send
 % actors are not application software and Koopman rule 2 does not reach them.

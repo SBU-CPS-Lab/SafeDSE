@@ -23,7 +23,7 @@ int: n;  set of int: A = 1..n;
 int: nApps;  set of int: APP = 1..nApps;
 array[A] of APP: app;
 
-% -- provenance from the SDF->HSDF unfolding (C.6) --------------------------
+% -- provenance from the SDF->HSDF unfolding --------------------------------
 int: nParents;  set of int: PAR = 1..nParents;
 array[A] of PAR: parent;        % which SDF actor this copy came from
 array[A] of int: copy_index;
@@ -74,10 +74,9 @@ constraint forall(i, j in A)(
                     /\ succ[i] = 0 /\ ishead[j] /\ proc[i] = proc[j] )
 );
 
-% ---- Rosvall constraints 23 and 33 (Q14) ----------------------------------
-% Both concern HSDF copies of a common SDF parent.  They were left as %TODO in
-% the original transcription because the .dzn never carried `parent[]`; with it
-% emitted they are straightforward.
+% ---- Rosvall constraints 23 and 33 (docs/design.md#copy-order-symmetry) ---
+% Both concern HSDF copies of a common SDF parent, so they need the `parent[]`
+% provenance that the front end emits.
 %
 % These are REDUNDANT constraints: copies of the same parent are genuinely
 % interchangeable, so imposing an order among them removes symmetric solutions
@@ -97,7 +96,7 @@ constraint use_parent_symmetry -> forall(i, j in A where
     proc[i] = proc[j] -> ord[i] < ord[j]
 );
 
-% ---- application partitioning (C.7, mode (b)) -----------------------------
+% ---- application partitioning (--period-mode partitioned) -----------------
 bool: period_mode_partitioned;
 constraint period_mode_partitioned ->
     forall(i, j in A where app[i] != app[j])( proc[i] != proc[j] );

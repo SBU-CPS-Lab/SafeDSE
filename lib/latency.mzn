@@ -1,5 +1,5 @@
 % ===========================================================================
-% latency.mzn -- end-to-end latency, per section B.2
+% latency.mzn -- end-to-end latency (docs/design.md#latency-estimate)
 %
 % In the periodic regime of a self-timed schedule the k-th firing of actor i
 % starts at approximately pot[i] + k*mu, where pot is the same potential vector
@@ -23,7 +23,7 @@
 % transient is long relative to its period the true worst-case latency of the
 % first few iterations can exceed this.  Treat the constraint as a filter --
 % it prunes the search cheaply and correctly in the periodic regime -- and
-% verify the returned solution exactly with tools/latency_check.py, which
+% verify the returned solution exactly with tools/verify.py, which
 % simulates the transient.  Reporting these numbers as worst-case latency
 % without that verification step would be wrong.
 % ===========================================================================

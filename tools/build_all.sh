@@ -34,14 +34,14 @@ $B --app data/apps/d_jpegEnc1.sdf.xml   $M -o out/jpeg_sdf.dzn
 $B --app data/apps/jpeg_r3.sdf.xml      $M -o out/jpeg_r3.dzn
 $B --app data/apps/d_jpegEnc1.hsdf.xml  $M -o out/jpeg.dzn
 
-# --- C.5 measurement: identical inventory, different FCR granularity ---
+# --- identical inventory, different FCR granularity (symmetry-breaking cost) ---
 for pf in mixed mixed_flat; do
   $B --app data/apps/d_jpegEnc1.sdf.xml --platform data/platform/$pf.xml \
      --wcets data/WCETs_mixed.xml --constraints data/desConst.xml \
      --cost-model data/cost_model.xml -o out/m_$pf.dzn
 done
 
-# --- Phase 3: safety ---
+# --- safety without patterns: isolation, promotion, cost profiles ---
 NI="--platform data/platform/mixed_noiso.xml --wcets data/WCETs_mixed.xml --constraints data/desConst.xml --cost-model data/cost_model.xml"
 CO="--platform data/platform/mixed_costly.xml --wcets data/WCETs_mixed.xml --constraints data/desConst.xml --cost-model data/cost_model.xml"
 for prof in myklebust2015 klosterman do178b; do
@@ -53,11 +53,11 @@ done
 $B --app data/apps/c_rasta.hsdf.xml $M --safety data/safety_rasta.xml -o out/s_rasta.dzn
 $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta_nopromo.xml -o out/s_nopromo.dzn
 
-# --- Phase 4: pattern superposition ---
+# --- pattern superposition ---
 PAT="--patterns data/patterns.yaml"
 $B --app data/apps/c_rasta.hsdf.xml $M --safety data/safety_rasta.xml $PAT -o out/p_rasta.dzn
 $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta.xml $PAT -o out/p_rasta_noiso.dzn
-# regression: same inputs as the Phase-3 instance, but through the pattern
+# regression: same inputs as the pattern-free instance, but through the pattern
 # machinery with every actor forced to `none`. Must reproduce it exactly.
 $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta.xml $PAT \
    --force-no-patterns -o out/p_none.dzn
@@ -65,7 +65,7 @@ $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta.xml $PAT \
 $B --app data/apps/c_rasta.hsdf.xml $NI --safety data/safety_rasta_sw.xml $PAT \
    -o out/p_sw.dzn
 
-# --- Phase 4 demonstration: two structurally identical patterns that differ
+# --- demonstration: two structurally identical patterns that differ
 #     ONLY in placement, selected by the fault model ---
 ST="--patterns data/patterns.yaml"
 for fm in random_hw systematic_sw; do
@@ -75,7 +75,7 @@ for fm in random_hw systematic_sw; do
      -o out/d_$fm.dzn
 done
 
-# --- Phase 5: full Koopman catalogue ---
+# --- full Koopman catalogue under each fault model ---
 python3 tools/mkwcets.py --app data/apps/c_rasta.hsdf.xml --platform data/platform/mixed_3type.xml --patterns data/patterns.yaml -o data/WCETs_3type.xml >/dev/null
 T3="--platform data/platform/mixed_3type.xml --wcets data/WCETs_3type.xml --constraints data/desConst.xml --cost-model data/cost_model.xml"
 for fm in random_hw systematic_sw both; do
@@ -91,7 +91,7 @@ $B --app data/rosvall/a_sobel.hsdf.xml --app data/rosvall/c_rasta.hsdf.xml $R -o
 $B --app data/rosvall/a_sobel.hsdf.xml --app data/rosvall/b_susan.hsdf.xml \
    --app data/rosvall/c_rasta.hsdf.xml $R -o out/r_3app.dzn
 
-# --- Phase 6: TDMA communication ---
+# --- TDMA communication ---
 for a in a_sobel b_susan c_rasta; do
   $B --app data/rosvall/$a.hsdf.xml $R --comm tdma -o out/c_$a.dzn
 done
@@ -105,7 +105,7 @@ $B --app data/rosvall/a_sobel.hsdf.xml --platform data/rosvall/platform.xml \
    $PAT --comm tdma -o out/pc_sobel.dzn
 echo "rebuilt $(ls out/*.dzn | wc -l) instances"
 
-# Explicit voter (Phase 8, Priority 2). Built from a SEPARATE catalogue:
+# Explicit voter (docs/design.md#voters). Built from a SEPARATE catalogue:
 # nvp_three_version is not in data/patterns.yaml because it is expensive enough
 # to move every existing regression optimum, which is a decision independent of
 # making it work. mixed_4type is needed because N mutually diverse components

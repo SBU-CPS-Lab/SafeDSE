@@ -1,29 +1,20 @@
 # Explicit-voter patterns — NOT part of the default catalogue.
 #
-# data/patterns.yaml is loaded by every instance in tools/build_all.sh, and an
-# explicit-voter pattern cannot yet live there. The reason is structural, not
-# stylistic: rerouting an owner's output through a voter needs the owner's
-# outgoing channels re-guarded, and when one of those channels is an
-# input_fanout copy belonging to a DOWNSTREAM actor's pattern, the edge needs
-# the source's and the destination's pattern guards at once. Guarded edges in
-# lib/activation.mzn carry a single owner, so the conjunction has nowhere to go
-# and tools/patterns.py::expand() raises rather than emit a graph in which the
-# pre-voter result can reach a consumer.
+# data/patterns.yaml is loaded by every instance in tools/build_all.sh. Rerouting
+# an owner's output through a voter needs the owner's outgoing channels
+# re-guarded, and when one of those channels is an input_fanout copy belonging
+# to a DOWNSTREAM actor's pattern, the edge needs the source's and the
+# destination's pattern guards at once. lib/activation.mzn carries this as a
+# second, conjunctive guard (pe_owner2, pe_guard2), so the record builds with
+# every instance. It stays out of the main catalogue because adding it would
+# change the optimum of existing instances (docs/design.md#voters).
 #
-# That case is not exotic. Merely making nvp_three_version applicable to
-# frontEnd in c_rasta triggers it, because frontEnd feeds rasta and rasta uses
-# input_fanout. So adding this record to the main catalogue breaks the build of
-# every existing `both`-fault-model instance -- which it did, before it was
-# moved here.
-#
-# Use it explicitly, on graphs whose voter-producing actors feed consumers that
-# take pattern `none`:
+# Use it explicitly:
 #
 #   build_dzn.py ... --patterns data/patterns_explicit_voter.yaml
 #
-# Promoting it into patterns.yaml is gated on conjunctive edge guards in the
-# model. Until then it is a demonstration that the front-end rerouting works,
-# not a usable design option.
+# data/patterns_explicit_voter_demo.yaml (none, low_sil_diverse_doer_checker,
+# nvp_three_version) builds out/v_nvp.dzn.
 
   # Armoush, "Design Patterns for Safety-Critical Embedded Systems" (2010),
   # N-Version Programming. N independently developed versions run from the same

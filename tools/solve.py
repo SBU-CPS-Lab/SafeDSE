@@ -2,7 +2,7 @@
 """Run a SafeDSE model and verify the solution.
 
 CP-SAT is the only backend used for experiments (measured 30x faster than
-Gecode at n=10, and the only one that reaches n=30 in the Phase-0 study).
+Gecode at n=10, and the only one that reached n=30 on early benchmarks).
 --solver is exposed anyway so the harness can cross-check small instances on
 Gecode and Chuffed, where disagreement means a modelling error.
 
@@ -34,8 +34,8 @@ def _mzn_stats(out: str) -> dict:
     """Parses every `%%%mzn-stat: key=value` line, keeping the LAST value of
     each key: with --intermediate-solutions the block repeats once per
     solution, and the last one is the state at proof or at the time limit --
-    exactly what RQ3 (scalability, PAPER_PLAN.md S7) needs to report the
-    objective and bound at timeout, not the first incumbent found.
+    exactly what a scalability study needs to report the objective and bound
+    at timeout, not the first incumbent found.
     """
     stats: dict[str, str] = {}
     for k, v in _STAT_RE.findall(out):

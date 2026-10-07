@@ -1,5 +1,6 @@
 % ===========================================================================
-% activation.mzn -- guarded superposition of safety patterns (C.2, C.3)
+% activation.mzn -- guarded superposition of safety patterns
+% (docs/design.md#guarded-superposition)
 %
 % The front-end has already instantiated every candidate replica and channel
 % into one FIXED graph, each tagged with the set of patterns that use it.  So
@@ -12,7 +13,7 @@
 % adjacency matrix over all possible replicas, with decision variables in the
 % index expressions -- needs O(n^2) topology variables and an `element` on a
 % variable index for every access, and did not solve a five-actor instance in
-% three minutes during the ground-work analysis.
+% three minutes.
 %
 % CANONICALISATION.  An inactive node is not deleted (the array is fixed), it
 % is neutralised: T = 0, pinned to its owner's processor, and excluded from
@@ -27,7 +28,7 @@ int: nPat;  set of int: PAT = 1..nPat;
 array[PAT] of string: pat_name;
 
 % Which patterns may be applied to each SDF actor.  Computed in the front-end
-% from achieves_sil and the selected fault model (Q2), so an actor whose SIL is
+% from achieves_sil and the selected fault model, so an actor whose SIL is
 % unreachable under the chosen fault model fails at build time with an
 % explanation rather than as an opaque UNSAT here.
 array[PAR, PAT] of bool: pat_allowed;
@@ -68,7 +69,7 @@ array[int] of int: pe_tok;
 array[int] of int: pe_owner;
 array[int, PAT] of bool: pe_guard;   % 1..max(nPE,1); a dummy row when nPE=0
 
-% Second, conjunctive condition (Phase 8, explicit voters).
+% Second, conjunctive condition (explicit voters, docs/design.md#voters).
 %
 % One guard suffices while every edge belongs to exactly one actor's pattern.
 % An explicit voter breaks that: when actor u routes its output through a voter
@@ -97,7 +98,7 @@ predicate mcm_pattern_edges(
     array[int] of var int: pot,
     array[int] of var int: mu_of
 ) =
-    % MEASURED REDUNDANT (Phase 8). The front-end writes pattern channels into
+    % MEASURED REDUNDANT. The front-end writes pattern channels into
     % the `tok` matrix as well as into pe_*, and lib/mcm.mzn posts every
     % tok[i,j] >= 0 pair UNCONDITIONALLY. So each constraint below is a weaker,
     % guarded restatement of one already posted outright, and contributes
@@ -121,7 +122,7 @@ predicate mcm_pattern_edges(
                                     - pe_tok[e] * mu_of[pe_src[e]]
     );
 
-% ---- placement relations (B.4, Q16) ---------------------------------------
+% ---- placement relations (docs/design.md#pairwise-placement) -------------
 % Applied PAIRWISE across HSDF copies: copy i of the checker must differ from
 % copy i of the doer.  The set-wise reading ("the checker set is disjoint from
 % the doer set") is strictly stronger and would forbid safe interleavings.

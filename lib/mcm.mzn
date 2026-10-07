@@ -19,28 +19,27 @@
 %
 % LINEARITY.  tok[i,j]*mu is linear only while tok is a PARAMETER.  Application
 % edges and the processor wrap edge both have fixed token counts, so they stay
-% linear.  Variable-size buffer back-edges (Phase 6) would make this var*var;
-% handle then by sweeping buffer sizes, by `element` over a small candidate
-% set, or by letting CP-SAT's int_times take it -- measure before choosing.
+% linear.  The communication buffer back-edges in lib/comm.mzn have variable
+% token counts, which makes them var*var; CP-SAT's native int_times handles
+% them (docs/design.md#throughput-by-node-potentials).
 %
-% PER-APPLICATION PERIODS (C.7).  Potentials are indexed by application so that
-% Phase 6 can add per-app MSAGs without rewriting this layer.  With nApps = 1
-% MiniZinc folds the extra dimension away at flattening.
+% PER-APPLICATION PERIODS.  Every edge uses the period of its source node's
+% application (`mu_of`), so this layer is the same for one or several
+% applications.
 %
-% SOUNDNESS, RESOLVED (Q15).  The earlier concern was that potentials belonging
-% to different periods are not in a common time base.  The resolution, taken
-% from Rosvall's MCR propagator, is that period[z] is the maximum cycle ratio of
-% the CONNECTED COMPONENT of the MSAG containing application z -- so two
-% applications sharing a processor necessarily share a period.  With that
+% SOUNDNESS.  Potentials belonging to different periods are not in a common
+% time base.  As in Rosvall's MCR propagator, period[z] is the maximum cycle
+% ratio of the CONNECTED COMPONENT of the MSAG containing application z -- so
+% two applications sharing a processor necessarily share a period.  With that
 % coupling constraint present (see model/dse.mzn) every potential inequality
 % lies within one component and therefore within one time base, and the
-% formulation is sound in general rather than only under the earlier
-% 'global'/'partitioned' restrictions.
+% formulation is sound in general
+% (docs/design.md#periods-of-multiple-applications).
 % ===========================================================================
 
 % Fixed application edges.  tok[i,j] < 0 means "no channel".
 % `mu_of` gives the period governing each node -- mu[app[i]] in practice.  It
-% is an array rather than a scalar so that mode (b) and, later, mode (c) need
+% is an array rather than a scalar so that coupled and partitioned periods need
 % no change here: only the mapping from node to period differs.
 predicate mcm_fixed_edges(
     array[int,int] of int: tok,
@@ -87,12 +86,13 @@ predicate mcm_wrap_edges(
 predicate mcm_anchor(array[int] of var int: pot) =
     pot[min(index_set(pot))] = 0;
 
-% Periodic-phase latency estimate (B.2).  In the periodic regime the k-th
+% Periodic-phase latency estimate (docs/design.md#latency-estimate).  In the
+% periodic regime the k-th
 % firing of actor i starts at approximately pot[i] + k*mu, so
 %     latency(s,d) ~= pot[d] - pot[s] + rho(s,d)*mu + T[d]
 % where rho is the minimum token-delay path from s to d.  Exact in the periodic
-% phase, ignores the transient.  Use to constrain-and-prune; verify returned
-% solutions with the exact unfolding checker.
+% phase, ignores the transient.  Use to constrain-and-prune; tools/verify.py
+% checks returned solutions with the transient included.
 function var int: mcm_periodic_latency(
     array[int] of var int: pot, array[int] of var int: T,
     int: s, int: d, int: rho, var int: mu

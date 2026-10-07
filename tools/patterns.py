@@ -1,4 +1,5 @@
-"""Guarded superposition of safety patterns at SDF level (architecture C.2/C.3).
+"""Guarded superposition of safety patterns at SDF level
+(docs/design.md#guarded-superposition).
 
 The central architectural decision: **topology is a parameter, selection is a
 variable**.  Everything that can be settled by static analysis of the pattern
@@ -13,15 +14,18 @@ The model then has one variable `pat[a]` per actor and derives
 
     active[v]  <->  pat[owner(v)] in guardset(v)
 
-Why at SDF level (Q5): a pattern component mirrors its owner's rates exactly
+Why at SDF level: a pattern component mirrors its owner's rates exactly
 (the token-preservation obligation), so the repetition vector of the superposed
 graph extends the original with no new balance equations.  Unfolding afterwards
 is therefore static, and `pat[a]` stays one variable per DESIGN decision rather
 than one per HSDF copy.
 
-The cost is that placement relations must be read PAIRWISE across copies (Q16):
+The cost is that placement relations must be read PAIRWISE across copies:
 copy i of the checker must differ from copy i of the doer, not merely from the
 doer set as a whole.  The expander emits the pairwise form.
+
+Rationale: docs/design.md#patterns-at-sdf-level and
+docs/design.md#pairwise-placement.
 """
 from __future__ import annotations
 
@@ -82,7 +86,7 @@ class Superposition:
     # added to the SDF graph as real channels so the UNFOLDER computes their
     # copy-to-copy mapping and repetition-vector consistency by the same rule as
     # every other channel -- rather than the expander reimplementing that logic
-    # and getting the pairwise correspondence (Q16) subtly wrong.
+    # and getting the pairwise correspondence subtly wrong.
     chan_guards: dict[str, tuple[str, list[int]]] = field(default_factory=dict)
     # Optional SECOND condition on a channel, conjoined with chan_guards.
     # Only explicit-voter rerouting populates this: an input_fanout copy whose
@@ -105,7 +109,7 @@ def load_patterns(path: str | Path) -> list[Pattern]:
 
 
 # ---------------------------------------------------------------------------
-# C.4 well-formedness obligations
+# Well-formedness obligations (docs/design.md#well-formedness-checks)
 # ---------------------------------------------------------------------------
 def check_pattern(p: Pattern, n_cores_by_fcr: tuple[int, int, int] | None = None
                   ) -> list[str]:
@@ -149,7 +153,7 @@ def check_pattern(p: Pattern, n_cores_by_fcr: tuple[int, int, int] | None = None
         bad.append(f"{p.id}: claims SIL {max(p.achieves_sil)} with no redundant "
                    f"component")
 
-    # (6) scenario well-formedness (Phase 8).  A scenario is a CLAIM that will
+    # (6) scenario well-formedness.  A scenario is a CLAIM that will
     #     be emitted into a safety argument, so a malformed one is worse than a
     #     malformed edge: it does not fail, it just asserts something nobody
     #     checked.  Two obligations:
@@ -172,7 +176,7 @@ def check_pattern(p: Pattern, n_cores_by_fcr: tuple[int, int, int] | None = None
         bad.append(f"{p.id}: has redundant components but states no general "
                    f"scenario, so no safety argument can be generated for it")
 
-    # (7) explicit voters (Q10, Phase 8 Priority 2)
+    # (7) explicit voters (docs/design.md#voters)
     #
     # This was a blanket rejection. It is now a structural check, because an
     # explicit voter is only meaningful if it is actually wired as one: it must
@@ -212,7 +216,7 @@ def check_pattern(p: Pattern, n_cores_by_fcr: tuple[int, int, int] | None = None
     if not p.sdf_compatible:
         bad.append(f"{p.id}: marked sdf_compatible=false; a pattern whose "
                    f"runtime behaviour is rate-inconsistent or data-dependent "
-                   f"cannot be expressed in SDF (see A.4)")
+                   f"cannot be expressed in SDF (see docs/design.md#token-preservation)")
     return bad
 
 
@@ -426,7 +430,7 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
             for pl in p.placement:
                 if "for" in pl and pl["for"] not in faults:
                     continue          # relation motivated by a fault model we
-                                      # are not defending against (Q2)
+                                      # are not defending against
                 ms = pl["members"]
                 for x in range(len(ms)):
                     for y in range(x + 1, len(ms)):
@@ -435,7 +439,7 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
                             resolve(a.name, pi, ms[y]),
                             RELATIONS[pl["relation"]], a.name, [pi]))
 
-    # ---- output rerouting for explicit voters (Q10, Phase 8) --------------
+    # ---- output rerouting for explicit voters ------------------------------
     #
     # With a folded voter the owner is still the thing that produces the
     # pattern's output, so the application's own channels are correct as they
@@ -451,7 +455,7 @@ def expand(g: SDFGraph, patterns: list[Pattern], sil_req: dict[str, int],
     # direction -- leaving the direct edge in place alongside the rerouted one
     # -- would let output bypass the voter entirely while still looking
     # plausible, which is the same failure as the remote-channel direct edge in
-    # comm.mzn (A.7): the shortcut does not error, it just silently makes the
+    # comm.mzn: the shortcut does not error, it just silently makes the
     # safety mechanism optional.
     def producer_role(pi: int) -> str:
         return by_id[ids[pi]].output_from

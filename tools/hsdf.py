@@ -1,13 +1,12 @@
-"""SDF -> HSDF unfolding, per section C.6 of the architecture document.
+"""SDF -> HSDF unfolding (docs/design.md#patterns-at-sdf-level).
 
-Runs *after* pattern superposition (Q5: patterns apply at SDF level), so it must
+Runs *after* pattern superposition (patterns apply at SDF level), so it must
 carry provenance forward:
 
   parent[i]     which SDF actor HSDF copy i came from  -- needed for Rosvall's
-                constraints 23 and 33, which is why they were left as %TODO in
-                the original transcription (the information was never emitted)
+                constraints 23 and 33 (docs/design.md#copy-order-symmetry)
   copy_index[i] which copy, 0..q[parent]-1             -- needed for the
-                *pairwise* reading of placement relations (Q16)
+                *pairwise* reading of placement relations
 
 The rewiring rule is the standard one.  For a channel u->v with production rate
 p, consumption rate c and d initial tokens, let Ttot = q[u]*p = q[v]*c be the
@@ -111,7 +110,7 @@ def unfold(g: SDFGraph, add_auto_concurrency: bool = True) -> HSDFGraph:
 
 
 # --------------------------------------------------------------------------
-# Validation -- the three properties from C.6
+# Validation -- three properties of a correct unfolding
 # --------------------------------------------------------------------------
 def check_unfolding(g: SDFGraph, h: HSDFGraph) -> list[str]:
     """Returns a list of failures; empty means all properties hold."""

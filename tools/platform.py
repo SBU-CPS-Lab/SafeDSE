@@ -1,4 +1,4 @@
-"""Platform catalogue -> flat slot array, per section C.5.
+"""Platform catalogue -> flat slot array (docs/design.md#platform-model).
 
 The designer declares FCR *templates* -- things you physically buy, whose cores
 share power, clock and substrate and therefore fail together -- with a bound on
@@ -88,7 +88,7 @@ class Platform:
         in the same card.  Cards of the same template are handled separately
         (by forcing `fcr_used` to be a prefix within a template), because
         swapping whole cards is a different symmetry from swapping cores
-        inside one.  Getting this wrong is the main modelling risk C.5 flags.
+        inside one.  Getting this wrong is the main modelling risk here.
         """
         groups: dict[tuple[int, str], list[int]] = {}
         for s in self.slots:
@@ -178,7 +178,7 @@ def parse_platform(path: str | Path) -> Platform:
     The DeSyDe dialect has no notion of a fault containment region, so each
     processor becomes its own singleton FCR.  That is the conservative reading
     -- it never asserts independence that the input did not claim -- and it
-    keeps Phase-1 results directly comparable with published DeSyDe numbers.
+    keeps results directly comparable with published DeSyDe numbers.
     Cost lands entirely on the core (per-mode `monetary`), with zero card price.
     """
     root = ET.parse(str(path)).getroot()

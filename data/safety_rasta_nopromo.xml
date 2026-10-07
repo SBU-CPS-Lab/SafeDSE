@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Per-actor SIL requirements (Q1) and the fault model selector (Q2). -->
+<!-- Per-actor SIL requirements and the fault model selector (docs/inputs.md#safety-specification). -->
 <safety fault_model="random_hw" cost_profile="myklebust2015" allow_promotion="false">
   <default sil="1"/>
   <actor name="frontEnd"    sil="3"/>

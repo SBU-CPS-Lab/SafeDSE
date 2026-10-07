@@ -1,6 +1,6 @@
 % ===========================================================================
 % platform.mzn -- heterogeneous cores, FCRs, and the instantiation decision
-% (architecture doc C.5)
+% (docs/design.md#platform-model)
 %
 % The front-end expands the designer's catalogue of FCR templates into a flat
 % array of candidate core slots.  Topology is parameter; instantiation is
@@ -29,7 +29,7 @@ array[PR] of FCR: fcr;
 array[CT] of string: core_model;
 array[CT] of 0..4: max_sil;
 array[CT] of int: core_mem;
-array[CT] of bool: partitionable;      % Q18: capability per core type
+array[CT] of bool: partitionable;      % capability per core type
 array[CT] of int: partition_cost;
 array[CT] of int: n_modes_of;
 array[FCR] of int: fcr_price;

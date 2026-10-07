@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """SafeDSE front-end: XML inputs -> MiniZinc data file.
 
-Phase 1 pipeline (C.6), with steps 2 and 6 not yet present:
+Pipeline (docs/architecture.md#front-end):
 
-    parse  ->  [pattern superposition -- Phase 4]  ->  SDF->HSDF unfold
-           ->  platform catalogue expansion  ->  [communication -- Phase 6]
-           ->  emit .dzn
+    parse  ->  pattern superposition  ->  SDF->HSDF unfold
+           ->  communication refinement  ->  platform catalogue expansion
+           ->  WCETs, bounds  ->  emit .dzn
 
 Usage:
     build_dzn.py --app a.sdf3.xml [--app b.sdf3.xml ...] \
@@ -166,7 +166,8 @@ COST_PROFILES = {
 def load_cost_model(path: str | None, profile: str):
     """cost_model.xml -> (per-SIL multipliers x100, per-task baseline, default).
 
-    The profile is an experimental variable, not a constant (C.8): the three
+    The profile is an experimental variable, not a constant
+    (docs/design.md#cost-profiles): the three
     published profiles disagree by up to 3.0x at SIL3, so the interesting
     question is whether the optimal architecture is stable across them.
     """
@@ -201,10 +202,10 @@ def main() -> int:
     ap.add_argument("--constraints")
     ap.add_argument("--safety")
     ap.add_argument("--latency", help="latency.xml: constrained src/dst pairs")
-    ap.add_argument("--cost-model", help="cost_model.xml (C.8)")
+    ap.add_argument("--cost-model", help="cost_model.xml")
     ap.add_argument("--comm-sil", choices=["exempt", "inherit", "core"],
                     default="exempt",
-                    help="Q21: whether bus transfers count against their core's "
+                    help="whether bus transfers count against their core's "
                          "SIL. 'exempt' (default) treats them as DMA; 'inherit' "
                          "gives a transfer the SIL of its sending actor; 'core' "
                          "treats the bus driver as ordinary software on that "
@@ -222,16 +223,17 @@ def main() -> int:
                          "activated when the endpoints land on different cores")
     ap.add_argument("--cost-profile",
                     help="override the profile named in safety.xml")
-    ap.add_argument("--patterns", help="patterns.yaml (Phase 4)")
+    ap.add_argument("--patterns", help="pattern catalogue (patterns.yaml)")
     ap.add_argument("--force-no-patterns", action="store_true",
                     help="restrict every actor to the `none` pattern. Used by "
-                         "the Phase-3 regression: the model must then reproduce "
-                         "pre-pattern results exactly.")
+                         "a regression test: the model must then reproduce "
+                         "pattern-free results exactly.")
     ap.add_argument("--period-mode", choices=["global", "partitioned"],
                     default="global",
-                    help="C.7: 'global' = one period for all apps (default); "
-                         "'partitioned' = per-app periods, apps may not share "
-                         "cores. Per-app periods WITH sharing is Phase 6.")
+                    help="'global' (default) = per-application periods, coupled "
+                         "when applications share a core; 'partitioned' = "
+                         "applications may not share cores (step 1 of "
+                         "tools/twostep.py).")
     ap.add_argument("--wcet-fallback-scale", type=float, default=None,
                     help="DANGER: substitute exec_time*scale for missing WCET "
                          "entries. Warns per use. Never publish results built "
@@ -239,7 +241,7 @@ def main() -> int:
     ap.add_argument("-o", "--out", required=True)
     args = ap.parse_args()
 
-    # ---- 1. parse, superpose patterns (C.6 step 2/3), unfold ------------
+    # ---- 1. parse, superpose patterns, unfold ---------------------------
     graphs = [parse_sdf3(a) for a in args.app]
     sdf_actor_names = [act.name for g in graphs for act in g.actors]
     saf = load_safety(args.safety, sdf_actor_names)
@@ -253,7 +255,7 @@ def main() -> int:
         pats = load_patterns(args.patterns)
         problems = [m for p in pats for m in check_pattern(p)]
         if problems:
-            print("pattern library FAILED well-formedness checks (C.4):",
+            print("pattern library FAILED well-formedness checks:",
                   file=sys.stderr)
             for m in problems:
                 print("   -", m, file=sys.stderr)
@@ -315,10 +317,10 @@ def main() -> int:
             node_types.append(nd.type)
         poff += len(h.parent_names)
 
-    # ---- 2b. communication superposition (C.6 step 6, Phase 6) ----------
+    # ---- 2b. communication superposition --------------------------------
     # Three MSAG actors per channel -- block, send, receive -- instantiated
     # statically and activated by proc[src] != proc[dst]. Same guarded
-    # expansion as the safety patterns (architecture doc A.5).
+    # expansion as the safety patterns (docs/design.md#tdma-refinement).
     comm_channels = []          # (src_node, dst_node, msgsize, app, b, s, r)
     if args.comm == "tdma":
         off = 0
@@ -541,7 +543,7 @@ def main() -> int:
     W("% Generated by SafeDSE build_dzn.py -- do not edit by hand.")
     W(f"% applications : {', '.join(h.name for h in hgraphs)}")
     W(f"% platform     : {plat.name}")
-    W(f"% period mode  : {args.period_mode}   (C.7)")
+    W(f"% period mode  : {args.period_mode}")
     W(f"% fault model  : {saf['fault_model']}")
     W(f"% cost profile : {saf['cost_profile']}  {dev_k}")
     W("")
@@ -557,7 +559,7 @@ def main() -> int:
     W(f"tok = array2d(1..{n}, 1..{n},")
     W("  " + mzn_matrix(tok).replace("\n", "\n  ") + ");")
     W("")
-    W("% ---- platform (C.5) ----")
+    W("% ---- platform ----")
     W(f"P = {P};")
     W(f"nFCR = {nF};")
     W(f"nCoreTypes = {len(plat.core_types)};")
@@ -580,7 +582,7 @@ def main() -> int:
                           for i in range(max_modes)]
                          for ct in plat.core_types]) + ");")
     W("")
-    W("% symmetry classes: slots that are genuinely interchangeable (C.5)")
+    W("% symmetry classes: slots that are genuinely interchangeable")
     sym = plat.symmetry_classes()
     W(f"nSymClasses = {len(sym)};")
     W(f"symClassSize = {mzn_array([len(c) for c in sym])};")
@@ -617,7 +619,7 @@ def main() -> int:
       f"{mzn_array(flat)});")
     W(f"mem_req = {mzn_array([nd.state_size for nd in nodes])};")
     W("")
-    W("% ---- safety (C.8) ----")
+    W("% ---- safety ----")
     W(f"sil_req_parent = {mzn_array(sil_req_parent)};")
     W(f"dev_base = {mzn_array([0 if node_types[i].startswith('__') else dev_base.get(node_types[i], dev_base_default) for i in range(n)])};")
     W(f"dev_k = array1d(0..4, {mzn_array(dev_k)});")
@@ -655,7 +657,7 @@ def main() -> int:
     W(f"period_mode_partitioned = "
       f"{'true' if args.period_mode == 'partitioned' else 'false'};")
     W("")
-    W("% ---- latency (B.2) ----")
+    W("% ---- latency ----")
     lat = load_latency(args.latency, node_names, tok)
     W(f"nLatCon = {len(lat)};")
     W(f"lat_src = {mzn_array([x[0] for x in lat])};")
@@ -665,9 +667,9 @@ def main() -> int:
     if lat:
         print(f"  {len(lat)} latency constraints", file=sys.stderr)
 
-    # ---- 8. patterns (C.3, Phase 4) -------------------------------------
+    # ---- 8. patterns ----------------------------------------------------
     W("")
-    W("% ---- safety patterns: guarded superposition (C.2) ----")
+    W("% ---- safety patterns: guarded superposition ----")
     if pats:
         pid = {p.id: k + 1 for k, p in enumerate(pats)}
         W(f"nPat = {len(pats)};")
@@ -712,7 +714,7 @@ def main() -> int:
             owner_par = next(k + 1 for k, pl in enumerate(parent_names)
                              if pl == f"{appn}.{owner}")
             node_owner.append(owner_par)
-            # PAIRWISE (Q16): the owner's copy with the SAME copy index
+            # PAIRWISE: the owner's copy with the SAME copy index
             owner_node.append(base_of[(app_of[i], owner, copy_of[i])])
             if sup and bare in sup.guard_of:
                 gs = set(sup.guard_of[bare])
@@ -776,7 +778,8 @@ def main() -> int:
                                else "false")
                               for k in range(len(pats))] for x in pe_e]) + ");")
 
-        # placement relations, expanded PAIRWISE over HSDF copies (Q16)
+        # placement relations, expanded PAIRWISE over HSDF copies
+        # (docs/design.md#pairwise-placement)
         pl = []
         for si, h in enumerate(hgraphs):
             sup = sups[si]
@@ -824,7 +827,7 @@ def main() -> int:
         W("nPL = 0;  pl_u = [1];  pl_v = [1];  pl_rel = [1];  pl_owner = [1];")
         W("pl_guard = array2d(1..1, 1..1, [false]);")
 
-    # ---- 9. communication (B.5, Phase 6) ---------------------------------
+    # ---- 9. communication ------------------------------------------------
     W("")
     W("% ---- TDMA communication ----")
     tdma_n = plat.tdma_slots or 8

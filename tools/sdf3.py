@@ -8,8 +8,9 @@ Reads the DeSyDe/SDF3 input ecosystem:
 
 The SDF data model here is deliberately multi-rate. The benchmark files that
 ship with DeSyDe are already single-rate (*.hsdf.xml, all rates 1), but the
-whole point of C.6 is that patterns are applied at SDF level and unfolding
-happens afterwards, so the front-end must handle general SDF.
+whole point is that patterns are applied at SDF level and unfolding happens
+afterwards (docs/design.md#patterns-at-sdf-level), so the front-end must handle
+general SDF.
 """
 from __future__ import annotations
 
@@ -184,10 +185,12 @@ def parse_sdf3(path: str | Path) -> SDFGraph:
 class WCETTable:
     """(task_type, processor_model, mode) -> wcet.
 
-    Per Q8 this is the single authoritative source of timing, including for
+    This is the single authoritative source of timing, including for
     pattern-introduced components (their `wcet_type` keys in here too).
-    Missing entries are a hard error naming the exact XML element to add --
-    silently substituting a scaled value is how unpublishable numbers happen.
+    A missing (task, core type, mode) entry forbids that binding; an actor
+    with no entry for any core type is a hard error naming the exact XML
+    element to add -- silently substituting a scaled value is how
+    unpublishable numbers happen (docs/design.md#wcet-table-and-forbidden-bindings).
     """
 
     def __init__(self, path: str | Path):

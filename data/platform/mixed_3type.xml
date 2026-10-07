@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- SafeDSE platform catalogue (architecture doc C.5).
+<!-- SafeDSE platform catalogue (docs/inputs.md#platform-catalogue).
      An FCR template is something you physically buy: its cores share power,
      clock and substrate, so they fail together.  The DSE decides how many of
      each to instantiate. -->

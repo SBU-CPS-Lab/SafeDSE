@@ -1,4 +1,5 @@
-# SafeDSE safety pattern library (architecture doc C.3)
+# SafeDSE safety pattern library (docs/design.md#pattern-catalogue,
+# schema in docs/inputs.md#pattern-catalogue)
 #
 # A pattern record has three parts, mirroring the three source catalogues:
 #   1. STRUCTURE   -- Koopman: what components and channels it adds
@@ -7,14 +8,16 @@
 #                     Same-CPU Doer/Checker are structurally IDENTICAL and
 #                     differ only here.  A representation carrying topology
 #                     alone cannot express the catalogue.
-#   3. ATTRIBUTES  -- Armoush (costs, RSI) and Preschern (tactics, for the GSN
-#                     artefact in Phase 7)
+#   3. ATTRIBUTES  -- Armoush (costs, RSI) and Preschern (tactics and
+#                     scenarios, for the generated GSN argument)
 #
-# INVARIANTS the expander checks (C.4), so a malformed record fails at build
+# INVARIANTS the expander checks (docs/design.md#well-formedness-checks), so a
+# malformed record fails at build
 # time with a diagnosable message rather than as an opaque UNSAT:
 #   * every cycle a pattern introduces carries at least one initial token
 #   * every component fires once per iteration and produces on all outputs
-#     (the token-preservation obligation, A.4) -- failure behaviour lives in
+#     (the token-preservation obligation, docs/design.md#token-preservation) --
+#     failure behaviour lives in
 #     the VALUE domain, never the presence domain
 #   * DIFFERENT/DIFFERENT_FCR over k components is satisfiable on the platform
 #   * a pattern whose covers_faults omits the selected fault_model is not
@@ -27,9 +30,10 @@
 # component above the actor's SIL. The model does not yet use it: the owner
 # stays at the required SIL, which is conservative.
 #
-# Phase 4/5 admit only `voter: folded` patterns (Q10).  Explicit voters, and
-# with them the Armoush NVP / NSCP / M-out-of-N family, arrive in Phase 6.
-# No nesting (Q9): patterns apply to base SDF actors only.
+# This catalogue holds `voter: folded` patterns only.  Explicit voters (the
+# Armoush NVP / NSCP / M-out-of-N family) are in patterns_explicit_voter*.yaml
+# (docs/design.md#voters).
+# No nesting (docs/design.md#no-nesting): patterns apply to base SDF actors only.
 
 patterns:
 
@@ -50,7 +54,7 @@ patterns:
     placement: []
     achieves_sil: [0, 1]
     # not a coverage claim: `none` takes no measure, and listing both classes
-    # only makes it admissible under every fault model (review rev1, D14)
+    # only makes it admissible under every fault model
     covers_faults: [random_hw, systematic_sw]
     failure_mode: none
     voter: folded
@@ -147,13 +151,13 @@ patterns:
       a disagreement the owner marks its output invalid and the pair goes to
       its safe state (fails silent), so the fault reaction starts within one
       iteration.  No explicit voter: 2-of-2 requires agreement rather than a
-      majority, so the comparison folds into channel b and the owner -- which
-      is why this pattern is reachable in Phase 4 while NVP is not.  The name
-      is Koopman's; it is not IEC 61508 MooN notation.
+      majority, so the comparison folds into channel b and the owner, and no
+      explicit voter is needed.  The name is Koopman's; it is not IEC 61508
+      MooN notation.
       Both channels always fire and always produce, per the token-preservation
       obligation.  A detected disagreement marks the token invalid; it never
-      withholds it.  So the timing guarantee holds in the degraded mode too
-      (Q4), at the price of being conservative in the fault-free case.
+      withholds it.  So the timing guarantee holds in the degraded mode too,
+      at the price of being conservative in the fault-free case.
     components:
       - {role: channel_b, sil_offset: 0, wcet_type: "<owner>"}
     edges:
@@ -209,7 +213,7 @@ patterns:
       rather than recomputes -- so its WCET is a fraction of the doer's, which
       is what makes it competitive on throughput.
       Koopman's "Attempted High SIL Doer/Checker" is the same structure WITHOUT
-      the isolation, and is an anti-pattern; the C.4 check rejects any record
+      the isolation, and is an anti-pattern; the catalogue check rejects any record
       that claims to fail silent while co-locating its channels.
     components:
       - {role: checker, sil_offset: 0, wcet_type: "checker_<owner>"}
@@ -249,7 +253,7 @@ patterns:
       is economic: the expensive-to-develop part is the small checker, not the
       large doer, so a SIL 3-4 function is obtained while the bulk of the code
       stays at SIL 1-2.  Three processors.
-      Represented FLAT (Q9): the "checker for the checker" is simply a second
+      Represented FLAT (no nesting): the "checker for the checker" is simply a second
       checker component with a cross-check edge, not a recursive application of
       another pattern.
     components:
@@ -313,11 +317,11 @@ patterns:
       the distinction Koopman insists on: cross-checked redundancy detects
       faults, standby redundancy provides availability, and you must not spend
       one and claim the other.
-      Per your comparison-n.docx note, the hot standby runs concurrently but
-      does not place data on the output queue until the primary pair is
-      signalled failed.  Under the token-preservation obligation (A.4) all four
-      channels always fire and always produce; the selection is a value-domain
-      operation.  So the timing guarantee holds in the degraded mode too (Q4).
+      The hot standby runs concurrently but does not place data on the output
+      queue until the primary pair is signalled failed.  Under the
+      token-preservation obligation all four channels always fire and always
+      produce; the selection is a value-domain operation.  So the timing
+      guarantee holds in the degraded mode too.
     components:
       - {role: primary_b,   sil_offset: 0, wcet_type: "<owner>"}
       - {role: standby_a,   sil_offset: 0, wcet_type: "<owner>"}

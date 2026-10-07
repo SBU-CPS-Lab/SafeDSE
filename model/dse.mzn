@@ -1,9 +1,9 @@
 % ===========================================================================
-% dse.mzn -- SafeDSE Phase 1 top level
+% dse.mzn -- SafeDSE top level
 %
 % Mapping + per-core static order + per-application throughput + heterogeneous
-% platform with FCRs + switchable objective.  Safety patterns are Phase 4;
-% communication is ideal here and refined in Phase 6.
+% platform with FCRs + safety patterns + TDMA communication + switchable
+% objective.  Structure: docs/architecture.md; rationale: docs/design.md.
 %
 % Backend: CP-SAT.  Gecode and Chuffed remain wired up in the test harness as
 % small-instance correctness oracles only -- disagreement between them signals
@@ -28,13 +28,13 @@ array[APP] of int: period_ub;
 % ---- derived: WCET follows the binding ------------------------------------
 % This is a 3-D element with two nested variable indices (pmode[proc[i]] is
 % itself an element on a var array), which looks like it ought to flatten
-% badly. It was replaced during Phase 1 with a flattened "speed class" encoding
-% -- one reified implication per (actor, slot) feeding a 1-D lookup into a
-% parameter row -- on the theory that the nesting was the scalability
-% bottleneck. Measured head to head, the class encoding produced identical
-% optima but was never faster and up to 4x slower (c_rasta at mu<=500: 3.46s
-% vs 0.85s), so the simpler form is kept. The actual bottleneck was elsewhere;
-% see the branch-symmetry finding in README_PHASE1.md.
+% badly. A flattened "speed class" encoding -- one reified implication per
+% (actor, slot) feeding a 1-D lookup into a parameter row -- was tried on the
+% theory that the nesting was the scalability bottleneck. Measured head to
+% head, the class encoding produced identical optima but was never faster and
+% up to 4x slower (c_rasta at mu<=500: 3.46s vs 0.85s), so the simpler form is
+% kept. The actual bottleneck was branch symmetry between identical HSDF
+% copies (docs/design.md#patterns-at-sdf-level).
 int: maxwcet = max([wcet[i,t,m] | i in A, t in CT, m in MD
                     where wcet[i,t,m] < 1000000]);
 array[A] of var 0..maxwcet: T;
@@ -64,12 +64,12 @@ constraint forall(c in CH)(
                        /\ T[ch_rec[c]] = 0 )
 );
 
-% ---- throughput (C.7: per-application periods) ----------------------------
+% ---- throughput: per-application periods ----------------------------------
 int: maxmu = sum(i in A)(maxwcet) * max([1] ++ [tok[i,j] | i,j in A where tok[i,j] > 0]);
 array[APP] of var 1..maxmu: mu;
 array[A] of var -maxmu..maxmu: pot;
 
-% PER-APPLICATION PERIODS (Q15 -- RESOLVED).
+% PER-APPLICATION PERIODS (docs/design.md#periods-of-multiple-applications).
 %
 % Rosvall's MCR propagator decomposes the MSAG into connected sub-graphs and
 % runs the analysis per sub-graph, so every application covered by one sub-graph
@@ -85,8 +85,8 @@ array[A] of var -maxmu..maxmu: pot;
 % applications sharing a core are coupled to a common period, applications on
 % disjoint cores get independent ones. Crucially it is also SOUND for the node
 % potentials -- within a connected component every node shares one mu, so the
-% potentials are in a common time base, which was the exact condition the old
-% C.7 note warned about.
+% potentials are in a common time base, which is the condition the potential
+% formulation needs.
 % Posted over APPLICATION pairs rather than actor pairs. DeSyDe writes this as
 % O(n^2) reified implications over cross-application actors, which timed out at
 % 32 actors here. Routing it through a per-(app, core) occupancy matrix makes it
@@ -176,7 +176,7 @@ constraint forall(p in PR)(
 var int: total_cost;
 constraint total_cost = hw_cost + dev_cost + partition_total + pattern_cost;
 
-% ---- switchable objective (B.6) -------------------------------------------
+% ---- switchable objective (docs/design.md#objective-selection) ------------
 % Every metric is always computed and always bounded; the objective is a
 % parameter, so switching what is optimised needs a -D flag and no model edit.
 enum Metric = { THROUGHPUT, LATENCY, HWCOST, DEVCOST, TOTALCOST, POWER,

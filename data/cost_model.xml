@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Per-SIL software development cost multipliers (architecture doc C.8).
+<!-- Per-SIL software development cost multipliers (docs/design.md#cost-profiles).
 
      Source: Myklebust, Stalhane, Haugset, "Development Cost SIL2 to SIL3",
      ISSC 2015. The paper is a survey, and its central finding is that the
